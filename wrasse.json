@@ -1,0 +1,167 @@
+{
+  "$schema": "https://raw.githubusercontent.com/varlanv/wrasse/refs/heads/master/wrasse-schema.json",
+  "format": {
+    "enabled": true
+  },
+  "rules": {
+    "no-semicolons": {
+      "level": "error"
+    },
+    "unused-private-class": {
+      "level": "error"
+    },
+    "named-arguments": {
+      "level": "error",
+      "all-calls": true,
+      "allow-mixed": false,
+      "threshold": 2,
+      "wrap": true,
+      "excluded-packages": ["kotlin", "kotlinx"]
+    },
+    "no-wildcard-imports": {
+      "level": "off"
+    },
+    "trailing-newline": {
+      "level": "error"
+    },
+    "no-empty-class-body": {
+      "level": "error"
+    },
+    "no-unit-return": {
+      "level": "error"
+    },
+    "unnecessary-backticks": {
+      "level": "error"
+    },
+    "redundant-constructor-keyword": {
+      "level": "error"
+    },
+    "no-empty-parens-before-trailing-lambda": {
+      "level": "error"
+    },
+    "modifier-order": {
+      "level": "error"
+    },
+    "if-else-bracing": {
+      "level": "error",
+      "allow-inline": false
+    },
+    "also-could-be-apply": {
+      "level": "error"
+    },
+    "import-ordering": {
+      "level": "error"
+    },
+    "no-unused-imports": {
+      "level": "error"
+    },
+    "empty-catch-block": {
+      "level": "error"
+    },
+    "empty-if-block": {
+      "level": "error"
+    },
+    "empty-else-block": {
+      "level": "error"
+    },
+    "empty-when-block": {
+      "level": "error"
+    },
+    "backing-property-naming": {
+      "level": "error"
+    },
+    "class-naming": {
+      "level": "error"
+    },
+    "constructor-parameter-naming": {
+      "level": "error"
+    },
+    "double-negative": {
+      "level": "error"
+    },
+    "empty-default-constructor": {
+      "level": "error"
+    },
+    "empty-do-while-block": {
+      "level": "error"
+    },
+    "empty-finally-block": {
+      "level": "error"
+    },
+    "empty-function-block": {
+      "level": "error"
+    },
+    "empty-for-block": {
+      "level": "error"
+    },
+    "empty-kotlin-file": {
+      "level": "error"
+    },
+    "empty-init-block": {
+      "level": "error"
+    },
+    "empty-secondary-constructor": {
+      "level": "error"
+    },
+    "empty-try-block": {
+      "level": "error"
+    },
+    "empty-while-block": {
+      "level": "error"
+    },
+    "equals-null-call": {
+      "level": "error"
+    },
+    "exception-raised-in-unexpected-location": {
+      "level": "error"
+    },
+    "extension-functions-same-name": {
+      "level": "error"
+    },
+    "filename": {
+      "level": "error"
+    },
+    "explicit-it-lambda-multiple-parameters": {
+      "level": "error"
+    },
+    "when-entry-bracing": {
+      "level": "error"
+    },
+    "use-let": {
+      "level": "error"
+    },
+    "unnecessary-inheritance": {
+      "level": "error"
+    },
+    "function-expression-body": {
+      "level": "off"
+    },
+    "getter-setter-fields": {
+      "level": "error"
+    },
+    "invalid-range": {
+      "level": "error"
+    },
+    "global-coroutine-usage": {
+      "level": "error"
+    },
+    "enum-entry-naming": {
+      "level": "error"
+    },
+    "instance-of-check-for-exception": {
+      "level": "error"
+    },
+    "nested-classes-visibility": {
+      "level": "error"
+    },
+    "lambda-return": {
+      "level": "error"
+    },
+    "forbidden-calls": {
+      "level": "error",
+      "calls": {
+        "kotlinx.coroutines.launch": ["libs/common/lang/src/main/kotlin/com/varlanv/kryptoid/lang/CoroutineUtils.kt"]
+      }
+    }
+  }
+}

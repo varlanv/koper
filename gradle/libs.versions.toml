@@ -1,0 +1,85 @@
+[versions]
+apacheHttpClient5Version = "5.6.4"
+dslJsonVersion = "2.0.2"
+javaVersion = "26"
+kspVersion = "2.3.10"
+jmhPluginVersion = "0.7.3"
+jmhVersion = "1.37"
+kotestVersion = "6.2.5"
+kotlinVersion = "2.4.20"
+kotlinxBenchmarkVersion = "0.5.0"
+kotlinxCoroutinesVersion = "1.11.0"
+kotlinxDatetimeVersion = "0.8.0"
+kotlinxIoVersion = "0.9.1"
+kotlinxSerializationVersion = "1.11.0"
+koverVersion = "0.9.9"
+kryoVersion = "5.6.2"
+ktorVersion = "3.6.0"
+natsLibVersion = "2.26.3"
+nettyVersion = "4.2.18.Final"
+playWrightVersion = "1.63.0"
+selfieVersion = "3.1.1"
+sqliteJdbcVersion = "3.53.4.0"
+versionCatalogPluginVersion = "1.1.1"
+wrasseVersion = "0.0.1-SNAPSHOT"
+
+[libraries]
+apache-httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "apacheHttpClient5Version" }
+dslJson = { module = "com.dslplatform:dsl-json", version.ref = "dslJsonVersion" }
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmhVersion" }
+kotlin-gradle-allopen = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlinVersion" }
+kotlin-gradle-benchmark = { module = "org.jetbrains.kotlinx.benchmark:org.jetbrains.kotlinx.benchmark.gradle.plugin", version.ref = "kotlinxBenchmarkVersion" }
+kotlin-gradle-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "koverVersion" }
+kotlin-gradle-main = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinVersion" }
+kotlin-gradle-serialization = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlinVersion" }
+kotlin-kotest-assertionsJvm = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotestVersion" }
+kotlin-kotest-assertionsCore = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestVersion" }
+kotlin-kotest-frameworkEngine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotestVersion" }
+kotlin-kotest-junit5Runner = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotestVersion" }
+kotlin-ktor-bom = { module = "io.ktor:ktor-bom", version.ref = "ktorVersion" }
+kotlin-ktor-clientApache = { module = "io.ktor:ktor-client-apache5-jvm" }
+kotlin-ktor-clientCio = { module = "io.ktor:ktor-client-cio" }
+kotlin-ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiation" }
+kotlin-ktor-clientCore = { module = "io.ktor:ktor-client-core" }
+kotlin-ktor-clientJava = { module = "io.ktor:ktor-client-java" }
+kotlin-ktor-clientOkHttp = { module = "io.ktor:ktor-client-okhttp-jvm" }
+kotlin-ktor-io = { module = "io.ktor:ktor-io" }
+kotlin-ktor-serializationKotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-json" }
+kotlin-ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm" }
+kotlin-ktor-serverCors = { module = "io.ktor:ktor-server-cors" }
+kotlin-ktor-serverNetty = { module = "io.ktor:ktor-server-netty" }
+kotlin-ktor-websocketServerCore = { module = "io.ktor:ktor-server-websockets-jvm" }
+kotlin-x-benchmark = { module = "org.jetbrains.kotlinx:kotlinx-benchmark-runtime", version.ref = "kotlinxBenchmarkVersion" }
+kotlin-x-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesVersion" }
+kotlin-x-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesVersion" }
+kotlin-x-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetimeVersion" }
+kotlin-x-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIoVersion" }
+kotlin-x-io-coreJvm = { module = "org.jetbrains.kotlinx:kotlinx-io-core-jvm", version.ref = "kotlinxIoVersion" }
+kotlin-x-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationVersion" }
+kotlin-x-serialization-coreJvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm", version.ref = "kotlinxSerializationVersion" }
+kotlin-x-serialization-jsonJvm = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm", version.ref = "kotlinxSerializationVersion" }
+kotlin-x-serialization-jsonCore = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationVersion" }
+kryo = { module = "com.esotericsoftware:kryo", version.ref = "kryoVersion" }
+nats = { module = "io.nats:jnats", version.ref = "natsLibVersion" }
+netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "nettyVersion" }
+netty-handler = { module = "io.netty:netty-handler", version.ref = "nettyVersion" }
+netty-transport = { module = "io.netty:netty-transport", version.ref = "nettyVersion" }
+playwright-core = { module = "com.microsoft.playwright:playwright", version.ref = "playWrightVersion" }
+selfie = { module = "com.diffplug.selfie:selfie-runner-junit5", version.ref = "selfieVersion" }
+sqliteJdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbcVersion" }
+wrasse-compiler-plugin = { module = "com.varlanv.wrasse:compiler-plugin", version.ref = "wrasseVersion" }
+wrasse-gradle-plugin = { module = "com.varlanv.wrasse:wrasse-gradle-plugin", version.ref = "wrasseVersion" }
+
+[plugins]
+internalConvention = { id = "com.varlanv.kryptoid.gradle.internal-gradle-convention-plugin" }
+internalBenchmark = { id = "com.varlanv.koper.gradle.internal-benchmark-convention-plugin" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmhPluginVersion" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
+kotest = { id = "io.kotest", version.ref = "kotestVersion" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinVersion" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlinVersion" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlinVersion" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlinVersion" }
+kotlin-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "koverVersion" }
+wrasse = { id = "com.varlanv.wrasse", version.ref = "wrasseVersion" }
+versionCatalogPlugin = { id = "nl.littlerobots.version-catalog-update", version.ref = "versionCatalogPluginVersion" }
