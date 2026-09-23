@@ -19,57 +19,48 @@ actual fun Charset.toByteArray(
         )
     }
 
-    val utf8 = this == Charset.Utf8
     var size = 0
 
-    string.forEachCodePointInRange(start, end) { cp ->
-        val width = when {
-            !utf8 -> 1
-            cp <= 0x7F -> 1
-            cp <= 0x7FF -> 2
-            cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
-            cp <= 0xFFFF -> 3
-            else -> 4
-        }
+    if (this == Charset.Utf8) {
+        string.forEachCodePointInRange(start, end) { cp ->
+            val width = when {
+                cp <= 0x7F -> 1
+                cp <= 0x7FF -> 2
+                cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
+                cp <= 0xFFFF -> 3
+                else -> 4
+            }
 
-        if (size > Int.MAX_VALUE - width) {
-            throw IllegalArgumentException("Encoded byte array is too large")
+            if (size > Int.MAX_VALUE - width) {
+                throw IllegalArgumentException("Encoded byte array is too large")
+            }
+            size += width
         }
-        size += width
+    } else {
+        string.forEachCodePointInRange(start, end) {
+            if (size == Int.MAX_VALUE) {
+                throw IllegalArgumentException("Encoded byte array is too large")
+            }
+            size++
+        }
     }
 
     val result = ByteArray(size)
     var position = 0
 
-    string.forEachCodePointInRange(start, end) { cp ->
-        encodeInline(cp) { byte ->
-            result[position++] = byte
+    when (this) {
+        Charset.Utf8 -> string.forEachCodePointInRange(start, end) { cp ->
+            Charset.encodeUtf8Inline(cp) { result[position++] = it }
+        }
+        Charset.Ascii -> string.forEachCodePointInRange(start, end) { cp ->
+            Charset.encodeAsciiInline(cp) { result[position++] = it }
+        }
+        Charset.Latin1 -> string.forEachCodePointInRange(start, end) { cp ->
+            Charset.encodeLatin1Inline(cp) { result[position++] = it }
         }
     }
 
     return result
-}
-
-private inline fun String.forEachCodePointInRange(
-    start: Int,
-    end: Int,
-    block: (Int) -> Unit,
-) {
-    var index = start
-    while (index < end) {
-        val char = this[index++]
-        var cp = char.code
-
-        if (char.isHighSurrogate() && index < end) {
-            val next = this[index]
-            if (next.isLowSurrogate()) {
-                cp = char.toCodePoint(next)
-                index++
-            }
-        }
-
-        block(cp)
-    }
 }
 
 actual fun Charset.allocateString(
@@ -77,7 +68,6 @@ actual fun Charset.allocateString(
     offset: Int,
     len: Int,
 ): String {
-    // todo revisit this later
     // Validate before calculating offset + len.
     if (offset < 0 || len < 0 || offset > bytes.size - len) {
         throw IndexOutOfBoundsException(

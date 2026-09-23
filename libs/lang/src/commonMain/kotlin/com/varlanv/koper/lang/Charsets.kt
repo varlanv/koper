@@ -11,8 +11,8 @@ enum class Charset {
     inline fun encodeInline(codepoint: Int, block: (Byte) -> Unit) {
         when (this) {
             Utf8 -> encodeUtf8Inline(codepoint, block)
-            Ascii -> encodeAsciiInline(block, codepoint)
-            Latin1 -> encodeLatin1Inline(block, codepoint)
+            Ascii -> encodeAsciiInline(codepoint, block)
+            Latin1 -> encodeLatin1Inline(codepoint, block)
         }
     }
 
@@ -51,7 +51,7 @@ enum class Charset {
             }
         }
 
-        inline fun encodeLatin1Inline(block: (Byte) -> Unit, codepoint: Int) {
+        inline fun encodeLatin1Inline(codepoint: Int, block: (Byte) -> Unit) {
             block(
                 if (codepoint in 0..0xFF) {
                     codepoint.toByte()
@@ -61,7 +61,7 @@ enum class Charset {
             )
         }
 
-        inline fun encodeAsciiInline(block: (Byte) -> Unit, codepoint: Int) {
+        inline fun encodeAsciiInline(codepoint: Int, block: (Byte) -> Unit) {
             block(
                 if (codepoint in 0..0x7F) {
                     codepoint.toByte()
@@ -73,20 +73,28 @@ enum class Charset {
     }
 
     inline fun encodeInline(chars: CharSequence, block: (Byte) -> Unit) {
-        var index = 0
-        val length = chars.length
-        while (index < length) {
-            val char = chars[index++]
-            var codepoint = char.code
-            if (char.isHighSurrogate() && index < length) {
-                val next = chars[index]
-                if (next.isLowSurrogate()) {
-                    codepoint = char.toCodePoint(next)
-                    index++
-                }
-            }
-            encodeInline(codepoint, block)
+        when (this) {
+            Utf8 -> chars.forEachCodePointInRange(0, chars.length) { encodeUtf8Inline(it, block) }
+            Ascii -> chars.forEachCodePointInRange(0, chars.length) { encodeAsciiInline(it, block) }
+            Latin1 -> chars.forEachCodePointInRange(0, chars.length) { encodeLatin1Inline(it, block) }
         }
+    }
+}
+
+@PublishedApi
+internal inline fun CharSequence.forEachCodePointInRange(start: Int, end: Int, block: (Int) -> Unit) {
+    var index = start
+    while (index < end) {
+        val char = this[index++]
+        var codepoint = char.code
+        if (char.isHighSurrogate() && index < end) {
+            val next = this[index]
+            if (next.isLowSurrogate()) {
+                codepoint = char.toCodePoint(next)
+                index++
+            }
+        }
+        block(codepoint)
     }
 }
 
