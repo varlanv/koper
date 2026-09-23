@@ -38,3 +38,13 @@ private fun checkMismatchRange(from: Int, to: Int, size: Int) {
         )
     }
 }
+
+actual fun ByteArray.setPackedInt(idx: Int, i: Int) {
+    this[idx] = i.toByte()
+    this[idx + 1] = (i ushr 8).toByte()
+    this[idx + 2] = (i ushr 16).toByte()
+    this[idx + 3] = (i ushr 24).toByte()
+}
+
+actual fun ByteArray.setPackedLong(idx: Int, l: Long) {
+}

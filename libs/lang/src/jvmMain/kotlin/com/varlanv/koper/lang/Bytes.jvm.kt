@@ -14,3 +14,11 @@ actual fun ByteArray.mismatch(
 fun BytesSlice.readBuff(): ByteBuffer {
     return ByteBuffer.wrap(this.bytes.array, offset, len).slice()
 }
+
+actual fun ByteArray.setPackedInt(idx: Int, i: Int) {
+    intViewHandle.set(this, idx, i)
+}
+
+actual fun ByteArray.setPackedLong(idx: Int, l: Long) {
+    longViewHandle.set(this, idx, l)
+}

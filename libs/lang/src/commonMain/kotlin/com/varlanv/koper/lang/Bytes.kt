@@ -7,10 +7,14 @@ expect fun ByteArray.mismatch(
     b: ByteArray, bFromIndex: Int, bToIndex: Int
 ): Int
 
+expect fun ByteArray.setPackedInt(idx: Int, i: Int)
+expect fun ByteArray.setPackedLong(idx: Int, l: Long)
+
 fun ByteArray.equals(
     aFromIndex: Int, aToIndex: Int,
     b: ByteArray, bFromIndex: Int, bToIndex: Int
 ): Boolean = mismatch(aFromIndex, aToIndex, b, bFromIndex, bToIndex) < 0
+
 
 fun ByteArray.containsNeedle(
     needle: ByteArray,

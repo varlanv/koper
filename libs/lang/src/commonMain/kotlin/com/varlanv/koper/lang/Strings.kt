@@ -18,6 +18,50 @@ value class Str(val bytes: BytesSlice) {
 }
 
 /**
+ * String representation packed into single byte array,
+ * Bytes 0-3 are reserved for string length.
+ * Byte 4 is reserved for charset.
+ * Bytes 5-7 are unused.
+ * In some rare cases this class may be favorable to [Str] family,
+ * because it doesn't require extra object allocations - after inlining it is exposed directly as [ByteArray].
+ * Main downside of this class is that unlike [Str], it has to be sole owner of the backing array.
+ */
+@JvmInline
+value class ByteStr private constructor(internal val bytes: ReadonlyBytes) {
+
+    companion object {
+
+        private const val DATA_OFFSET = 8
+        private const val CHARSET_OFFSET = 4
+        private const val LEN_OFFSET = 0
+
+        fun allocateFromString(string: String): ByteStr {
+            val source = string.encodeToByteArray()
+            val size = source.size
+            val destination = ByteArray(size + DATA_OFFSET)
+            destination.setPackedInt(LEN_OFFSET, size)
+            destination[CHARSET_OFFSET] = Charset.Utf8.ordinal.toByte()
+            source.copyInto(destination, DATA_OFFSET)
+            return ByteStr(ReadonlyBytes(destination))
+        }
+    }
+
+    fun asBytesSlice(): BytesSlice = BytesSlice(bytes, DATA_OFFSET, len())
+
+    override fun toString(): String = bytes.array.decodeToString(DATA_OFFSET)
+}
+
+expect fun ByteStr.len(): Int
+expect fun ByteStr.encoding(): Charset
+expect fun ByteStr.copyInto(
+    sourceOffset: Int,
+    destination: ByteArray,
+    destinationOffset: Int,
+    length: Int
+)
+
+
+/**
  * Bytes view on Latin1 string.
  * For performance reasons, actual Latin1 encoding is not guaranteed invariant.
  * It is application bug to represent non-latin1 bytes as [Latin1Str].

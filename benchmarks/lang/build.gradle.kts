@@ -39,5 +39,21 @@ benchmark {
             iterationTimeUnit = "ms"
             advanced("jvmForks", 2)
         }
+        register("inst") {
+            include(".*InstBenchmark.*")
+            warmups = 3
+            iterations = 5
+            iterationTime = 500
+            iterationTimeUnit = "ms"
+            advanced("jvmForks", 2)
+        }
+        register("kotlinInstant") {
+            include(".*KotlinInstantBenchmark.*")
+            warmups = 3
+            iterations = 5
+            iterationTime = 500
+            iterationTimeUnit = "ms"
+            advanced("jvmForks", 2)
+        }
     }
 }
