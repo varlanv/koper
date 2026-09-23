@@ -23,9 +23,9 @@ class StringsSpec : BaseSpec({
         for ((charset, input) in listOf(
             Charset.Utf8 to "é中🙂", Charset.Ascii to "hello", Charset.Latin1 to "éÿ",
         )) {
-            val payload = charset.toByteArray(input)
-            val bytes = byteArrayOf(65, 66, 67) + payload + byteArrayOf(68, 69, 70)
-            val slice = BytesSlice(ReadonlyBytes(bytes), 3, payload.size)
+            val payload = charset.allocateByteSlice(input)
+            val bytes = byteArrayOf(65, 66, 67) + payload.allocateArray() + byteArrayOf(68, 69, 70)
+            val slice = ByteSlice(ReadonlyBytes(bytes), 3, payload.len)
             charset.allocateString(slice.bytes.array, slice.offset, slice.len) shouldBe input
             Str(slice).allocateString(charset) shouldBe input
             charset.allocateString(bytes, bytes.size, 0) shouldBe ""
@@ -54,7 +54,7 @@ class StringsSpec : BaseSpec({
                 for (end in start..input.length) {
                     val expected = mutableListOf<Byte>()
                     charset.encodeInline(input.substring(start, end)) { expected.add(it) }
-                    charset.toByteArray(input, start, end).toList() shouldBe expected
+                    charset.allocateByteSlice(input, start, end).allocateArray().toList() shouldBe expected
                 }
             }
         }
@@ -72,18 +72,18 @@ class StringsSpec : BaseSpec({
     }
 
     should("wrap an existing unvalidated slice without copying") {
-        val slice = BytesSlice(ReadonlyBytes(byteArrayOf(0xFF.toByte())), 0, 1)
+        val slice = ByteSlice(ReadonlyBytes(byteArrayOf(0xFF.toByte())), 0, 1)
         (Utf8Str(Str(slice)).bytes === slice) shouldBe true
     }
 
     should("validate and retain the original UTF-8 slice") {
         val payload = "é中🙂".encodeToByteArray()
         val bytes = byteArrayOf(0xFF.toByte(), 0xFF.toByte()) + payload + byteArrayOf(0xFF.toByte())
-        val slice = BytesSlice(ReadonlyBytes(bytes), 2, payload.size)
+        val slice = ByteSlice(ReadonlyBytes(bytes), 2, payload.size)
         val str = Utf8Str.fromTainted(slice)
         (str.bytes === slice) shouldBe true
         str.allocateString() shouldBe "é中🙂"
-        Utf8Str.fromTainted(BytesSlice(ReadonlyBytes(bytes), bytes.size, 0)).allocateString() shouldBe ""
+        Utf8Str.fromTainted(ByteSlice(ReadonlyBytes(bytes), bytes.size, 0)).allocateString() shouldBe ""
     }
 
     should("reject malformed UTF-8 and invalid slice bounds") {
@@ -94,12 +94,12 @@ class StringsSpec : BaseSpec({
             byteArrayOf(0xF0.toByte(), 0x90.toByte(), 0x80.toByte()),
         )) {
             shouldThrow<IllegalStateException> {
-                Utf8Str.fromTainted(BytesSlice(ReadonlyBytes(bytes), 0, bytes.size))
+                Utf8Str.fromTainted(ByteSlice(ReadonlyBytes(bytes), 0, bytes.size))
             }
         }
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 1 to 2)) {
             shouldThrow<IllegalStateException> {
-                Utf8Str.fromTainted(BytesSlice(ReadonlyBytes(byteArrayOf(65)), offset, length))
+                Utf8Str.fromTainted(ByteSlice(ReadonlyBytes(byteArrayOf(65)), offset, length))
             }
         }
     }

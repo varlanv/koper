@@ -6,8 +6,9 @@ actual fun Charset.allocateString(
     len: Int
 ): String = String(bytes, offset, len, jdkEncoding())
 
-actual fun Charset.toByteArray(string: String, start: Int, end: Int): ByteArray {
-    return string.substring(start, end).toByteArray(jdkEncoding())
+actual fun Charset.allocateByteSlice(string: String, start: Int, end: Int): ByteSlice {
+    val array = string.substring(start, end).toByteArray(jdkEncoding())
+    return ByteSlice(ReadonlyBytes(array), 0, array.size)
 }
 
 fun Charset.jdkEncoding(): java.nio.charset.Charset = when (this) {

@@ -6,11 +6,11 @@ import org.khronos.webgl.Uint8Array
 
 private val charCodesToString: dynamic = js("(chars) => String.fromCharCode.apply(null, chars)")
 
-actual fun Charset.toByteArray(
+actual fun Charset.allocateByteSlice(
     string: String,
     start: Int,
     end: Int,
-): ByteArray {
+): ByteSlice {
     require(start <= end) { "start ($start) > end ($end)" }
     if (start < 0 || end > string.length) {
         throw IndexOutOfBoundsException(
@@ -25,7 +25,7 @@ actual fun Charset.toByteArray(
     }
 }
 
-private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint: Int): ByteArray {
+private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint: Int): ByteSlice {
     val result = ByteArray(end - start)
     var input = start
     var output = 0
@@ -36,10 +36,10 @@ private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint:
         }
         result[output++] = if (char.code <= maxCodePoint) char.code.toByte() else 0x3F
     }
-    return if (output == result.size) result else result.copyOf(output)
+    return ByteSlice(ReadonlyBytes(result), 0, output)
 }
 
-private fun encodeUtf8(string: String, start: Int, end: Int): ByteArray {
+private fun encodeUtf8(string: String, start: Int, end: Int): ByteSlice {
     var size = 0
     string.forEachCodePointInRange(start, end) { cp ->
         val width = when {
@@ -62,7 +62,7 @@ private fun encodeUtf8(string: String, start: Int, end: Int): ByteArray {
         Charset.encodeUtf8Inline(cp) { result[position++] = it }
     }
 
-    return result
+    return ByteSlice(ReadonlyBytes(result), 0, result.size)
 }
 
 actual fun Charset.allocateString(

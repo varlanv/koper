@@ -52,7 +52,7 @@ fun ByteArray.startsWith(
 @JvmInline
 value class ReadonlyBytes(@PublishedApi internal val array: ByteArray)
 
-class BytesSlice(
+class ByteSlice(
     @PublishedApi
     internal val bytes: ReadonlyBytes,
     val offset: Int,
@@ -78,6 +78,9 @@ class BytesSlice(
      */
     fun unsafeBorrowArray(): ByteArray = bytes.array
 
+    /**
+     * Returns true if this slice covers whole backing array.
+     */
     fun isFullRange(): Boolean = offset == 0 && len == bytes.array.size
 
     fun allocateArray(): ByteArray = bytes.array.copyOfRange(offset, offset + len)
@@ -86,7 +89,7 @@ class BytesSlice(
         if (this === other) {
             return true
         }
-        if (other !is BytesSlice || len != other.len) {
+        if (other !is ByteSlice || len != other.len) {
             return false
         }
 

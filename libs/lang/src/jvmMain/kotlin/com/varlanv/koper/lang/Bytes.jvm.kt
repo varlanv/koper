@@ -11,7 +11,7 @@ actual fun ByteArray.mismatch(
     bToIndex: Int
 ): Int = Arrays.mismatch(this, aFromIndex, aToIndex, b, bFromIndex, bToIndex)
 
-fun BytesSlice.readBuff(): ByteBuffer {
+fun ByteSlice.readBuff(): ByteBuffer {
     return ByteBuffer.wrap(this.bytes.array, offset, len).slice()
 }
 

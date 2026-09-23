@@ -6,7 +6,7 @@ import kotlin.jvm.JvmInline
  * A string slice without attached encoding.
  */
 @JvmInline
-value class Str(val bytes: BytesSlice) {
+value class Str(val bytes: ByteSlice) {
     @Suppress("POTENTIALLY_NON_REPORTED_ANNOTATION")
     @Deprecated(
         "toString without encoding should not be called, because `Str` does not have encoding by design.",
@@ -46,7 +46,7 @@ value class ByteStr private constructor(internal val bytes: ReadonlyBytes) {
         }
     }
 
-    fun asBytesSlice(): BytesSlice = BytesSlice(bytes, DATA_OFFSET, len())
+    fun asBytesSlice(): ByteSlice = ByteSlice(bytes, DATA_OFFSET, len())
 
     override fun toString(): String = bytes.array.decodeToString(DATA_OFFSET)
 }
@@ -68,7 +68,7 @@ expect fun ByteStr.copyInto(
  * This type merely serves as a type-level documentation.
  */
 @JvmInline
-value class Latin1Str private constructor(val bytes: BytesSlice) {
+value class Latin1Str private constructor(val bytes: ByteSlice) {
 
     fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(charset = Charset.Latin1))
 }
@@ -80,11 +80,11 @@ value class Latin1Str private constructor(val bytes: BytesSlice) {
  * This type merely serves as a type-level documentation.
  */
 @JvmInline
-value class Utf8Str private constructor(val bytes: BytesSlice) {
+value class Utf8Str private constructor(val bytes: ByteSlice) {
 
     companion object {
         val empty = Utf8Str(
-            BytesSlice(
+            ByteSlice(
                 ReadonlyBytes(
                     ByteArray(0)
                 ),
@@ -107,7 +107,7 @@ value class Utf8Str private constructor(val bytes: BytesSlice) {
          * Validates given byte slice against utf8 and wraps into Utf8Str.
          * No allocations are performed, input bytes are only validated.
          */
-        fun fromTainted(bytes: BytesSlice): Utf8Str {
+        fun fromTainted(bytes: ByteSlice): Utf8Str {
             if (!bytes.bytes.array.validateUtf8(bytes.offset, bytes.len)) {
                 error("received invalid utf-8 sequence bytes")
             }
@@ -123,6 +123,5 @@ value class Utf8Str private constructor(val bytes: BytesSlice) {
 }
 
 fun String.allocateStr(charset: Charset): Str {
-    val arr = charset.toByteArray(this)
-    return Str(BytesSlice(ReadonlyBytes(arr), 0, arr.size))
+    return Str(charset.allocateByteSlice(this))
 }

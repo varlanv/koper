@@ -9,7 +9,7 @@ import kotlin.random.Random
 class BytesJvmSpec : BaseSpec({
     should("expose exactly the slice as a byte buffer without copying") {
         val bytes = byteArrayOf(9, 8, 1, 2, 7)
-        val slice = BytesSlice(ReadonlyBytes(bytes), 2, 2)
+        val slice = ByteSlice(ReadonlyBytes(bytes), 2, 2)
         val buffer = slice.readBuff()
         buffer.position() shouldBe 0
         buffer.limit() shouldBe 2
@@ -25,7 +25,7 @@ class BytesJvmSpec : BaseSpec({
 
     should("expose empty slices as empty buffers") {
         for (offset in listOf(0, 3)) {
-            val buffer = BytesSlice(ReadonlyBytes(byteArrayOf(1, 2, 3)), offset, 0).readBuff()
+            val buffer = ByteSlice(ReadonlyBytes(byteArrayOf(1, 2, 3)), offset, 0).readBuff()
             buffer.remaining() shouldBe 0
             buffer.capacity() shouldBe 0
         }

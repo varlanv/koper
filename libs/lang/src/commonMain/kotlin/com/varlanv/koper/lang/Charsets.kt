@@ -1,6 +1,7 @@
 package com.varlanv.koper.lang
 
-expect fun Charset.toByteArray(string: String, start: Int = 0, end: Int = string.length): ByteArray
+/** The returned slice may use only part of its backing array. */
+expect fun Charset.allocateByteSlice(string: String, start: Int = 0, end: Int = string.length): ByteSlice
 expect fun Charset.allocateString(bytes: ByteArray, offset: Int = 0, len: Int = bytes.size): String
 
 enum class Charset {
