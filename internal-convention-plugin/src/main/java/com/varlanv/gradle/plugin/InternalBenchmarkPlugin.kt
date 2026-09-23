@@ -7,6 +7,7 @@ import kotlinx.benchmark.gradle.JvmBenchmarkTarget
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.jetbrains.kotlin.allopen.gradle.AllOpenExtension
@@ -17,12 +18,21 @@ class InternalBenchmarkPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val properties = InternalProperties(project.extensions.getByType(VersionCatalogsExtension::class.java))
         val javaVersion = properties.getVersion("javaVersion")
-
         project.group = "com.varlanv.koper.benchmarks"
         project.repositories.mavenCentral()
         project.pluginManager.apply("org.jetbrains.kotlin.multiplatform")
         project.pluginManager.apply("org.jetbrains.kotlin.plugin.allopen")
         project.pluginManager.apply("org.jetbrains.kotlinx.benchmark")
+
+        // JMH uses sun.misc.Unsafe on JDK 24+, and kotlinx-benchmark 0.5.0 renders
+        // the fork's warning bytes as decimal integers in the console.
+        if (javaVersion.toInt() >= 24) {
+            project.tasks.withType(JavaExec::class.java).configureEach { task ->
+                if (task.name.startsWith("jvm") && task.name.endsWith("Benchmark")) {
+                    task.jvmArgs("--sun-misc-unsafe-memory-access=allow")
+                }
+            }
+        }
 
         project.extensions.configure(AllOpenExtension::class.java) { allOpen ->
             allOpen.annotation("org.openjdk.jmh.annotations.State")
