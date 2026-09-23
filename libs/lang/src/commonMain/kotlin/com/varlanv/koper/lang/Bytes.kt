@@ -72,6 +72,14 @@ class BytesSlice(
         }
     }
 
+    /**
+     * Returns backing array. The caller is responsible for ensuring "readonly" invariant
+     * Returned array should not be modified in range from [offset] to [offset] + [len]
+     */
+    fun unsafeBorrowArray(): ByteArray = bytes.array
+
+    fun isFullRange(): Boolean = offset == 0 && len == bytes.array.size
+
     fun allocateArray(): ByteArray = bytes.array.copyOfRange(offset, offset + len)
 
     override fun equals(other: Any?): Boolean {

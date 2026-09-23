@@ -11,7 +11,6 @@ actual fun Charset.toByteArray(
     start: Int,
     end: Int,
 ): ByteArray {
-    // todo revisit this later
     require(start <= end) { "start ($start) > end ($end)" }
     if (start < 0 || end > string.length) {
         throw IndexOutOfBoundsException(
@@ -19,45 +18,48 @@ actual fun Charset.toByteArray(
         )
     }
 
+    return when (this) {
+        Charset.Utf8 -> encodeUtf8(string, start, end)
+        Charset.Ascii -> encodeSingleByte(string, start, end, 0x7F)
+        Charset.Latin1 -> encodeSingleByte(string, start, end, 0xFF)
+    }
+}
+
+private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint: Int): ByteArray {
+    val result = ByteArray(end - start)
+    var input = start
+    var output = 0
+    while (input < end) {
+        val char = string[input++]
+        if (char.isHighSurrogate() && input < end && string[input].isLowSurrogate()) {
+            input++
+        }
+        result[output++] = if (char.code <= maxCodePoint) char.code.toByte() else 0x3F
+    }
+    return if (output == result.size) result else result.copyOf(output)
+}
+
+private fun encodeUtf8(string: String, start: Int, end: Int): ByteArray {
     var size = 0
-
-    if (this == Charset.Utf8) {
-        string.forEachCodePointInRange(start, end) { cp ->
-            val width = when {
-                cp <= 0x7F -> 1
-                cp <= 0x7FF -> 2
-                cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
-                cp <= 0xFFFF -> 3
-                else -> 4
-            }
-
-            if (size > Int.MAX_VALUE - width) {
-                throw IllegalArgumentException("Encoded byte array is too large")
-            }
-            size += width
+    string.forEachCodePointInRange(start, end) { cp ->
+        val width = when {
+            cp <= 0x7F -> 1
+            cp <= 0x7FF -> 2
+            cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
+            cp <= 0xFFFF -> 3
+            else -> 4
         }
-    } else {
-        string.forEachCodePointInRange(start, end) {
-            if (size == Int.MAX_VALUE) {
-                throw IllegalArgumentException("Encoded byte array is too large")
-            }
-            size++
+
+        if (size > Int.MAX_VALUE - width) {
+            throw IllegalArgumentException("Encoded byte array is too large")
         }
+        size += width
     }
 
     val result = ByteArray(size)
     var position = 0
-
-    when (this) {
-        Charset.Utf8 -> string.forEachCodePointInRange(start, end) { cp ->
-            Charset.encodeUtf8Inline(cp) { result[position++] = it }
-        }
-        Charset.Ascii -> string.forEachCodePointInRange(start, end) { cp ->
-            Charset.encodeAsciiInline(cp) { result[position++] = it }
-        }
-        Charset.Latin1 -> string.forEachCodePointInRange(start, end) { cp ->
-            Charset.encodeLatin1Inline(cp) { result[position++] = it }
-        }
+    string.forEachCodePointInRange(start, end) { cp ->
+        Charset.encodeUtf8Inline(cp) { result[position++] = it }
     }
 
     return result

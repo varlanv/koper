@@ -15,6 +15,13 @@ kotlin {
 
 benchmark {
     configurations {
+        register("charsets") {
+            include(".*CharsetsJsBenchmark.*")
+            warmups = 3
+            iterations = 5
+            iterationTime = 500
+            iterationTimeUnit = "ms"
+        }
         register("doubles") {
             include(".*DoubleNumbers.*Benchmark.*")
             warmups = 3
