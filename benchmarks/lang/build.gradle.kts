@@ -15,6 +15,27 @@ kotlin {
 
 benchmark {
     configurations {
+        register("decoderCandidates") {
+            include(".*DecoderCandidatesJsBenchmark.*")
+            warmups = 2
+            iterations = 3
+            iterationTime = 250
+            iterationTimeUnit = "ms"
+        }
+        register("latin1DecoderHybrid") {
+            include(".*Latin1DecoderCandidatesJsBenchmark.current.*")
+            warmups = 2
+            iterations = 3
+            iterationTime = 250
+            iterationTimeUnit = "ms"
+        }
+        register("asciiDecoderValidated") {
+            include(".*AsciiValidatedDecoderJsBenchmark.*")
+            warmups = 2
+            iterations = 3
+            iterationTime = 250
+            iterationTimeUnit = "ms"
+        }
         register("charsets") {
             include(".*CharsetsJsBenchmark.*")
             warmups = 3
