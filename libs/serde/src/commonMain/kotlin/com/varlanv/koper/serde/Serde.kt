@@ -1,9 +1,7 @@
 package com.varlanv.koper.serde
 
-// todo pick one
-
-annotation class Serde
-
+@Target(AnnotationTarget.CLASS)
 annotation class Ser
 
+@Target(AnnotationTarget.CLASS)
 annotation class De

@@ -27,6 +27,7 @@ wrasseVersion = "0.0.1-SNAPSHOT"
 apache-httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "apacheHttpClient5Version" }
 dslJson = { module = "com.dslplatform:dsl-json", version.ref = "dslJsonVersion" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmhVersion" }
+ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "kspVersion" }
 kotlin-gradle-allopen = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlinVersion" }
 kotlin-gradle-benchmark = { module = "org.jetbrains.kotlinx.benchmark:org.jetbrains.kotlinx.benchmark.gradle.plugin", version.ref = "kotlinxBenchmarkVersion" }
 kotlin-gradle-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "koverVersion" }
@@ -72,6 +73,7 @@ wrasse-gradle-plugin = { module = "com.varlanv.wrasse:wrasse-gradle-plugin", ver
 
 [plugins]
 internalConvention = { id = "com.varlanv.kryptoid.gradle.internal-gradle-convention-plugin" }
+internalMultiplatform = { id = "com.varlanv.kryptoid.gradle.internal-multiplatform-convention-plugin" }
 internalBenchmark = { id = "com.varlanv.koper.gradle.internal-benchmark-convention-plugin" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmhPluginVersion" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }

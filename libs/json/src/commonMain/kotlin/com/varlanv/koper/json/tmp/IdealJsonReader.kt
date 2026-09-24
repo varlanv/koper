@@ -1,11 +1,15 @@
-package com.varlanv.koper.json
+package com.varlanv.koper.json.tmp
 
+import com.varlanv.koper.json.JsonInput
+import com.varlanv.koper.json.PackedJsonBytes
+import com.varlanv.koper.json.jsonSpecialScan
 import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.allocateString
 import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
+import kotlin.text.iterator
 
 class IdealJsonReader(
     bufferSize: Int = 32768,

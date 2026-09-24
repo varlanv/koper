@@ -12,6 +12,7 @@ import org.gradle.plugin.use.PluginDependency
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinCommonCompilerOptions
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
@@ -109,12 +110,31 @@ internal class SharedState(val project: Project) {
         applyCommonPlugins()
         configureCommonDependencies()
         pluginManager.apply(internalProperties.getPlugin("kotlin-serialization").get().pluginId)
-        pluginManager.apply(internalProperties.getPlugin("kotlin-multiplatform").get().pluginId)
 
         project.afterEvaluate {
             pluginManager.apply(KoverGradlePlugin::class.java)
         }
     }
+
+    val configureTests = {
+        tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach { test ->
+            test.useJUnitPlatform()
+            test.outputs.upToDateWhen { false }
+            test.testLogging { logging ->
+                logging.showStandardStreams = true
+                logging.showStackTraces = true
+            }
+            val xms = providers.gradleProperty("internalKonventionMs").getOrElse("2g")
+            val xmx = providers.gradleProperty("internalKonventionMx").getOrElse("4g")
+            test.jvmArgs = test.jvmArgs + listOf(
+                "-XX:TieredStopAtLevel=1",
+                "-Xms$xms",
+                "-Xmx$xmx",
+                "-Dfile.encoding=UTF-8",
+            )
+        }
+    }
+
     val applyCommonTargets = {
         extensions.configure<KotlinMultiplatformExtension>("kotlin") { kmp ->
             kmp.jvm()
@@ -122,6 +142,13 @@ internal class SharedState(val project: Project) {
                 nodejs()
             }
         }
+    }
+
+    val configureCommonCompilerOptions = { options: KotlinCommonCompilerOptions ->
+        options.allWarningsAsErrors.set(false)
+        options.extraWarnings.set(true)
+        options.progressiveMode.set(true)
+
     }
     val configureMultiplatform = { additional: (KotlinMultiplatformExtension) -> Unit ->
         extensions.configure<KotlinMultiplatformExtension>("kotlin") { kmp ->

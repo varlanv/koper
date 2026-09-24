@@ -1,5 +1,7 @@
-package com.varlanv.koper.json
+package com.varlanv.koper.json.tmp
 
+import com.varlanv.koper.json.JsonInput
+import com.varlanv.koper.json.JsonOutput
 import com.varlanv.koper.lang.text.Utf8Str
 
 object NativeJsonUtf8Codec {

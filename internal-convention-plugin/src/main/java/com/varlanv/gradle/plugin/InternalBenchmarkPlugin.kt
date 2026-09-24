@@ -13,6 +13,7 @@ class InternalBenchmarkPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         withSharedState(target) {
             configurePrelude()
+            pluginManager.apply(internalProperties.getPlugin("kotlin-multiplatform").get().pluginId)
             project.pluginManager.apply("org.jetbrains.kotlin.plugin.allopen")
             project.pluginManager.apply("org.jetbrains.kotlinx.benchmark")
             applyCommonTargets()

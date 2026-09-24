@@ -1,5 +1,7 @@
-package com.varlanv.koper.json
+package com.varlanv.koper.json.tmp
 
+import com.varlanv.koper.json.JsonInput
+import com.varlanv.koper.json.JsonOutput
 import com.varlanv.koper.lang.text.Utf8Str
 
 object IdealJsonUtf8Codec {
@@ -19,7 +21,10 @@ object IdealJsonUtf8Codec {
         write(writer, value, output)
     }
 
-    fun writeVectorToStream(value: JsonUtf8Sample, output: JsonOutput, writer: IdealJsonWriter = IdealJsonWriter(vectorized = true)) {
+    fun writeVectorToStream(value: JsonUtf8Sample, output: JsonOutput, writer: IdealJsonWriter = IdealJsonWriter(
+        vectorized = true
+    )
+    ) {
         write(writer, value, output)
     }
 

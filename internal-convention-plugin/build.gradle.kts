@@ -48,6 +48,10 @@ gradlePlugin {
             id = libs.plugins.internalConvention.get().pluginId
             implementationClass = "com.varlanv.gradle.plugin.InternalKonventionPlugin"
         }
+        create("internalMultplatformConventionPlugin") {
+            id = libs.plugins.internalMultiplatform.get().pluginId
+            implementationClass = "com.varlanv.gradle.plugin.InternalMultiplatformPlugin"
+        }
     }
 }
 

@@ -39,5 +39,6 @@ include(
         "libs:lang",
         "libs:serde",
         "libs:json",
+        "libs:json-ksp",
     )
 )
