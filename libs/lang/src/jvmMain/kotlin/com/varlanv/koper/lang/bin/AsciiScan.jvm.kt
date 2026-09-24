@@ -1,6 +1,6 @@
 package com.varlanv.koper.lang.bin
 
-import com.varlanv.koper.lang.SIMD
+import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.longViewHandle
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
@@ -8,7 +8,7 @@ import jdk.incubator.vector.VectorOperators
 private const val HIGH_BITS = 0x8080808080808080UL
 
 internal actual fun ByteArray.skipAscii(start: Int, end: Int): Int {
-    if (SIMD.enabled && end - start >= 128) {
+    if (VectorApi.enabled && end - start >= 128) {
         // Short ASCII runs are cheaper with SWAR; only continue with vectors
         // after the first 64 bytes are known to be ASCII.
         val probeEnd = start + 64
@@ -23,18 +23,25 @@ sealed interface AsciiScan {
     fun skipAscii(bytes: ByteArray, start: Int, end: Int): Int
 
     companion object {
-        val target = SIMD.tryLoad { VectorAsciiScan } ?: ScalarAsciiScan
+        val target = VectorApi.tryLoad { VectorAsciiScan } ?: ScalarAsciiScan
     }
 }
 
 /** Loaded only when the incubating Vector API is enabled at JVM startup. */
-private object VectorAsciiScan : AsciiScan {
+private object VectorAsciiScan : AsciiScan, VectorApi {
 
     init {
-        SIMD.ensureEnabled(VectorAsciiScan::class)
+        VectorApi.ensureEnabled(VectorAsciiScan::class)
     }
 
     private val species = ByteVector.SPECIES_PREFERRED
+
+    override fun smokeTest(): Boolean {
+        val bytes = ByteArray(species.length()) { 65 }
+        val special = bytes.size / 2
+        bytes[special] = 0x80.toByte()
+        return skipAscii(bytes, 0, bytes.size) == special
+    }
 
     override fun skipAscii(bytes: ByteArray, start: Int, end: Int): Int {
         var index = start

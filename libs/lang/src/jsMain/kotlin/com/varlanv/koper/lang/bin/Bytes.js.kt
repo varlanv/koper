@@ -47,4 +47,6 @@ actual fun ByteArray.setPackedInt(idx: Int, i: Int) {
 }
 
 actual fun ByteArray.setPackedLong(idx: Int, l: Long) {
+    setPackedInt(idx, l.toInt())
+    setPackedInt(idx + 4, (l ushr 32).toInt())
 }
