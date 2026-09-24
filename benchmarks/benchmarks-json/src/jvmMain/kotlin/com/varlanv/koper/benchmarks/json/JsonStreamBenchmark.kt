@@ -1,4 +1,4 @@
-package com.varlanv.koper.benchmarks.lang.json
+package com.varlanv.koper.benchmarks.json
 
 import com.varlanv.koper.json.ByteArrayJsonOutput
 import com.varlanv.koper.json.IdealJsonReader

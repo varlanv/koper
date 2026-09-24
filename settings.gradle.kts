@@ -33,6 +33,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(
     listOf(
+        "benchmarks:benchmarks-json",
         "benchmarks:benchmarks-lang",
         "libs:testing:common-test",
         "libs:lang",

@@ -18,6 +18,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(projects.libs.lang)
+                api(projects.libs.serde)
             }
         }
         commonTest {

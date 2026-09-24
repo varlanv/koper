@@ -1,7 +1,11 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.serde.De
+import com.varlanv.koper.serde.Ser
 
+@Ser
+@De
 data class JsonUtf8Sample(
     val id: Long,
     val symbol: Utf8Str,
@@ -10,6 +14,8 @@ data class JsonUtf8Sample(
     val active: Boolean,
 )
 
+@Ser
+@De
 data class JsonNativeSample(
     val id: Long,
     val symbol: String,

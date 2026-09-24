@@ -10,11 +10,6 @@ kotlin {
                 implementation(libs.kotlin.x.datetime)
             }
         }
-        jvmMain {
-            dependencies {
-                implementation(projects.libs.json)
-            }
-        }
     }
 }
 
@@ -40,14 +35,6 @@ private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.configureSlow() = be
 
 benchmark {
     configurations {
-        register("jsonComparison") {
-            include(".*JsonStreamBenchmark.*")
-            warmups = 2
-            iterations = 3
-            iterationTime = 1
-            iterationTimeUnit = "s"
-            advanced("jvmForks", 1)
-        }
         register("charsetEncoding") {
             include(".*CharsetsJsBenchmark.encode.*")
             configureFast()
