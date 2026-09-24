@@ -133,12 +133,18 @@ fun ByteArray.validateUtf8(
     var i = offset
     val end = offset + len
 
+    // Small values are cheaper to scan directly than to enter the platform bulk scan.
+    if (len < 64) {
+        while (i < end && this[i] >= 0) i++
+        if (i == end) return true
+    }
+
     while (i < end) {
         val b0 = this[i].toInt() and 0xFF
 
         // ASCII
         if (b0 < 0x80) {
-            i++
+            i = skipAscii(i + 1, end)
             continue
         }
 
@@ -265,3 +271,6 @@ fun ByteArray.validateUtf8(
 
     return true
 }
+
+/** Returns the first non-ASCII byte, or [end] if the range is all ASCII. */
+internal expect fun ByteArray.skipAscii(start: Int, end: Int): Int

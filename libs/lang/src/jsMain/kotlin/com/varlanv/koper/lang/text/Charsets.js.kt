@@ -7,6 +7,8 @@ import org.khronos.webgl.Uint16Array
 import org.khronos.webgl.Uint8Array
 
 private val charCodesToString: dynamic = js("(chars) => String.fromCharCode.apply(null, chars)")
+private val utf8Encoder: dynamic = js("new TextEncoder()")
+private val hasUnpairedSurrogate: dynamic = js("(text) => /[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(^|[^\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/.test(text)")
 private val utf8Decoder: dynamic = js("new TextDecoder('utf-8', { ignoreBOM: true })")
 private val windows1252Decoder: dynamic = js("new TextDecoder('windows-1252')")
 private val nativeUtf16Decoder: dynamic = js("new Uint8Array(new Uint16Array([0x0102]).buffer)[0] === 0x02 ? new TextDecoder('utf-16le') : new TextDecoder('utf-16be')")
@@ -24,10 +26,25 @@ actual fun Charset.allocateByteSlice(
     }
 
     return when (this) {
-        Charset.Utf8 -> encodeUtf8(string, start, end)
+        Charset.Utf8 -> {
+            if (end - start >= 1024) {
+                val selected = if (start == 0 && end == string.length) string else string.substring(start, end)
+                // TextEncoder substitutes U+FFFD; the shared encoder substitutes '?'.
+                if (!hasUnpairedSurrogate(selected).unsafeCast<Boolean>()) encodeUtf8Native(selected)
+                else encodeUtf8(string, start, end)
+            } else {
+                encodeUtf8(string, start, end)
+            }
+        }
         Charset.Ascii -> encodeSingleByte(string, start, end, 0x7F)
         Charset.Latin1 -> encodeSingleByte(string, start, end, 0xFF)
     }
+}
+
+private fun encodeUtf8Native(selected: String): ByteSlice {
+    val unsigned = utf8Encoder.encode(selected).unsafeCast<Uint8Array>()
+    val signed = Int8Array(unsigned.buffer, unsigned.byteOffset, unsigned.byteLength).unsafeCast<ByteArray>()
+    return ByteSlice(ReadonlyBytes(signed), 0, signed.size)
 }
 
 private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint: Int): ByteSlice {

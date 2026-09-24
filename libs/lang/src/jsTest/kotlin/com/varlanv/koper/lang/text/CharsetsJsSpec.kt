@@ -27,6 +27,31 @@ class CharsetsJsSpec : BaseSpec({
         Charset.Utf8.allocateString(input, input.size, 0) shouldBe ""
     }
 
+    should("encode large UTF-8 ranges with the same surrogate handling as the shared encoder") {
+        val cases = listOf(
+            "A".repeat(1023),
+            "A".repeat(1024),
+            "Aé中🙂".repeat(256),
+            "A".repeat(1024) + "\uD800",
+            "A".repeat(512) + "\uDC00" + "B".repeat(512),
+            "A".repeat(512) + "\uD800\uD800\uDC00" + "B".repeat(512),
+        )
+        for (input in cases) {
+            val expected = mutableListOf<Byte>()
+            Charset.Utf8.encodeInline(input) { expected.add(it) }
+            val actual = Charset.Utf8.allocateByteSlice(input)
+            actual.allocateArray().toList() shouldBe expected
+            actual.unsafeBorrowArray().size shouldBe actual.len
+        }
+
+        val source = "X" + "A".repeat(1023) + "\uD800\uDC00" + "B".repeat(1024)
+        for ((start, end) in listOf(1 to 1025, 1 to 1026, 1025 to source.length)) {
+            val expected = mutableListOf<Byte>()
+            Charset.Utf8.encodeInline(source.substring(start, end)) { expected.add(it) }
+            Charset.Utf8.allocateByteSlice(source, start, end).allocateArray().toList() shouldBe expected
+        }
+    }
+
     should("match Kotlin UTF-8 decoding for longer malformed sequences") {
         val cases = listOf(
             intArrayOf(0xE0, 0x80, 0x80), // Overlong encoding

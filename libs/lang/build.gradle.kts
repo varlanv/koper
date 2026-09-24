@@ -3,7 +3,9 @@ plugins {
 }
 
 kotlin {
-    jvm()
+    jvm {
+        compilerOptions.freeCompilerArgs.add("-Xadd-modules=jdk.incubator.vector")
+    }
     js {
         nodejs()
     }

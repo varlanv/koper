@@ -15,6 +15,21 @@ kotlin {
 
 benchmark {
     configurations {
+        register("charsetEncoding") {
+            include(".*CharsetsJsBenchmark.encode.*")
+            warmups = 2
+            iterations = 3
+            iterationTime = 250
+            iterationTimeUnit = "ms"
+        }
+        register("utf8Validation") {
+            include(".*Utf8ValidationBenchmark.*")
+            warmups = 3
+            iterations = 5
+            iterationTime = 500
+            iterationTimeUnit = "ms"
+            advanced("jvmForks", 1)
+        }
         register("decoderCandidates") {
             include(".*DecoderCandidatesJsBenchmark.*")
             warmups = 2

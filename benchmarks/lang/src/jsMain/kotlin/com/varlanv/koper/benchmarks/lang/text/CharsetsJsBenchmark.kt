@@ -8,10 +8,10 @@ import kotlinx.benchmark.*
 
 @State(Scope.Benchmark)
 class CharsetsJsBenchmark {
-    @Param("ascii", "latin1", "latin1Surrogates", "utf8")
+    @Param("ascii", "latin1", "latin1Surrogates", "utf8Ascii", "utf8", "utf8Unpaired")
     var scenario = "ascii"
 
-    @Param("32", "10240")
+    @Param("8", "32", "96", "10240")
     var length = 32
 
     private lateinit var charset: Charset
@@ -33,9 +33,17 @@ class CharsetsJsBenchmark {
                 charset = Charset.Latin1
                 "A🙂bcdef"
             }
+            "utf8Ascii" -> {
+                charset = Charset.Utf8
+                "abcdefgh"
+            }
             "utf8" -> {
                 charset = Charset.Utf8
                 "Aé中🙂bcd"
+            }
+            "utf8Unpaired" -> {
+                charset = Charset.Utf8
+                "A\uD800bcdefg"
             }
             else -> error("Unknown scenario: $scenario")
         }
