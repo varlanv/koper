@@ -33,8 +33,10 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(
     listOf(
-        "benchmarks:lang",
+        "benchmarks:benchmarks-lang",
         "libs:testing:common-test",
         "libs:lang",
+        "libs:serde",
+        "libs:json",
     )
 )

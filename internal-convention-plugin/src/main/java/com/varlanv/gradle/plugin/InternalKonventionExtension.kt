@@ -9,12 +9,4 @@ interface InternalKonventionExtension {
     }
 
     val internalModule: Property<Boolean>
-//    @get:Nested
-//    val targets: Targets
 }
-
-//interface Targets {
-//
-//    val jvm: Property<Boolean>
-//    val js: Property<Boolean>
-//}

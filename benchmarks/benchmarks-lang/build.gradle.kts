@@ -13,89 +13,76 @@ kotlin {
     }
 }
 
+private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.benchConf(block: kotlinx.benchmark.gradle.BenchmarkConfiguration.() -> Unit) {
+    block(this)
+}
+
+private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.configureFast() = benchConf {
+    warmups = 2
+    iterations = 3
+    iterationTime = 250
+    iterationTimeUnit = "ms"
+}
+
+
+private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.configureSlow() = benchConf {
+    warmups = 3
+    iterations = 5
+    iterationTime = 500
+    iterationTimeUnit = "ms"
+}
+
+
 benchmark {
     configurations {
         register("charsetEncoding") {
             include(".*CharsetsJsBenchmark.encode.*")
-            warmups = 2
-            iterations = 3
-            iterationTime = 250
-            iterationTimeUnit = "ms"
+            configureFast()
         }
         register("utf8Validation") {
             include(".*Utf8ValidationBenchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 1)
         }
         register("decoderCandidates") {
             include(".*DecoderCandidatesJsBenchmark.*")
-            warmups = 2
-            iterations = 3
-            iterationTime = 250
-            iterationTimeUnit = "ms"
+            configureFast()
         }
         register("latin1DecoderHybrid") {
             include(".*Latin1DecoderCandidatesJsBenchmark.current.*")
-            warmups = 2
-            iterations = 3
-            iterationTime = 250
-            iterationTimeUnit = "ms"
+            configureFast()
         }
         register("asciiDecoderValidated") {
             include(".*AsciiValidatedDecoderJsBenchmark.*")
-            warmups = 2
-            iterations = 3
-            iterationTime = 250
-            iterationTimeUnit = "ms"
+            configureFast()
         }
         register("charsets") {
             include(".*CharsetsJsBenchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
         }
         register("doubles") {
             include(".*DoubleNumbers.*Benchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 2)
         }
         register("numbers") {
             include(".*Numbers.*Benchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 2)
         }
         register("dec64ToString") {
             include(".*Dec64ToStringBenchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 2)
         }
         register("inst") {
             include(".*InstBenchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 2)
         }
         register("kotlinInstant") {
             include(".*KotlinInstantBenchmark.*")
-            warmups = 3
-            iterations = 5
-            iterationTime = 500
-            iterationTimeUnit = "ms"
+            configureSlow()
             advanced("jvmForks", 2)
         }
     }

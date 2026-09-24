@@ -52,12 +52,7 @@ fun ByteArray.startsWith(
 @JvmInline
 value class ReadonlyBytes(@PublishedApi internal val array: ByteArray)
 
-class ByteSlice(
-    @PublishedApi
-    internal val bytes: ReadonlyBytes,
-    val offset: Int,
-    val len: Int,
-) {
+class ByteSlice(@PublishedApi internal val bytes: ReadonlyBytes, val offset: Int, val len: Int, ) {
     private var hash: Int = 0
 
     inline fun forEach(block: (Byte) -> Unit) {
