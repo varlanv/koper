@@ -106,6 +106,19 @@ internal class SharedState(val project: Project) {
 //            }
         }
 
+        fun configureLinters() {
+            pluginManager.apply("com.varlanv.wrasse")
+            tasks.register("lint") { task ->
+                task.group = "verification"
+                task.dependsOn("wrasseLint")
+            }
+            tasks.register("format") { task ->
+                task.group = "verification"
+                task.dependsOn("wrasseFormat")
+            }
+        }
+
+
         configureRepositories()
         applyCommonPlugins()
         configureCommonDependencies()
@@ -113,6 +126,7 @@ internal class SharedState(val project: Project) {
 
         project.afterEvaluate {
             pluginManager.apply(KoverGradlePlugin::class.java)
+            configureLinters()
         }
     }
 

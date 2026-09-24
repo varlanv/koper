@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.internalMultiplatform)
+    `maven-publish`
 }
 
 tasks.withType<Test>().configureEach {
