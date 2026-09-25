@@ -1,7 +1,7 @@
 package com.varlanv.koper.json.ksp
 
-import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.getVisibility
+import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
@@ -77,30 +77,32 @@ private class JsonCodecProcessor(
                     }
             }
             if (constructorOrInvoke == null) {
-                logger.error(message = "A non-public primary constructor requires a matching companion operator fun invoke", symbol = declaration)
+                logger.error(
+                    message = "A non-public primary constructor requires a matching companion operator fun invoke",
+                    symbol = declaration,
+                )
                 continue
             }
 
-
-//            val primaryConstructor = declaration.primaryConstructor
-//            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
-//            val fieldName = field?.name?.asString()
-//            if (declaration.classKind != ClassKind.CLASS ||
-//                declaration.typeParameters.isNotEmpty() ||
-//                declaration.containingFile == null ||
-//                field == null ||
-//                (!field.isVal && !field.isVar) ||
-//                fieldName == null
-//            ) {
-//                logger.error(
-//                    message = "V1 JSON generation requires a class with one Int constructor property",
-//                    symbol = declaration,
-//                )
-//                continue
-//            }
-//            val packageName = declaration.packageName.asString()
-//            val typeName = declaration.simpleName.asString()
-//            val codecName = typeName + "GeneratedJsonCodec"
+            //            val primaryConstructor = declaration.primaryConstructor
+            //            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
+            //            val fieldName = field?.name?.asString()
+            //            if (declaration.classKind != ClassKind.CLASS ||
+            //                declaration.typeParameters.isNotEmpty() ||
+            //                declaration.containingFile == null ||
+            //                field == null ||
+            //                (!field.isVal && !field.isVar) ||
+            //                fieldName == null
+            //            ) {
+            //                logger.error(
+            //                    message = "V1 JSON generation requires a class with one Int constructor property",
+            //                    symbol = declaration,
+            //                )
+            //                continue
+            //            }
+            //            val packageName = declaration.packageName.asString()
+            //            val typeName = declaration.simpleName.asString()
+            //            val codecName = typeName + "GeneratedJsonCodec"
             //            val source = render(
             //                packageName = packageName,
             //                typeName = typeName,
@@ -139,6 +141,6 @@ private class JsonCodecProcessor(
                 break
             }
         }
-        return ResolvedAnnotations(ser, de)
+        return ResolvedAnnotations(isSer = ser, isDe = de)
     }
 }

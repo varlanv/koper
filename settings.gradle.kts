@@ -38,7 +38,8 @@ include(
         "libs:testing:common-test",
         "libs:lang",
         "libs:serde",
-        "libs:json",
-        "libs:json-ksp",
+        "libs:json:json-core",
+        "libs:json:json-ksp",
+        "libs:json:json-fixtures",
     )
 )

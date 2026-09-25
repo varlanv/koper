@@ -7,7 +7,7 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    add("kspCommonMainMetadata", projects.libs.jsonKsp)
+    add("kspCommonMainMetadata", projects.libs.json.jsonKsp)
 }
 
 kotlin {

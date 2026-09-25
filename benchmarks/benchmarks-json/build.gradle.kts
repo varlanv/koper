@@ -15,7 +15,7 @@ kotlin {
     sourceSets {
         jvmMain {
             dependencies {
-                implementation(projects.libs.json)
+                implementation(projects.libs.json.jsonCore)
             }
         }
     }
