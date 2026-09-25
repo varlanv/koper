@@ -23,7 +23,7 @@ kotlin {
             kotlin.srcDir(layout.buildDirectory.dir("generated/ksp/metadata/commonMain/kotlin"))
             dependencies {
                 api(projects.libs.lang)
-                api(projects.libs.serde)
+                api(projects.libs.serde.serdeCore)
             }
         }
         commonTest {

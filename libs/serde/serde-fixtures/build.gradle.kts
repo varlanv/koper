@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-    api(projects.libs.serde)
+    api(projects.libs.serde.serdeCore)
 }

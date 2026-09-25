@@ -3,14 +3,18 @@ package com.varlanv.koper.test
 import com.varlanv.koper.serde.De
 import com.varlanv.koper.serde.Ser
 
-object JsonSamples {
+object SerdeSamples {
     @De
     @Ser
-    object InvalidObjectSerDe
+    object EmptyObject
 
     @De
     @Ser
-    class InvalidEmptyClassSerDe
+    data object EmptyDataObject
+
+    @De
+    @Ser
+    class EmptyClass
 
     @De
     @Ser

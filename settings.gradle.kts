@@ -37,9 +37,9 @@ include(
         "benchmarks:benchmarks-lang",
         "libs:testing:common-test",
         "libs:lang",
-        "libs:serde",
+        "libs:serde:serde-core",
+        "libs:serde:serde-fixtures",
         "libs:json:json-core",
         "libs:json:json-ksp",
-        "libs:json:json-fixtures",
     )
 )
