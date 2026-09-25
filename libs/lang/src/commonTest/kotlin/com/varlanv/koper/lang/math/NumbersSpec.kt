@@ -22,9 +22,9 @@ class NumbersSpec : BaseSpec({
             Long.MAX_VALUE - 1,
             Long.MAX_VALUE,
         )) {
-            verifyAscii(value)
-            verifyAscii(value, offset = 0, suffix = 0)
-            verifyAscii(value, offset = 7, suffix = 0)
+            verifyAscii(value = value)
+            verifyAscii(value = value, offset = 0, suffix = 0)
+            verifyAscii(value = value, offset = 7, suffix = 0)
         }
     }
 
@@ -34,17 +34,19 @@ class NumbersSpec : BaseSpec({
             for (delta in -2L..2L) {
                 val value = power + delta
                 for (offset in 0..7) {
-                    verifyAscii(value, offset, suffix = 0)
-                    verifyAscii(-value, offset, suffix = 0)
+                    verifyAscii(value = value, offset = offset, suffix = 0)
+                    verifyAscii(value = -value, offset = offset, suffix = 0)
                 }
             }
-            if (it < 18) power *= 10
+            if (it < 18) {
+                power *= 10
+            }
         }
     }
 
     should("write every small positive and negative integer without changing surrounding bytes") {
         for (value in -10_000..10_000) {
-            verifyAscii(value.toLong(), offset = value and 7)
+            verifyAscii(value = value.toLong(), offset = value and 7)
         }
     }
 
@@ -68,8 +70,8 @@ class NumbersSpec : BaseSpec({
             9_000_000_000_000_000_009,
             9_090_090_009_090_090_009,
         )) {
-            verifyAscii(value)
-            verifyAscii(-value)
+            verifyAscii(value = value)
+            verifyAscii(value = -value)
         }
     }
 
@@ -78,23 +80,23 @@ class NumbersSpec : BaseSpec({
         repeat(20_000) {
             val offset = random.nextInt(8)
             val suffix = random.nextInt(8)
-            verifyAscii(random.nextInt().toLong(), offset, suffix)
-            verifyAscii(random.nextLong(), offset, suffix)
+            verifyAscii(value = random.nextInt().toLong(), offset = offset, suffix = suffix)
+            verifyAscii(value = random.nextLong(), offset = offset, suffix = suffix)
         }
     }
 
     should("chain mixed writes using returned offsets and reuse the destination") {
         val array = ByteArray(128) { 0x5a }
         val offset = 5
-        var end = writeIntAscii(Int.MIN_VALUE, array, offset)
+        var end = writeIntAscii(value = Int.MIN_VALUE, array = array, offset = offset)
         array[end++] = ','.code.toByte()
-        end = writeLongAscii(Long.MAX_VALUE, array, end)
+        end = writeLongAscii(value = Long.MAX_VALUE, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeIntAscii(0, array, end)
+        end = writeIntAscii(value = 0, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeLongAscii(Long.MIN_VALUE, array, end)
+        end = writeLongAscii(value = Long.MIN_VALUE, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeIntAscii(Int.MAX_VALUE, array, end)
+        end = writeIntAscii(value = Int.MAX_VALUE, array = array, offset = end)
 
         val text = "${Int.MIN_VALUE},${Long.MAX_VALUE},0,${Long.MIN_VALUE},${Int.MAX_VALUE}"
         val expected = ByteArray(array.size) { 0x5a }
@@ -102,29 +104,37 @@ class NumbersSpec : BaseSpec({
         end shouldBe offset + text.length
         array shouldBe expected
 
-        writeIntAscii(7, array, offset) shouldBe offset + 1
+        writeIntAscii(value = 7, array = array, offset = offset) shouldBe offset + 1
         expected[offset] = '7'.code.toByte()
         array shouldBe expected
 
-        writeLongAscii(-42, array, offset) shouldBe offset + 3
+        writeLongAscii(value = -42, array = array, offset = offset) shouldBe offset + 3
         "-42".encodeToByteArray().copyInto(expected, offset)
         array shouldBe expected
     }
 })
 
-private fun verifyAscii(value: Long, offset: Int = 3, suffix: Int = 5) {
+private fun verifyAscii(
+    value: Long,
+    offset: Int = 3,
+    suffix: Int = 5,
+) {
     withClue("value=$value, offset=$offset, suffix=$suffix") {
         val bytes = value.toString().encodeToByteArray()
         val expected = ByteArray(offset + bytes.size + suffix) { (it * 37 + 128).toByte() }
         val longArray = expected.copyOf()
-        val intArray = if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) expected.copyOf() else null
+        val intArray = if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+            expected.copyOf()
+        } else {
+            null
+        }
         bytes.copyInto(expected, offset)
 
-        writeLongAscii(value, longArray, offset) shouldBe offset + bytes.size
+        writeLongAscii(value = value, array = longArray, offset = offset) shouldBe offset + bytes.size
         longArray shouldBe expected
 
         if (intArray != null) {
-            writeIntAscii(value.toInt(), intArray, offset) shouldBe offset + bytes.size
+            writeIntAscii(value = value.toInt(), array = intArray, offset = offset) shouldBe offset + bytes.size
             intArray shouldBe expected
         }
     }

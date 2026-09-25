@@ -36,12 +36,21 @@ class DoubleAsciiSpec : BaseSpec({
         )) {
             for (offset in 0..7) {
                 for (suffix in intArrayOf(0, 1, 5)) {
-                    verifyDoubleAsciiExpected(Double.fromBits(bits), expected, offset, suffix)
                     verifyDoubleAsciiExpected(
-                        Double.fromBits(bits or Long.MIN_VALUE),
-                        if (expected == "NaN") expected else "-$expected",
-                        offset,
-                        suffix,
+                        value = Double.fromBits(bits),
+                        text = expected,
+                        offset = offset,
+                        suffix = suffix,
+                    )
+                    verifyDoubleAsciiExpected(
+                        value = Double.fromBits(bits or Long.MIN_VALUE),
+                        text = if (expected == "NaN") {
+                            expected
+                        } else {
+                            "-$expected"
+                        },
+                        offset = offset,
+                        suffix = suffix,
                     )
                 }
             }
@@ -50,14 +59,17 @@ class DoubleAsciiSpec : BaseSpec({
 
     should("round trip both neighbors of every binary and decimal exponent boundary") {
         forEachAsciiDoubleBoundary { bits ->
-            verifyDoubleAsciiRoundTrip(bits)
+            verifyDoubleAsciiRoundTrip(bits = bits)
         }
     }
 
     should("round trip deterministic random bit patterns without changing surrounding bytes") {
         val random = Random(93_729_041)
         repeat(50_000) {
-            verifyDoubleAsciiRoundTrip(random.nextLong(), random.nextInt(8))
+            verifyDoubleAsciiRoundTrip(
+                bits = random.nextLong(),
+                offset = random.nextInt(8),
+            )
         }
     }
 
@@ -87,14 +99,16 @@ class DoubleAsciiSpec : BaseSpec({
         val output = ByteArray(128) { 0x5a }
         var end = 5
         for (index in values.indices) {
-            if (index != 0) output[end++] = ','.code.toByte()
-            end = writeDoubleAscii(values[index], output, end)
+            if (index != 0) {
+                output[end++] = ','.code.toByte()
+            }
+            end = writeDoubleAscii(value = values[index], array = output, offset = end)
         }
         val expected = ByteArray(output.size) { 0x5a }
         text.encodeToByteArray().copyInto(expected, 5)
         end shouldBe 5 + text.length
         output shouldBe expected
-        writeDoubleAscii(2.0, output, 5) shouldBe 8
+        writeDoubleAscii(value = 2.0, array = output, offset = 5) shouldBe 8
         "2.0".encodeToByteArray().copyInto(expected, 5)
         output shouldBe expected
     }
@@ -112,21 +126,29 @@ internal fun forEachAsciiDoubleBoundary(action: (Long) -> Unit) {
     for (exponent in -323..308) neighbors("1e$exponent".toDouble().toRawBits())
 }
 
-private fun verifyDoubleAsciiExpected(value: Double, text: String, offset: Int, suffix: Int) {
+private fun verifyDoubleAsciiExpected(
+    value: Double,
+    text: String,
+    offset: Int,
+    suffix: Int,
+) {
     withClue("bits=${value.toRawBits()}, expected=$text, offset=$offset, suffix=$suffix") {
         val expected = ByteArray(offset + text.length + suffix) { (it * 37 + 128).toByte() }
         val output = expected.copyOf()
         text.encodeToByteArray().copyInto(expected, offset)
-        writeDoubleAscii(value, output, offset) shouldBe offset + text.length
+        writeDoubleAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
         output shouldBe expected
     }
 }
 
-private fun verifyDoubleAsciiRoundTrip(bits: Long, offset: Int = 3) {
+private fun verifyDoubleAsciiRoundTrip(
+    bits: Long,
+    offset: Int = 3,
+) {
     val value = Double.fromBits(bits)
     withClue("bits=$bits, offset=$offset") {
         val output = ByteArray(40) { 0x5a }
-        val end = writeDoubleAscii(value, output, offset)
+        val end = writeDoubleAscii(value = value, array = output, offset = offset)
         check(end in offset + 1..offset + 24) { "Invalid output length: ${end - offset}" }
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()
         for (index in end until output.size) output[index] shouldBe 0x5a.toByte()
@@ -145,7 +167,11 @@ private class DoubleAsciiFingerprint {
     private val output = ByteArray(24)
 
     fun consume(bits: Long) {
-        val end = writeDoubleAscii(Double.fromBits(bits), output, 0)
+        val end = writeDoubleAscii(
+            value = Double.fromBits(bits),
+            array = output,
+            offset = 0,
+        )
         for (index in 0 until end) {
             val code = output[index].toInt()
             first = first * 31 + code

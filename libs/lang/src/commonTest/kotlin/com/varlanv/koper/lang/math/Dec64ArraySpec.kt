@@ -75,11 +75,11 @@ class Dec64ArraySpec : BaseSpec({
 
         should("copy ranges without retaining shared storage") {
             val source = decs("1", "2", "3")
-            val copy = source.copyOfRange(1, 3)
+            val copy = source.copyOfRange(from = 1, to = 3)
             copy[0] = Dec64.ZERO
             source.toString() shouldBe "[1, 2, 3]"
             copy.toString() shouldBe "[0, 3]"
-            source.copyOfRange(2, 2).isEmpty() shouldBe true
+            source.copyOfRange(from = 2, to = 2).isEmpty() shouldBe true
             source.contentEquals(decs("1", "2")) shouldBe false
             Dec64Array(0).contentEquals(Dec64Array(0)) shouldBe true
             Dec64Array(0).toString() shouldBe "[]"
@@ -118,8 +118,7 @@ class Dec64ArraySpec : BaseSpec({
                 val values = List(r.nextInt(0, 200)) { randomDec64(r) }
                 val arr = Dec64Array(values.size) { values[it] }
                 arr.sortAsc()
-                (0 until arr.size).map { arr[it].toString() }.sorted() shouldBe
-                    values.map { it.toString() }.sorted()
+                (0 until arr.size).map { arr[it].toString() }.sorted() shouldBe values.map { it.toString() }.sorted()
             }
         }
 
@@ -159,8 +158,22 @@ class Dec64ArraySpec : BaseSpec({
                     List(size) { randomDec64(random) },
                     List(size) { Dec64(it.toLong()) },
                     List(size) { Dec64((size - it).toLong()) },
-                    List(size) { Dec64.fromLong(random.nextLong(-5, 6), random.nextInt(Dec64.MAX_SCALE + 1)) },
-                    List(size) { if (it % 2 == 0) Dec64.MAX_VALUE else Dec64.MIN_VALUE },
+                    List(size) {
+                        Dec64.fromLong(
+                            unscaled = random.nextLong(
+                                -5,
+                                6,
+                            ),
+                            scale = random.nextInt(Dec64.MAX_SCALE + 1),
+                        )
+                    },
+                    List(size) {
+                        if (it % 2 == 0) {
+                            Dec64.MAX_VALUE
+                        } else {
+                            Dec64.MIN_VALUE
+                        }
+                    },
                 )
                 for ((index, values) in patterns.withIndex()) {
                     withClue("size=$size pattern=$index") {
@@ -172,11 +185,11 @@ class Dec64ArraySpec : BaseSpec({
                             }
                         }
                         val sorted = values.sorted()
-                        array.sortAsc(1, size + 1)
+                        array.sortAsc(from = 1, to = size + 1)
                         (1..size).map { array[it] } shouldBe sorted
                         array[0] shouldBe Dec64.MAX_VALUE
                         array[size + 1] shouldBe Dec64.MIN_VALUE
-                        array.sortDesc(1, size + 1)
+                        array.sortDesc(from = 1, to = size + 1)
                         (1..size).map { array[it] } shouldBe sorted.asReversed()
                         array[0] shouldBe Dec64.MAX_VALUE
                         array[size + 1] shouldBe Dec64.MIN_VALUE

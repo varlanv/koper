@@ -24,19 +24,23 @@ class DoubleNumbersBenchmark {
         index = 0
         for (value in values) {
             output.fill(0x55)
-            val end = writeDoubleAscii(value, output, 3)
+            val end = writeDoubleAscii(value = value, array = output, offset = 3)
             val text = output.decodeToString(3, end)
             check(text.toDouble().toRawBits() == value.toRawBits())
             check(text == value.toString())
             for (position in output.indices) {
-                if (position !in 3 until end) check(output[position] == 0x55.toByte())
+                if (position !in 3 until end) {
+                    check(output[position] == 0x55.toByte())
+                }
             }
             output.fill(0x55)
             val expected = value.toString()
             val stringEnd = writeString(expected)
             check(output.decodeToString(3, stringEnd) == expected)
             for (position in output.indices) {
-                if (position !in 3 until stringEnd) check(output[position] == 0x55.toByte())
+                if (position !in 3 until stringEnd) {
+                    check(output[position] == 0x55.toByte())
+                }
             }
             output.fill(0x55)
             val jdkEnd = DoubleToDecimal.LATIN1.putDecimal(output, 3, value)
@@ -52,7 +56,7 @@ class DoubleNumbersBenchmark {
 
     @Benchmark
     fun doubleForward(blackhole: Blackhole) {
-        val end = writeDoubleAscii(nextDouble(), output, 3)
+        val end = writeDoubleAscii(value = nextDouble(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)

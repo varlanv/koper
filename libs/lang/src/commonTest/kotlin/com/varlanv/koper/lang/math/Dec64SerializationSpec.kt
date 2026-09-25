@@ -3,10 +3,10 @@ package com.varlanv.koper.lang.math
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import kotlin.random.Random
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlin.random.Random
 
 @Serializable
 private data class Dec64Trade(

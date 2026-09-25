@@ -1,15 +1,15 @@
 package com.varlanv.koper.benchmarks.lang.date
 
 import com.varlanv.koper.lang.date.Inst
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 import kotlinx.benchmark.Benchmark
 import kotlinx.benchmark.Scope
 import kotlinx.benchmark.Setup
 import kotlinx.benchmark.State
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Instant
 
 @State(Scope.Benchmark)
 class KotlinInstantBenchmark {

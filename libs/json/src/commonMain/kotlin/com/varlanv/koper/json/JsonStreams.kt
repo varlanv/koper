@@ -1,13 +1,23 @@
 package com.varlanv.koper.json
 
 interface JsonInput {
-    fun read(destination: ByteArray, offset: Int, length: Int): Int
-    fun read(destination: ByteArray): Int = read(destination, 0, destination.size)
+    fun read(
+        destination: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int
+
+    fun read(destination: ByteArray): Int = read(destination = destination, offset = 0, length = destination.size)
+
     fun read(): Int
 }
 
 interface JsonOutput {
-    fun write(source: ByteArray, offset: Int, length: Int)
+    fun write(
+        source: ByteArray,
+        offset: Int,
+        length: Int,
+    )
 }
 
 class ByteArrayJsonInput(private val bytes: ByteArray) : JsonInput {
@@ -17,16 +27,28 @@ class ByteArrayJsonInput(private val bytes: ByteArray) : JsonInput {
         position = 0
     }
 
-    override fun read(destination: ByteArray, offset: Int, length: Int): Int {
-        if (length == 0) return 0
-        if (position == bytes.size) return -1
+    override fun read(
+        destination: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int {
+        if (length == 0) {
+            return 0
+        }
+        if (position == bytes.size) {
+            return -1
+        }
         val count = minOf(length, bytes.size - position)
         bytes.copyInto(destination, offset, position, position + count)
         position += count
         return count
     }
 
-    override fun read(): Int = if (position < bytes.size) bytes[position++].toInt() and 255 else -1
+    override fun read(): Int = if (position < bytes.size) {
+        bytes[position++].toInt() and 255
+    } else {
+        -1
+    }
 }
 
 class ByteArrayJsonOutput(initialCapacity: Int = 512) : JsonOutput {
@@ -39,11 +61,25 @@ class ByteArrayJsonOutput(initialCapacity: Int = 512) : JsonOutput {
 
     fun toByteArray(): ByteArray = bytes.copyOf(size)
 
-    override fun write(source: ByteArray, offset: Int, length: Int) {
+    override fun write(
+        source: ByteArray,
+        offset: Int,
+        length: Int,
+    ) {
         require(offset >= 0 && length >= 0 && offset <= source.size - length)
         val required = size.toLong() + length
         require(required <= Int.MAX_VALUE)
-        if (required > bytes.size) bytes = bytes.copyOf(maxOf(required.toInt(), maxOf(1, bytes.size * 2)))
+        if (required > bytes.size) {
+            bytes = bytes.copyOf(
+                maxOf(
+                    required.toInt(),
+                    maxOf(
+                        1,
+                        bytes.size * 2,
+                    ),
+                ),
+            )
+        }
         source.copyInto(bytes, size, offset, offset + length)
         size += length
     }

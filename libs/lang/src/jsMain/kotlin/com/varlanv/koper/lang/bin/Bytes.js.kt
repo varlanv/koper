@@ -7,8 +7,8 @@ actual fun ByteArray.mismatch(
     bFromIndex: Int,
     bToIndex: Int,
 ): Int {
-    checkMismatchRange(aFromIndex, aToIndex, size)
-    checkMismatchRange(bFromIndex, bToIndex, b.size)
+    checkMismatchRange(from = aFromIndex, to = aToIndex, size = size)
+    checkMismatchRange(from = bFromIndex, to = bToIndex, size = b.size)
 
     val aLength = aToIndex - aFromIndex
     val bLength = bToIndex - bFromIndex
@@ -25,17 +25,23 @@ actual fun ByteArray.mismatch(
         }
     }
 
-    return if (aLength == bLength) -1 else length
+    return if (aLength == bLength) {
+        -1
+    } else {
+        length
+    }
 }
 
-private fun checkMismatchRange(from: Int, to: Int, size: Int) {
+private fun checkMismatchRange(
+    from: Int,
+    to: Int,
+    size: Int,
+) {
     require(from <= to) {
         "fromIndex ($from) > toIndex ($to)"
     }
     if (from < 0 || to > size) {
-        throw IndexOutOfBoundsException(
-            "range [$from, $to) exceeds array size $size"
-        )
+        throw IndexOutOfBoundsException("range [$from, $to) exceeds array size $size")
     }
 }
 

@@ -2,20 +2,36 @@ package com.varlanv.koper.lang.math
 
 import kotlin.math.floor
 
-actual fun writeLongAscii(value: Long, array: ByteArray, offset: Int): Int {
+actual fun writeLongAscii(
+    value: Long,
+    array: ByteArray,
+    offset: Int,
+): Int {
     var low = value.toInt()
     var high = (value ushr 32).toInt()
     if (high == low shr 31) {
-        return writeIntAscii(low, array, offset)
+        return writeIntAscii(value = low, array = array, offset = offset)
     }
     var position = offset
     if (high < 0) {
         array[position++] = 45
         low = -low
-        high = high.inv() + if (low == 0) 1 else 0
+        high = high.inv() + if (low == 0) {
+            1
+        } else {
+            0
+        }
     }
-    val unsignedLow = if (low < 0) low.toDouble() + 4_294_967_296.0 else low.toDouble()
-    val unsignedHigh = if (high < 0) high.toDouble() + 4_294_967_296.0 else high.toDouble()
+    val unsignedLow = if (low < 0) {
+        low.toDouble() + 4_294_967_296.0
+    } else {
+        low.toDouble()
+    }
+    val unsignedHigh = if (high < 0) {
+        high.toDouble() + 4_294_967_296.0
+    } else {
+        high.toDouble()
+    }
     val highQuotient = floor(unsignedHigh / 1_000_000.0)
     val highRemainder = unsignedHigh - highQuotient * 1_000_000.0
     val combined = highRemainder * 4_294_967_296.0 + unsignedLow
@@ -25,17 +41,21 @@ actual fun writeLongAscii(value: Long, array: ByteArray, offset: Int): Int {
     val top = floor(quotient / 1_000_000.0).toInt()
     val middle = (quotient - top.toDouble() * 1_000_000.0).toInt()
     if (top == 0) {
-        position = writeIntAscii(middle, array, position)
+        position = writeIntAscii(value = middle, array = array, offset = position)
     } else {
-        position = writeIntAscii(top, array, position)
-        writeLimbSix(middle, array, position)
+        position = writeIntAscii(value = top, array = array, offset = position)
+        writeLimbSix(value = middle, array = array, offset = position)
         position += 6
     }
-    writeLimbSix(last, array, position)
+    writeLimbSix(value = last, array = array, offset = position)
     return position + 6
 }
 
-private fun writeLimbSix(value: Int, array: ByteArray, offset: Int) {
+private fun writeLimbSix(
+    value: Int,
+    array: ByteArray,
+    offset: Int,
+) {
     val upper = value / 1000
     val leading = asciiTriplets[upper and 1023]
     val trailing = asciiTriplets[(value - upper * 1000) and 1023]

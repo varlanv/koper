@@ -10,7 +10,7 @@ actual fun ByteArray.mismatch(
     aToIndex: Int,
     b: ByteArray,
     bFromIndex: Int,
-    bToIndex: Int
+    bToIndex: Int,
 ): Int = Arrays.mismatch(this, aFromIndex, aToIndex, b, bFromIndex, bToIndex)
 
 fun ByteSlice.readBuff(): ByteBuffer {

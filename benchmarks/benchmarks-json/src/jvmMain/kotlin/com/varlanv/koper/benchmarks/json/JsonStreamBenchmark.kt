@@ -38,7 +38,7 @@ class JsonStreamBenchmark {
     private val scalarReader = IdealJsonReader()
     private val scalarWriter = IdealJsonWriter()
     private val vectorReader = IdealJsonReader(vectorized = true)
-    private val vectorWriter = IdealJsonWriter(vectorized = true)
+    private val vectorWriter = IdealJsonWriter(true)
 
     @Setup
     fun setup() {
@@ -51,15 +51,16 @@ class JsonStreamBenchmark {
             else -> error(payload)
         }
         utf8Value = JsonUtf8Sample(
-            123456789L,
-            Utf8Str.allocateFromString("BTCUSDT"),
-            Utf8Str.allocateFromString(text),
-            42,
-            true,
+            id = 123456789L,
+            symbol = Utf8Str.allocateFromString("BTCUSDT"),
+            text = Utf8Str.allocateFromString(text),
+            sequence = 42,
+            active = true,
         )
-        nativeValue = JsonNativeSample(123456789L, "BTCUSDT", utf8Value.text, 42, true)
+        nativeValue =
+            JsonNativeSample(id = 123456789L, symbol = "BTCUSDT", text = utf8Value.text, sequence = 42, active = true)
         val expectedOutput = ByteArrayJsonOutput()
-        IdealJsonUtf8Codec.write(scalarWriter, utf8Value, expectedOutput)
+        IdealJsonUtf8Codec.write(writer = scalarWriter, value = utf8Value, output = expectedOutput)
         val bytes = expectedOutput.toByteArray()
         input = ByteArrayInputStream(bytes)
         streamInput = StreamJsonInput(input)
@@ -80,40 +81,40 @@ class JsonStreamBenchmark {
     @Benchmark
     fun idealUtf8Write(): RecycledOutputStream {
         output.reset()
-        IdealJsonUtf8Codec.write(scalarWriter, utf8Value, streamOutput)
+        IdealJsonUtf8Codec.write(writer = scalarWriter, value = utf8Value, output = streamOutput)
         return output
     }
 
     @Benchmark
     fun idealUtf8Read(): JsonUtf8Sample {
         input.reset()
-        return IdealJsonUtf8Codec.read(scalarReader, streamInput)
+        return IdealJsonUtf8Codec.read(reader = scalarReader, input = streamInput)
     }
 
     @Benchmark
     fun vectorUtf8Write(): RecycledOutputStream {
         output.reset()
-        IdealJsonUtf8Codec.write(vectorWriter, utf8Value, streamOutput)
+        IdealJsonUtf8Codec.write(writer = vectorWriter, value = utf8Value, output = streamOutput)
         return output
     }
 
     @Benchmark
     fun vectorUtf8Read(): JsonUtf8Sample {
         input.reset()
-        return IdealJsonUtf8Codec.read(vectorReader, streamInput)
+        return IdealJsonUtf8Codec.read(reader = vectorReader, input = streamInput)
     }
 
     @Benchmark
     fun nativeUtf8Write(): RecycledOutputStream {
         output.reset()
-        NativeJsonUtf8Codec.write(vectorWriter, nativeValue, streamOutput)
+        NativeJsonUtf8Codec.write(writer = vectorWriter, value = nativeValue, output = streamOutput)
         return output
     }
 
     @Benchmark
     fun nativeUtf8Read(): JsonNativeSample {
         input.reset()
-        return NativeJsonUtf8Codec.read(vectorReader, streamInput)
+        return NativeJsonUtf8Codec.read(reader = vectorReader, input = streamInput)
     }
 }
 
@@ -132,17 +133,27 @@ class RecycledOutputStream(initialCapacity: Int) : OutputStream() {
         bytes[position++] = value.toByte()
     }
 
-    override fun write(source: ByteArray, offset: Int, length: Int) {
-        if (offset < 0 || length < 0 || offset > source.size - length) throw IndexOutOfBoundsException()
+    override fun write(
+        source: ByteArray,
+        offset: Int,
+        length: Int,
+    ) {
+        if (offset < 0 || length < 0 || offset > source.size - length) {
+            throw IndexOutOfBoundsException()
+        }
         ensureCapacity(length)
         System.arraycopy(source, offset, bytes, position, length)
         position += length
     }
 
     private fun ensureCapacity(additionalBytes: Int) {
-        if (additionalBytes <= bytes.size - position) return
+        if (additionalBytes <= bytes.size - position) {
+            return
+        }
         val requiredCapacity = position.toLong() + additionalBytes
-        if (requiredCapacity > Int.MAX_VALUE) throw OutOfMemoryError("Required buffer capacity exceeds Int.MAX_VALUE")
+        if (requiredCapacity > Int.MAX_VALUE) {
+            throw OutOfMemoryError("Required buffer capacity exceeds Int.MAX_VALUE")
+        }
         val newCapacity = maxOf(requiredCapacity, bytes.size.toLong() * 2).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         bytes = bytes.copyOf(newCapacity)
     }

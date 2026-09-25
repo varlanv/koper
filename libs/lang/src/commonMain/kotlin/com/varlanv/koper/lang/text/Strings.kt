@@ -18,7 +18,9 @@ value class Str(val bytes: ByteSlice) {
     )
     override fun toString(): String = bytes.bytes.array.decodeToString(bytes.offset, bytes.offset + bytes.len)
 
-    fun allocateString(charset: Charset): String = charset.allocateString(bytes.bytes.array, bytes.offset, bytes.len)
+    fun allocateString(
+        charset: Charset,
+    ): String = charset.allocateString(bytes = bytes.bytes.array, offset = bytes.offset, len = bytes.len)
 }
 
 /**
@@ -32,9 +34,7 @@ value class Str(val bytes: ByteSlice) {
  */
 @JvmInline
 value class ByteStr private constructor(internal val bytes: ReadonlyBytes) {
-
     companion object {
-
         private const val DATA_OFFSET = 8
         private const val CHARSET_OFFSET = 4
         private const val LEN_OFFSET = 0
@@ -43,27 +43,28 @@ value class ByteStr private constructor(internal val bytes: ReadonlyBytes) {
             val source = string.encodeToByteArray()
             val size = source.size
             val destination = ByteArray(size + DATA_OFFSET)
-            destination.setPackedInt(LEN_OFFSET, size)
+            destination.setPackedInt(idx = LEN_OFFSET, i = size)
             destination[CHARSET_OFFSET] = Charset.Utf8.ordinal.toByte()
             source.copyInto(destination, DATA_OFFSET)
             return ByteStr(ReadonlyBytes(destination))
         }
     }
 
-    fun asBytesSlice(): ByteSlice = ByteSlice(bytes, DATA_OFFSET, len())
+    fun asBytesSlice(): ByteSlice = ByteSlice(bytes = bytes, offset = DATA_OFFSET, len = len())
 
     override fun toString(): String = bytes.array.decodeToString(DATA_OFFSET)
 }
 
 expect fun ByteStr.len(): Int
+
 expect fun ByteStr.encoding(): Charset
+
 expect fun ByteStr.copyInto(
     sourceOffset: Int,
     destination: ByteArray,
     destinationOffset: Int,
-    length: Int
+    length: Int,
 )
-
 
 /**
  * Bytes view on Latin1 string.
@@ -73,8 +74,7 @@ expect fun ByteStr.copyInto(
  */
 @JvmInline
 value class Latin1Str private constructor(val bytes: ByteSlice) {
-
-    fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(charset = Charset.Latin1))
+    fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(Charset.Latin1))
 }
 
 /**
@@ -85,15 +85,12 @@ value class Latin1Str private constructor(val bytes: ByteSlice) {
  */
 @JvmInline
 value class Utf8Str private constructor(val bytes: ByteSlice) {
-
     companion object {
         val empty = Utf8Str(
             ByteSlice(
-                ReadonlyBytes(
-                    ByteArray(0)
-                ),
-                0,
-                0,
+                bytes = ReadonlyBytes(ByteArray(0)),
+                offset = 0,
+                len = 0,
             ),
         )
 
@@ -105,21 +102,25 @@ value class Utf8Str private constructor(val bytes: ByteSlice) {
         /**
          * Converts given string to utf8 bytes.
          */
-        fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(charset = Charset.Utf8))
+        fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(Charset.Utf8))
 
         /**
          * Validates given byte slice against utf8 and wraps into Utf8Str.
          * No allocations are performed, input bytes are only validated.
          */
         fun fromTainted(bytes: ByteSlice): Utf8Str {
-            if (!bytes.bytes.array.validateUtf8(bytes.offset, bytes.len)) {
+            if (!bytes.bytes.array.validateUtf8(offset = bytes.offset, len = bytes.len)) {
                 error("received invalid utf-8 sequence bytes")
             }
             return Utf8Str(Str(bytes))
         }
     }
 
-    fun allocateString(): String = Charset.Utf8.allocateString(bytes.bytes.array, bytes.offset, bytes.len)
+    fun allocateString(): String = Charset.Utf8.allocateString(
+        bytes = bytes.bytes.array,
+        offset = bytes.offset,
+        len = bytes.len,
+    )
 
     override fun toString(): String {
         return allocateString()
@@ -127,5 +128,5 @@ value class Utf8Str private constructor(val bytes: ByteSlice) {
 }
 
 fun String.allocateStr(charset: Charset): Str {
-    return Str(charset.allocateByteSlice(this))
+    return Str(charset.allocateByteSlice(string = this))
 }

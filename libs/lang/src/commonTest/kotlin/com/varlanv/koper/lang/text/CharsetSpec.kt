@@ -36,12 +36,11 @@ class CharsetSpec : BaseSpec({
 
     should("replace unrepresentable and invalid code points with a question mark") {
         for (charset in Charset.entries) {
-            val invalid = listOf(Int.MIN_VALUE, -1, 0xD800, 0xDFFF, 0x110000, Int.MAX_VALUE) +
-                when (charset) {
-                    Charset.Ascii -> listOf(0x80, 0xFF, 0x100, 0x10000)
-                    Charset.Latin1 -> listOf(0x100, 0x10000)
-                    Charset.Utf8 -> emptyList()
-                }
+            val invalid = listOf(Int.MIN_VALUE, -1, 0xD800, 0xDFFF, 0x110000, Int.MAX_VALUE) + when (charset) {
+                Charset.Ascii -> listOf(0x80, 0xFF, 0x100, 0x10000)
+                Charset.Latin1 -> listOf(0x100, 0x10000)
+                Charset.Utf8 -> emptyList()
+            }
             for (codepoint in invalid) {
                 val actual = mutableListOf<Byte>()
                 charset.encodeInline(codepoint) { actual.add(it) }
@@ -64,7 +63,10 @@ class CharsetSpec : BaseSpec({
         )
         for (charset in Charset.entries) {
             for ((input, expected) in cases) {
-                for (chars in listOf(input, StringBuilder(input))) {
+                for (chars in listOf(
+                    input,
+                    StringBuilder(input),
+                )) {
                     val actual = mutableListOf<Byte>()
                     charset.encodeInline(chars) { actual.add(it) }
                     actual shouldBe expected.encodeToByteArray().toList()

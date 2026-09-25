@@ -12,7 +12,7 @@ class CharsetsJsSpec : BaseSpec({
             for (second in 0..255) {
                 bytes[1] = second.toByte()
                 val expected = bytes.decodeToString()
-                val actual = Charset.Utf8.allocateString(bytes)
+                val actual = Charset.Utf8.allocateString(bytes = bytes)
                 check(actual == expected) {
                     "UTF-8 decode differs for bytes $first, $second"
                 }
@@ -22,9 +22,9 @@ class CharsetsJsSpec : BaseSpec({
 
     should("preserve UTF-8 BOM and decode only the selected range") {
         val input = byteArrayOf(0x61, 0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte(), 0x62, 0x63)
-        Charset.Utf8.allocateString(input, 1, 4) shouldBe "\uFEFFb"
-        Charset.Utf8.allocateString(input, 1, 4) shouldBe input.decodeToString(1, 5)
-        Charset.Utf8.allocateString(input, input.size, 0) shouldBe ""
+        Charset.Utf8.allocateString(bytes = input, offset = 1, len = 4) shouldBe "\uFEFFb"
+        Charset.Utf8.allocateString(bytes = input, offset = 1, len = 4) shouldBe input.decodeToString(1, 5)
+        Charset.Utf8.allocateString(bytes = input, offset = input.size, len = 0) shouldBe ""
     }
 
     should("encode large UTF-8 ranges with the same surrogate handling as the shared encoder") {
@@ -39,7 +39,7 @@ class CharsetsJsSpec : BaseSpec({
         for (input in cases) {
             val expected = mutableListOf<Byte>()
             Charset.Utf8.encodeInline(input) { expected.add(it) }
-            val actual = Charset.Utf8.allocateByteSlice(input)
+            val actual = Charset.Utf8.allocateByteSlice(string = input)
             actual.allocateArray().toList() shouldBe expected
             actual.unsafeBorrowArray().size shouldBe actual.len
         }
@@ -48,23 +48,61 @@ class CharsetsJsSpec : BaseSpec({
         for ((start, end) in listOf(1 to 1025, 1 to 1026, 1025 to source.length)) {
             val expected = mutableListOf<Byte>()
             Charset.Utf8.encodeInline(source.substring(start, end)) { expected.add(it) }
-            Charset.Utf8.allocateByteSlice(source, start, end).allocateArray().toList() shouldBe expected
+            Charset.Utf8.allocateByteSlice(string = source, start = start, end = end).allocateArray().toList() shouldBe
+                expected
         }
     }
 
     should("match Kotlin UTF-8 decoding for longer malformed sequences") {
         val cases = listOf(
-            intArrayOf(0xE0, 0x80, 0x80), // Overlong encoding
-            intArrayOf(0xED, 0xA0, 0x80), // Encoded surrogate
-            intArrayOf(0xE2, 0x82), // Truncated three-byte sequence
-            intArrayOf(0xF0, 0x80, 0x80, 0x80), // Overlong encoding
-            intArrayOf(0xF4, 0x90, 0x80, 0x80), // Above U+10FFFF
-            intArrayOf(0xF0, 0x90, 0x80), // Truncated four-byte sequence
-            intArrayOf(0xF0, 0x90, 0x80, 0x80), // Valid four-byte sequence
+            intArrayOf(
+                0xE0,
+                0x80,
+                0x80,
+            ),
+            // Overlong encoding
+            intArrayOf(
+                0xED,
+                0xA0,
+                0x80,
+            ),
+            // Encoded surrogate
+            intArrayOf(
+                0xE2,
+                0x82,
+            ),
+            // Truncated three-byte sequence
+            intArrayOf(
+                0xF0,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            // Overlong encoding
+            intArrayOf(
+                0xF4,
+                0x90,
+                0x80,
+                0x80,
+            ),
+            // Above U+10FFFF
+            intArrayOf(
+                0xF0,
+                0x90,
+                0x80,
+            ),
+            // Truncated four-byte sequence
+            intArrayOf(
+                0xF0,
+                0x90,
+                0x80,
+                0x80,
+            ),
+            // Valid four-byte sequence
         )
         for (values in cases) {
             val bytes = ByteArray(values.size) { values[it].toByte() }
-            Charset.Utf8.allocateString(bytes) shouldBe bytes.decodeToString()
+            Charset.Utf8.allocateString(bytes = bytes) shouldBe bytes.decodeToString()
         }
     }
 
@@ -72,16 +110,16 @@ class CharsetsJsSpec : BaseSpec({
         val bytes = ByteArray(10_250) { 'A'.code.toByte() }
         bytes[0] = 0xFF.toByte()
         bytes[10_249] = 0xFF.toByte()
-        Charset.Ascii.allocateString(bytes, 5, 10_240) shouldBe "A".repeat(10_240)
+        Charset.Ascii.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe "A".repeat(10_240)
 
         bytes[500] = 0xFF.toByte()
-        Charset.Ascii.allocateString(bytes, 5, 10_240) shouldBe
-                "A".repeat(495) + "\uFFFD" + "A".repeat(10_240 - 496)
+        Charset.Ascii.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe
+            "A".repeat(495) + "\uFFFD" + "A".repeat(10_240 - 496)
     }
 
     should("not treat non-ASCII byte sequences as UTF-8") {
         val bytes = byteArrayOf(0xC3.toByte(), 0xA9.toByte())
-        Charset.Ascii.allocateString(bytes) shouldBe "\uFFFD\uFFFD"
+        Charset.Ascii.allocateString(bytes = bytes) shouldBe "\uFFFD\uFFFD"
         val decoder: dynamic = js("new TextDecoder('utf-8')")
         decoder.decode(bytes.unsafeCast<Int8Array>()).unsafeCast<String>() shouldBe "é"
     }
@@ -89,27 +127,31 @@ class CharsetsJsSpec : BaseSpec({
     should("decode large Latin1 slices with and without Windows-1252-only bytes") {
         val bytes = ByteArray(10_250) {
             val value = it % 224
-            (if (value < 128) value else value + 32).toByte()
+            (if (value < 128) {
+                value
+            } else {
+                value + 32
+            }).toByte()
         }
         bytes[0] = 0x80.toByte()
         bytes[10_249] = 0x80.toByte()
         val expected = CharArray(10_240) { (bytes[it + 5].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes, 5, 10_240) shouldBe expected
+        Charset.Latin1.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe expected
 
         bytes[500] = 0x80.toByte()
         val withControl = CharArray(10_240) { (bytes[it + 5].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes, 5, 10_240) shouldBe withControl
+        Charset.Latin1.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe withControl
     }
 
     should("decode every Latin1 byte through the large control-byte path") {
         val bytes = ByteArray(4098) { (it % 256).toByte() }
         val expected = CharArray(4096) { (bytes[it + 1].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes, 1, 4096) shouldBe expected
+        Charset.Latin1.allocateString(bytes = bytes, offset = 1, len = 4096) shouldBe expected
     }
 
     should("keep the untrimmed array behind a single-byte encoded slice") {
         for (charset in listOf(Charset.Ascii, Charset.Latin1)) {
-            val slice = charset.allocateByteSlice("A🙂B")
+            val slice = charset.allocateByteSlice(string = "A🙂B")
             slice.offset shouldBe 0
             slice.len shouldBe 3
             slice.unsafeBorrowArray().size shouldBe 4

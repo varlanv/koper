@@ -22,7 +22,16 @@ class Dec64BehaviorSpec : BaseSpec({
         }
 
         should("reject non-finite and unrepresentable values") {
-            for (value in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.MAX_VALUE, -Double.MAX_VALUE, Double.MIN_VALUE, 1e-19, -1e-19)) {
+            for (value in listOf(
+                Double.NaN,
+                Double.POSITIVE_INFINITY,
+                Double.NEGATIVE_INFINITY,
+                Double.MAX_VALUE,
+                -Double.MAX_VALUE,
+                Double.MIN_VALUE,
+                1e-19,
+                -1e-19,
+            )) {
                 withClue(value) {
                     shouldThrow<ArithmeticException> { Dec64.fromDouble(value) }
                 }
@@ -43,8 +52,11 @@ class Dec64BehaviorSpec : BaseSpec({
 
     context("rounding") {
         should("use maximum scale and half even for DECIMAL64") {
-            Dec64Context.DECIMAL64 shouldBe Dec64Context(18, Rounding.HALF_EVEN)
-            Dec64.ONE.div(dec("6"), Dec64Context.DECIMAL64) shouldBe dec("0.166666666666666667")
+            Dec64Context.DECIMAL64 shouldBe Dec64Context(scale = 18, rounding = Rounding.HALF_EVEN)
+            Dec64.ONE.div(
+                other = dec("6"),
+                ctx = Dec64Context.DECIMAL64,
+            ) shouldBe dec("0.166666666666666667")
         }
 
         should("round positive and negative fractions in every mode") {
@@ -61,8 +73,20 @@ class Dec64BehaviorSpec : BaseSpec({
             for ((mode, results) in expected) {
                 for ((index, input) in inputs.withIndex()) {
                     withClue("$input $mode") {
-                        dec(input).div(Dec64.ONE, Dec64Context(0, mode)) shouldBe Dec64(results[index].toLong())
-                        (-dec(input)).div(-Dec64.ONE, Dec64Context(0, mode)) shouldBe Dec64(results[index].toLong())
+                        dec(input).div(
+                            other = Dec64.ONE,
+                            ctx = Dec64Context(
+                                scale = 0,
+                                rounding = mode,
+                            ),
+                        ) shouldBe Dec64(results[index].toLong())
+                        (-dec(input)).div(
+                            other = -Dec64.ONE,
+                            ctx = Dec64Context(
+                                scale = 0,
+                                rounding = mode,
+                            ),
+                        ) shouldBe Dec64(results[index].toLong())
                     }
                 }
             }
@@ -76,20 +100,32 @@ class Dec64BehaviorSpec : BaseSpec({
                 repeat(100) {
                     val coefficient = random.nextLong(1, Dec64.MAX_COEFFICIENT + 1)
                     val digits = coefficient.toString().padStart(scale + 1, '0')
-                    val text = if (scale == 0) digits else digits.dropLast(scale) + "." + digits.takeLast(scale)
+                    val text = if (scale == 0) {
+                        digits
+                    } else {
+                        digits.dropLast(scale) + "." + digits.takeLast(scale)
+                    }
                     for (sign in listOf(1, -1)) {
-                        val expected = (if (sign < 0) "-" else "") + text
-                        val value = Dec64.fromLong(coefficient * sign, scale)
+                        val expected = (if (sign < 0) {
+                            "-"
+                        } else {
+                            ""
+                        }) + text
+                        val value = Dec64.fromLong(unscaled = coefficient * sign, scale = scale)
                         withClue(expected) {
                             dec(expected) shouldBe value
                             val bytes = ByteArray(Dec64.MAX_CHARS + 4) { 35 }
-                            val end = value.writeTo(bytes, 2)
+                            val end = value.writeTo(buf = bytes, offset = 2)
                             bytes.take(2) shouldBe listOf<Byte>(35, 35)
                             bytes.drop(end).all { it == 35.toByte() } shouldBe true
-                            val normalized = if (scale == 0) expected else expected.trimEnd('0').trimEnd('.')
+                            val normalized = if (scale == 0) {
+                                expected
+                            } else {
+                                expected.trimEnd('0').trimEnd('.')
+                            }
                             bytes.decodeToString(2, end) shouldBe normalized
                             value.toString() shouldBe normalized
-                            Dec64.parseBytes(bytes, 2, end) shouldBe value
+                            Dec64.parseBytes(bytes = bytes, from = 2, to = end) shouldBe value
                         }
                     }
                 }
@@ -99,15 +135,20 @@ class Dec64BehaviorSpec : BaseSpec({
         should("reject non-ASCII decimal digits and bytes") {
             for (text in listOf("١", "１２", "1\u0000", "1\n", "1e++2", "+-1", "1e2e3")) {
                 shouldThrow<NumberFormatException> { dec(text) }
-                shouldThrow<NumberFormatException> { Dec64.parseBytes(text.encodeToByteArray()) }
+                shouldThrow<NumberFormatException> { Dec64.parseBytes(bytes = text.encodeToByteArray()) }
             }
-            shouldThrow<NumberFormatException> { Dec64.parseBytes(byteArrayOf(-1)) }
+            shouldThrow<NumberFormatException> { Dec64.parseBytes(bytes = byteArrayOf(-1)) }
         }
 
         should("format boundary values within MAX_CHARS") {
-            for (text in listOf("288230376151711743", "-288230376151711743", "-0.000000000000000001", "-28823037615171.1743")) {
+            for (text in listOf(
+                "288230376151711743",
+                "-288230376151711743",
+                "-0.000000000000000001",
+                "-28823037615171.1743",
+            )) {
                 val bytes = ByteArray(Dec64.MAX_CHARS)
-                val end = dec(text).writeTo(bytes, 0)
+                val end = dec(text).writeTo(buf = bytes, offset = 0)
                 end shouldBe text.length
                 bytes.decodeToString(0, end) shouldBe text
             }

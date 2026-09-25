@@ -17,15 +17,20 @@ object IdealJsonUtf8Codec {
     private val sequencePrefix = ",\"sequence\":".encodeToByteArray()
     private val activePrefix = ",\"active\":".encodeToByteArray()
 
-    fun writeToStream(value: JsonUtf8Sample, output: JsonOutput, writer: IdealJsonWriter = IdealJsonWriter()) {
-        write(writer, value, output)
+    fun writeToStream(
+        value: JsonUtf8Sample,
+        output: JsonOutput,
+        writer: IdealJsonWriter = IdealJsonWriter(),
+    ) {
+        write(writer = writer, value = value, output = output)
     }
 
-    fun writeVectorToStream(value: JsonUtf8Sample, output: JsonOutput, writer: IdealJsonWriter = IdealJsonWriter(
-        vectorized = true
-    )
+    fun writeVectorToStream(
+        value: JsonUtf8Sample,
+        output: JsonOutput,
+        writer: IdealJsonWriter = IdealJsonWriter(true),
     ) {
-        write(writer, value, output)
+        write(writer = writer, value = value, output = output)
     }
 
     fun write(
@@ -34,26 +39,32 @@ object IdealJsonUtf8Codec {
         output: JsonOutput,
     ) {
         writer.reset(output)
-        writer.writeRaw(idPrefix)
+        writer.writeRaw(bytes = idPrefix)
         writer.writeLong(value.id)
-        writer.writeRaw(symbolPrefix)
+        writer.writeRaw(bytes = symbolPrefix)
         writer.writeUtf8(value.symbol)
-        writer.writeRaw(textPrefix)
+        writer.writeRaw(bytes = textPrefix)
         writer.writeUtf8(value.text)
-        writer.writeRaw(sequencePrefix)
+        writer.writeRaw(bytes = sequencePrefix)
         writer.writeLong(value.sequence.toLong())
-        writer.writeRaw(activePrefix)
+        writer.writeRaw(bytes = activePrefix)
         writer.writeBoolean(value.active)
         writer.writeByte('}'.code)
         writer.flush()
     }
 
-    fun readFromStream(input: JsonInput, reader: IdealJsonReader = IdealJsonReader()): JsonUtf8Sample {
-        return read(reader, input)
+    fun readFromStream(
+        input: JsonInput,
+        reader: IdealJsonReader = IdealJsonReader(),
+    ): JsonUtf8Sample {
+        return read(reader = reader, input = input)
     }
 
-    fun readVectorFromStream(input: JsonInput, reader: IdealJsonReader = IdealJsonReader(vectorized = true)): JsonUtf8Sample {
-        return read(reader, input)
+    fun readVectorFromStream(
+        input: JsonInput,
+        reader: IdealJsonReader = IdealJsonReader(vectorized = true),
+    ): JsonUtf8Sample {
+        return read(reader = reader, input = input)
     }
 
     private fun readField(reader: IdealJsonReader): Int {
@@ -128,6 +139,6 @@ object IdealJsonUtf8Codec {
         }
         require(seen == 31) { "Missing required JSON field" }
         require(reader.nextToken() == -1) { "Unexpected trailing JSON content" }
-        return JsonUtf8Sample(id, symbol, text, sequence, active)
+        return JsonUtf8Sample(id = id, symbol = symbol, text = text, sequence = sequence, active = active)
     }
 }

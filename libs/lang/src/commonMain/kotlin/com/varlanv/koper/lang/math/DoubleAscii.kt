@@ -1,8 +1,16 @@
 package com.varlanv.koper.lang.math
 
-internal expect fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset: Int): Int
+internal expect fun writeDoubleAsciiImpl(
+    value: Double,
+    array: ByteArray,
+    offset: Int,
+): Int
 
-internal fun writeDoubleAsciiPortable(value: Double, array: ByteArray, offset: Int): Int {
+internal fun writeDoubleAsciiPortable(
+    value: Double,
+    array: ByteArray,
+    offset: Int,
+): Int {
     val bits = value.toRawBits()
     val fraction = bits and 0x000f_ffff_ffff_ffffL
     val exponentBits = ((bits ushr 52) and 2047).toInt()
@@ -13,7 +21,9 @@ internal fun writeDoubleAsciiPortable(value: Double, array: ByteArray, offset: I
         return offset + 3
     }
     var start = offset
-    if (bits < 0) array[start++] = 45
+    if (bits < 0) {
+        array[start++] = 45
+    }
     if (exponentBits == 2047) {
         array[start] = 73
         array[start + 1] = 110
@@ -46,21 +56,33 @@ internal fun writeDoubleAsciiPortable(value: Double, array: ByteArray, offset: I
         if (binaryExponent in -52..-1) {
             val integral = significand ushr -binaryExponent
             if ((integral shl -binaryExponent) == significand) {
-                return formatDoubleDecimal(integral, 0, array, start)
+                return formatDoubleDecimal(value = integral, exponent = 0, array = array, offset = start)
             }
         }
     }
     val asymmetric = significand == 0x0010_0000_0000_0000L && binaryExponent != -1074
-    val decimalExponent = (binaryExponent * 315653 - if (asymmetric) 131008 else 0) shr 20
+    val decimalExponent = (binaryExponent * 315653 - if (asymmetric) {
+        131008
+    } else {
+        0
+    }) shr 20
     val power = -decimalExponent
     val tableIndex = (power + 292) * 2
     val high = doubleDecimalPowers[tableIndex]
     val low = doubleDecimalPowers[tableIndex + 1]
     val shift = binaryExponent + ((power * 1741647) shr 19) + 2
     val center = significand shl 2
-    val lower = doubleScaledOdd((center - if (asymmetric) 1 else 2) shl shift, high, low)
-    val upper = doubleScaledOdd((center + 2) shl shift, high, low)
-    val scaled = doubleScaledOdd(center shl shift, high, low)
+    val lower = doubleScaledOdd(
+        value = (center - if (asymmetric) {
+            1
+        } else {
+            2
+        }) shl shift,
+        high = high,
+        low = low,
+    )
+    val upper = doubleScaledOdd(value = (center + 2) shl shift, high = high, low = low)
+    val scaled = doubleScaledOdd(value = center shl shift, high = high, low = low)
     val excluded = significand and 1
     val down = scaled ushr 2
     if (down >= 100) {
@@ -69,7 +91,16 @@ internal fun writeDoubleAsciiPortable(value: Double, array: ByteArray, offset: I
         val downInside = (shortDown shl 2) >= lower + excluded
         val upInside = (shortUp shl 2) + excluded <= upper
         if (downInside != upInside) {
-            return formatDoubleDecimal(if (downInside) shortDown else shortUp, decimalExponent, array, start)
+            return formatDoubleDecimal(
+                value = if (downInside) {
+                    shortDown
+                } else {
+                    shortUp
+                },
+                exponent = decimalExponent,
+                array = array,
+                offset = start,
+            )
         }
     }
     val up = down + 1
@@ -82,18 +113,40 @@ internal fun writeDoubleAsciiPortable(value: Double, array: ByteArray, offset: I
         scaled < (down shl 2) + 2 -> down
         else -> down + (down and 1)
     }
-    return formatDoubleDecimal(rounded, decimalExponent + decimalAdjustment, array, start)
+    return formatDoubleDecimal(
+        value = rounded,
+        exponent = decimalExponent + decimalAdjustment,
+        array = array,
+        offset = start,
+    )
 }
 
-private fun doubleScaledOdd(value: Long, high: Long, low: Long): Long {
+private fun doubleScaledOdd(
+    value: Long,
+    high: Long,
+    low: Long,
+): Long {
     val middleLow = value * high
     val middle = middleLow + value.unsignedMultiplyHigh(low)
-    val carry = if (middle.compareUnsigned(middleLow) < 0) 1 else 0
+    val carry = if (middle.compareUnsigned(middleLow) < 0) {
+        1
+    } else {
+        0
+    }
     val top = value.unsignedMultiplyHigh(high) + carry
-    return (top ushr 1) or if (middle != 0L || (top and 1) != 0L) 1L else 0L
+    return (top ushr 1) or if (middle != 0L || (top and 1) != 0L) {
+        1L
+    } else {
+        0L
+    }
 }
 
-private fun formatDoubleDecimal(value: Long, exponent: Int, array: ByteArray, offset: Int): Int {
+private fun formatDoubleDecimal(
+    value: Long,
+    exponent: Int,
+    array: ByteArray,
+    offset: Int,
+): Int {
     var digits = value
     var scale = exponent
     if (digits % 10 == 0L) {
@@ -122,13 +175,13 @@ private fun formatDoubleDecimal(value: Long, exponent: Int, array: ByteArray, of
     val point = length + scale
     if (point in 1..7) {
         if (point >= length) {
-            var end = writeLongAscii(digits, array, offset)
+            var end = writeLongAscii(value = digits, array = array, offset = offset)
             repeat(point - length) { array[end++] = 48 }
             array[end] = 46
             array[end + 1] = 48
             return end + 2
         }
-        writeDoubleDigitsWithPoint(digits, array, offset + length + 1, offset + point)
+        writeDoubleDigitsWithPoint(value = digits, array = array, end = offset + length + 1, point = offset + point)
         return offset + length + 1
     }
     if (point in -2..0) {
@@ -136,7 +189,7 @@ private fun formatDoubleDecimal(value: Long, exponent: Int, array: ByteArray, of
         array[offset + 1] = 46
         var start = offset + 2
         repeat(-point) { array[start++] = 48 }
-        return writeLongAscii(digits, array, start)
+        return writeLongAscii(value = digits, array = array, offset = start)
     }
     val end: Int
     if (length == 1) {
@@ -146,10 +199,10 @@ private fun formatDoubleDecimal(value: Long, exponent: Int, array: ByteArray, of
         end = offset + 3
     } else {
         end = offset + length + 1
-        writeDoubleDigitsWithPoint(digits, array, end, offset + 1)
+        writeDoubleDigitsWithPoint(value = digits, array = array, end = end, point = offset + 1)
     }
     array[end] = 69
-    return writeIntAscii(point - 1, array, end + 1)
+    return writeIntAscii(value = point - 1, array = array, offset = end + 1)
 }
 
 private val doubleLengthPowers = LongArray(32).also { values ->
@@ -161,12 +214,23 @@ private val doubleLengthPowers = LongArray(32).also { values ->
 }
 
 private fun doubleDecimalLength(value: Long): Int {
-    if (value >= 10_000_000_000_000_000L) return 17
+    if (value >= 10_000_000_000_000_000L) {
+        return 17
+    }
     val estimate = ((64 - value.countLeadingZeroBits()) * 1233) ushr 12
-    return estimate + if (value >= doubleLengthPowers[estimate and 31]) 1 else 0
+    return estimate + if (value >= doubleLengthPowers[estimate and 31]) {
+        1
+    } else {
+        0
+    }
 }
 
-private fun writeDoubleDigitsWithPoint(value: Long, array: ByteArray, end: Int, point: Int) {
+private fun writeDoubleDigitsWithPoint(
+    value: Long,
+    array: ByteArray,
+    end: Int,
+    point: Int,
+) {
     array[point] = 46
     var cursor = end
     val head: Int
@@ -175,9 +239,9 @@ private fun writeDoubleDigitsWithPoint(value: Long, array: ByteArray, end: Int, 
         val low = (value - high * 1_000_000_000L).toInt()
         val middle = low / 1000
         val upper = middle / 1000
-        cursor = writeDoubleTripletWithPoint(low - middle * 1000, array, cursor, point)
-        cursor = writeDoubleTripletWithPoint(middle - upper * 1000, array, cursor, point)
-        cursor = writeDoubleTripletWithPoint(upper, array, cursor, point)
+        cursor = writeDoubleTripletWithPoint(value = low - middle * 1000, array = array, end = cursor, point = point)
+        cursor = writeDoubleTripletWithPoint(value = middle - upper * 1000, array = array, end = cursor, point = point)
+        cursor = writeDoubleTripletWithPoint(value = upper, array = array, end = cursor, point = point)
         head = high.toInt()
     } else {
         head = value.toInt()
@@ -185,24 +249,36 @@ private fun writeDoubleDigitsWithPoint(value: Long, array: ByteArray, end: Int, 
     var remaining = head
     while (remaining >= 1000) {
         val quotient = remaining / 1000
-        cursor = writeDoubleTripletWithPoint(remaining - quotient * 1000, array, cursor, point)
+        cursor =
+            writeDoubleTripletWithPoint(value = remaining - quotient * 1000, array = array, end = cursor, point = point)
         remaining = quotient
     }
     if (remaining >= 100) {
-        writeDoubleTripletWithPoint(remaining, array, cursor, point)
+        writeDoubleTripletWithPoint(value = remaining, array = array, end = cursor, point = point)
     } else if (remaining >= 10) {
         val packed = asciiTriplets[remaining and 1023]
-        if (--cursor == point) cursor--
+        if (--cursor == point) {
+            cursor--
+        }
         array[cursor] = packed.toByte()
-        if (--cursor == point) cursor--
+        if (--cursor == point) {
+            cursor--
+        }
         array[cursor] = (packed ushr 8).toByte()
     } else {
-        if (--cursor == point) cursor--
+        if (--cursor == point) {
+            cursor--
+        }
         array[cursor] = (remaining + 48).toByte()
     }
 }
 
-private fun writeDoubleTripletWithPoint(value: Int, array: ByteArray, end: Int, point: Int): Int {
+private fun writeDoubleTripletWithPoint(
+    value: Int,
+    array: ByteArray,
+    end: Int,
+    point: Int,
+): Int {
     val packed = asciiTriplets[value and 1023]
     if (end - point > 3 || end <= point) {
         array[end - 3] = (packed ushr 16).toByte()
@@ -211,11 +287,17 @@ private fun writeDoubleTripletWithPoint(value: Int, array: ByteArray, end: Int, 
         return end - 3
     }
     var cursor = end
-    if (--cursor == point) cursor--
+    if (--cursor == point) {
+        cursor--
+    }
     array[cursor] = packed.toByte()
-    if (--cursor == point) cursor--
+    if (--cursor == point) {
+        cursor--
+    }
     array[cursor] = (packed ushr 8).toByte()
-    if (--cursor == point) cursor--
+    if (--cursor == point) {
+        cursor--
+    }
     array[cursor] = (packed ushr 16).toByte()
     return cursor
 }

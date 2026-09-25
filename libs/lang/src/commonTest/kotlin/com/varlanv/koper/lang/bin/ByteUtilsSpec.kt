@@ -7,29 +7,58 @@ class ByteUtilsSpec : BaseSpec({
     should("report mismatches relative to the selected ranges") {
         val first = byteArrayOf(9, 1, 2, 3, 8)
         val second = byteArrayOf(7, 7, 1, 2, 4, 6)
-        first.mismatch(1, 4, second, 2, 5) shouldBe 2
-        first.mismatch(1, 3, second, 2, 4) shouldBe -1
-        first.mismatch(1, 4, second, 2, 4) shouldBe 2
-        first.mismatch(1, 3, second, 2, 5) shouldBe 2
-        first.mismatch(0, 0, second, 2, 2) shouldBe -1
-        first.mismatch(0, 0, second, 2, 3) shouldBe 0
-        first.equals(1, 3, second, 2, 4) shouldBe true
-        first.equals(1, 4, second, 2, 5) shouldBe false
-        first.equals(1, 3, second, 2, 5) shouldBe false
-        first.equals(0, 0, second, 2, 2) shouldBe true
+        first.mismatch(aFromIndex = 1, aToIndex = 4, b = second, bFromIndex = 2, bToIndex = 5) shouldBe 2
+        first.mismatch(aFromIndex = 1, aToIndex = 3, b = second, bFromIndex = 2, bToIndex = 4) shouldBe -1
+        first.mismatch(aFromIndex = 1, aToIndex = 4, b = second, bFromIndex = 2, bToIndex = 4) shouldBe 2
+        first.mismatch(aFromIndex = 1, aToIndex = 3, b = second, bFromIndex = 2, bToIndex = 5) shouldBe 2
+        first.mismatch(aFromIndex = 0, aToIndex = 0, b = second, bFromIndex = 2, bToIndex = 2) shouldBe -1
+        first.mismatch(aFromIndex = 0, aToIndex = 0, b = second, bFromIndex = 2, bToIndex = 3) shouldBe 0
+        first.equals(aFromIndex = 1, aToIndex = 3, b = second, bFromIndex = 2, bToIndex = 4) shouldBe true
+        first.equals(aFromIndex = 1, aToIndex = 4, b = second, bFromIndex = 2, bToIndex = 5) shouldBe false
+        first.equals(aFromIndex = 1, aToIndex = 3, b = second, bFromIndex = 2, bToIndex = 5) shouldBe false
+        first.equals(aFromIndex = 0, aToIndex = 0, b = second, bFromIndex = 2, bToIndex = 2) shouldBe true
     }
 
     should("find overlapping matches and report whether a needle exists") {
         val bytes = byteArrayOf(1, 1, 1, 2)
-        bytes.indexOfNeedle(byteArrayOf(1, 1, 2), 0) shouldBe 1
-        bytes.containsNeedle(byteArrayOf(1, 1, 2)) shouldBe true
-        bytes.containsNeedle(byteArrayOf(1, 1, 2), 2) shouldBe false
-        bytes.containsNeedle(byteArrayOf(2), 3) shouldBe true
-        bytes.containsNeedle(byteArrayOf(3)) shouldBe false
-        bytes.containsNeedle(byteArrayOf(), Int.MAX_VALUE) shouldBe true
-        bytes.indexOfNeedle(byteArrayOf(1), Int.MIN_VALUE) shouldBe 0
-        bytes.indexOfNeedle(byteArrayOf(1), Int.MAX_VALUE) shouldBe -1
-        byteArrayOf(-128, -1, 127).indexOfNeedle(byteArrayOf(-1, 127), 0) shouldBe 1
+        bytes.indexOfNeedle(
+            needle = byteArrayOf(
+                1,
+                1,
+                2,
+            ),
+            fromIndex = 0,
+        ) shouldBe 1
+        bytes.containsNeedle(needle = byteArrayOf(1, 1, 2)) shouldBe true
+        bytes.containsNeedle(
+            needle = byteArrayOf(
+                1,
+                1,
+                2,
+            ),
+            fromIndex = 2,
+        ) shouldBe false
+        bytes.containsNeedle(
+            needle = byteArrayOf(2),
+            fromIndex = 3,
+        ) shouldBe true
+        bytes.containsNeedle(needle = byteArrayOf(3)) shouldBe false
+        bytes.containsNeedle(needle = byteArrayOf(), fromIndex = Int.MAX_VALUE) shouldBe true
+        bytes.indexOfNeedle(
+            needle = byteArrayOf(1),
+            fromIndex = Int.MIN_VALUE,
+        ) shouldBe 0
+        bytes.indexOfNeedle(
+            needle = byteArrayOf(1),
+            fromIndex = Int.MAX_VALUE,
+        ) shouldBe -1
+        byteArrayOf(-128, -1, 127).indexOfNeedle(
+            needle = byteArrayOf(
+                -1,
+                127,
+            ),
+            fromIndex = 0,
+        ) shouldBe 1
     }
 
     context("ByteArray.startsWith") {

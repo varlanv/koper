@@ -2,8 +2,8 @@ package com.varlanv.koper.benchmarks.lang.math
 
 import com.varlanv.koper.lang.math.writeIntAscii
 import com.varlanv.koper.lang.math.writeLongAscii
-import kotlinx.benchmark.*
 import kotlin.random.Random
+import kotlinx.benchmark.*
 
 @State(Scope.Benchmark)
 class NumbersJsBenchmark {
@@ -21,30 +21,65 @@ class NumbersJsBenchmark {
         val random = Random(42)
         ints = IntArray(4096) { index ->
             when (distribution) {
-                "small" -> index and 255
+                "small" -> {
+                    index and 255
+                }
                 "mixed" -> {
                     val digits = index % 10 + 1
                     var lower = 1L
                     repeat(digits - 1) { lower *= 10 }
-                    val magnitude = random.nextLong(lower, minOf(lower * 10, Int.MAX_VALUE.toLong() + 1)).toInt()
-                    if (random.nextBoolean()) magnitude else -magnitude
+                    val magnitude = random
+                        .nextLong(
+                            lower,
+                            minOf(
+                                lower * 10,
+                                Int.MAX_VALUE.toLong() + 1,
+                            ),
+                        )
+                        .toInt()
+                    if (random.nextBoolean()) {
+                        magnitude
+                    } else {
+                        -magnitude
+                    }
                 }
-                "random" -> random.nextInt()
-                else -> error("Unknown distribution: $distribution")
+                "random" -> {
+                    random.nextInt()
+                }
+                else -> {
+                    error("Unknown distribution: $distribution")
+                }
             }
         }
         longs = LongArray(4096) { index ->
             when (distribution) {
-                "small" -> (index and 255).toLong()
+                "small" -> {
+                    (index and 255).toLong()
+                }
                 "mixed" -> {
                     val digits = index % 19 + 1
                     var lower = 1L
                     repeat(digits - 1) { lower *= 10 }
-                    val magnitude = random.nextLong(lower, if (digits == 19) Long.MAX_VALUE else lower * 10)
-                    if (random.nextBoolean()) magnitude else -magnitude
+                    val magnitude = random.nextLong(
+                        lower,
+                        if (digits == 19) {
+                            Long.MAX_VALUE
+                        } else {
+                            lower * 10
+                        },
+                    )
+                    if (random.nextBoolean()) {
+                        magnitude
+                    } else {
+                        -magnitude
+                    }
                 }
-                "random" -> random.nextLong()
-                else -> error("Unknown distribution: $distribution")
+                "random" -> {
+                    random.nextLong()
+                }
+                else -> {
+                    error("Unknown distribution: $distribution")
+                }
             }
         }
         if (distribution != "small") {
@@ -62,22 +97,42 @@ class NumbersJsBenchmark {
         for (value in ints) {
             val text = value.toString()
             output.fill(0x55)
-            verify(text, writeIntAscii(value, output, 3))
+            verify(
+                text = text,
+                end = writeIntAscii(
+                    value = value,
+                    array = output,
+                    offset = 3,
+                ),
+            )
             output.fill(0x55)
-            verify(text, writeString(text))
+            verify(
+                text = text,
+                end = writeString(text),
+            )
         }
         for (value in longs) {
             val text = value.toString()
             output.fill(0x55)
-            verify(text, writeLongAscii(value, output, 3))
+            verify(
+                text = text,
+                end = writeLongAscii(
+                    value = value,
+                    array = output,
+                    offset = 3,
+                ),
+            )
             output.fill(0x55)
-            verify(text, writeString(text))
+            verify(
+                text = text,
+                end = writeString(text),
+            )
         }
     }
 
     @Benchmark
     fun intForward(blackhole: Blackhole) {
-        val end = writeIntAscii(nextInt(), output, 3)
+        val end = writeIntAscii(value = nextInt(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)
@@ -93,7 +148,7 @@ class NumbersJsBenchmark {
 
     @Benchmark
     fun longForward(blackhole: Blackhole) {
-        val end = writeLongAscii(nextLong(), output, 3)
+        val end = writeLongAscii(value = nextLong(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)
@@ -129,7 +184,11 @@ class NumbersJsBenchmark {
     private fun verify(text: String, end: Int) {
         check(end == 3 + text.length)
         for (index in output.indices) {
-            val expected = if (index in 3 until end) text[index - 3].code.toByte() else 0x55.toByte()
+            val expected = if (index in 3 until end) {
+                text[index - 3].code.toByte()
+            } else {
+                0x55.toByte()
+            }
             check(output[index] == expected) { "Incorrect encoding for $text at $index" }
         }
     }

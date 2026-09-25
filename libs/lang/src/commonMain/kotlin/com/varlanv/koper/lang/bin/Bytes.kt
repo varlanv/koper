@@ -3,18 +3,30 @@ package com.varlanv.koper.lang.bin
 import kotlin.jvm.JvmInline
 
 expect fun ByteArray.mismatch(
-    aFromIndex: Int, aToIndex: Int,
-    b: ByteArray, bFromIndex: Int, bToIndex: Int
+    aFromIndex: Int,
+    aToIndex: Int,
+    b: ByteArray,
+    bFromIndex: Int,
+    bToIndex: Int,
 ): Int
 
 expect fun ByteArray.setPackedInt(idx: Int, i: Int)
+
 expect fun ByteArray.setPackedLong(idx: Int, l: Long)
 
 fun ByteArray.equals(
-    aFromIndex: Int, aToIndex: Int,
-    b: ByteArray, bFromIndex: Int, bToIndex: Int
-): Boolean = mismatch(aFromIndex, aToIndex, b, bFromIndex, bToIndex) < 0
-
+    aFromIndex: Int,
+    aToIndex: Int,
+    b: ByteArray,
+    bFromIndex: Int,
+    bToIndex: Int,
+): Boolean = mismatch(
+    aFromIndex = aFromIndex,
+    aToIndex = aToIndex,
+    b = b,
+    bFromIndex = bFromIndex,
+    bToIndex = bToIndex,
+) < 0
 
 fun ByteArray.containsNeedle(
     needle: ByteArray,
@@ -31,8 +43,15 @@ fun ByteArray.indexOfNeedle(needle: ByteArray, fromIndex: Int): Int {
     var i = fromIndex.coerceAtLeast(0)
     while (i <= lastPossible) {
         if (this[i] == needleFirst && (
-                    needleSize == 1 || mismatch(i + 1, i + needleSize, needle, 1, needleSize) == -1
-                    )
+        needleSize == 1 ||
+            mismatch(
+                aFromIndex = i + 1,
+                aToIndex = i + needleSize,
+                b = needle,
+                bFromIndex = 1,
+                bToIndex = needleSize,
+            ) == -1
+        )
         ) {
             return i
         }
@@ -45,14 +64,23 @@ fun ByteArray.startsWith(
     prefix: ByteArray,
     offset: Int = 0,
 ): Boolean = offset >= 0 &&
-        prefix.size <= size - offset &&
-        mismatch(offset, offset + prefix.size, prefix, 0, prefix.size) == -1
-
+    prefix.size <= size - offset &&
+    mismatch(
+        aFromIndex = offset,
+        aToIndex = offset + prefix.size,
+        b = prefix,
+        bFromIndex = 0,
+        bToIndex = prefix.size,
+    ) == -1
 
 @JvmInline
 value class ReadonlyBytes(@PublishedApi internal val array: ByteArray)
 
-class ByteSlice(@PublishedApi internal val bytes: ReadonlyBytes, val offset: Int, val len: Int, ) {
+class ByteSlice(
+    @PublishedApi internal val bytes: ReadonlyBytes,
+    val offset: Int,
+    val len: Int,
+) {
     private var hash: Int = 0
 
     inline fun forEach(block: (Byte) -> Unit) {
@@ -88,7 +116,13 @@ class ByteSlice(@PublishedApi internal val bytes: ReadonlyBytes, val offset: Int
             return false
         }
 
-        return bytes.array.equals(offset, offset + len, other.bytes.array, other.offset, other.offset + other.len)
+        return bytes.array.equals(
+            aFromIndex = offset,
+            aToIndex = offset + len,
+            b = other.bytes.array,
+            bFromIndex = other.offset,
+            bToIndex = other.offset + other.len,
+        )
     }
 
     override fun hashCode(): Int {
@@ -110,18 +144,18 @@ class ByteSlice(@PublishedApi internal val bytes: ReadonlyBytes, val offset: Int
 fun ByteArray.validateUtf8(
     offset: Int = 0,
     len: Int = size - offset,
-//    onError: (errorMessage: String) -> Unit,
+    //    onError: (errorMessage: String) -> Unit,
 ): Boolean {
     if (offset < 0) {
-//        onError("negative offset: $offset")
+        //        onError("negative offset: $offset")
         return false
     }
     if (len < 0) {
-//        onError("negative length: $len")
+        //        onError("negative length: $len")
         return false
     }
     if (offset > size - len) {
-//        onError("range [$offset, ${offset.toLong() + len}) exceeds byte array size $size")
+        //        onError("range [$offset, ${offset.toLong() + len}) exceeds byte array size $size")
         return false
     }
 
@@ -131,7 +165,9 @@ fun ByteArray.validateUtf8(
     // Small values are cheaper to scan directly than to enter the platform bulk scan.
     if (len < 64) {
         while (i < end && this[i] >= 0) i++
-        if (i == end) return true
+        if (i == end) {
+            return true
+        }
     }
 
     while (i < end) {
@@ -139,7 +175,7 @@ fun ByteArray.validateUtf8(
 
         // ASCII
         if (b0 < 0x80) {
-            i = skipAscii(i + 1, end)
+            i = skipAscii(start = i + 1, end = end)
             continue
         }
 
@@ -147,17 +183,17 @@ fun ByteArray.validateUtf8(
         // C2..DF 80..BF
         if (b0 < 0xE0) {
             if (b0 < 0xC2) {
-//                onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
+                //                onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
                 return false
             }
             if (i + 1 >= end) {
-//                onError("truncated 2-byte UTF-8 sequence at index $i")
+                //                onError("truncated 2-byte UTF-8 sequence at index $i")
                 return false
             }
 
             val b1 = this[i + 1].toInt() and 0xFF
             if (b1 and 0xC0 != 0x80) {
-//                onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
+                //                onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
                 return false
             }
 
@@ -168,7 +204,7 @@ fun ByteArray.validateUtf8(
         // 3-byte sequence
         if (b0 < 0xF0) {
             if (i + 2 >= end) {
-//                onError("truncated 3-byte UTF-8 sequence at index $i")
+                //                onError("truncated 3-byte UTF-8 sequence at index $i")
                 return false
             }
 
@@ -176,7 +212,7 @@ fun ByteArray.validateUtf8(
             val b2 = this[i + 2].toInt() and 0xFF
 
             if (b2 and 0xC0 != 0x80) {
-//                onError("invalid UTF-8 continuation byte 0x${b2.toString(16)} " + "at index ${i + 2}")
+                //                onError("invalid UTF-8 continuation byte 0x${b2.toString(16)} " + "at index ${i + 2}")
                 return false
             }
 
@@ -185,7 +221,7 @@ fun ByteArray.validateUtf8(
                 // E0 80..9F xx
                 0xE0 -> {
                     if (b1 !in 0xA0..0xBF) {
-//                        onError("overlong 3-byte UTF-8 sequence at index $i")
+                        //                        onError("overlong 3-byte UTF-8 sequence at index $i")
                         return false
                     }
                 }
@@ -194,20 +230,20 @@ fun ByteArray.validateUtf8(
                 // ED A0..BF xx
                 0xED -> {
                     if (b1 !in 0x80..0x9F) {
-//                        onError("UTF-8 sequence encodes a surrogate code point at index $i")
+                        //                        onError("UTF-8 sequence encodes a surrogate code point at index $i")
                         return false
                     }
                 }
 
                 in 0xE1..0xEC, in 0xEE..0xEF -> {
                     if (b1 and 0xC0 != 0x80) {
-//                        onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
+                        //                        onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
                         return false
                     }
                 }
 
                 else -> {
-//                    onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
+                    //                    onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
                     return false
                 }
             }
@@ -219,7 +255,7 @@ fun ByteArray.validateUtf8(
         // 4-byte sequence
         if (b0 <= 0xF4) {
             if (i + 3 >= end) {
-//                onError("truncated 4-byte UTF-8 sequence at index $i")
+                //                onError("truncated 4-byte UTF-8 sequence at index $i")
                 return false
             }
 
@@ -228,29 +264,29 @@ fun ByteArray.validateUtf8(
             val b3 = this[i + 3].toInt() and 0xFF
 
             if (b2 and 0xC0 != 0x80) {
-//                onError("invalid UTF-8 continuation byte 0x${b2.toString(16)} " + "at index ${i + 2}")
+                //                onError("invalid UTF-8 continuation byte 0x${b2.toString(16)} " + "at index ${i + 2}")
                 return false
             }
             if (b3 and 0xC0 != 0x80) {
-//                onError("invalid UTF-8 continuation byte 0x${b3.toString(16)} " + "at index ${i + 3}")
+                //                onError("invalid UTF-8 continuation byte 0x${b3.toString(16)} " + "at index ${i + 3}")
                 return false
             }
 
             when (b0) {
                 // U+10000 minimum, prevents overlong encoding
                 0xF0 -> if (b1 !in 0x90..0xBF) {
-//                    onError("overlong 4-byte UTF-8 sequence at index $i")
+                    //                    onError("overlong 4-byte UTF-8 sequence at index $i")
                     return false
                 }
 
                 0xF1, 0xF2, 0xF3 -> if (b1 and 0xC0 != 0x80) {
-//                    onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
+                    //                    onError("invalid UTF-8 continuation byte 0x${b1.toString(16)} " + "at index ${i + 1}")
                     return false
                 }
 
                 // U+10FFFF maximum
                 0xF4 -> if (b1 !in 0x80..0x8F) {
-//                    onError("UTF-8 code point above U+10FFFF at index $i")
+                    //                    onError("UTF-8 code point above U+10FFFF at index $i")
                     return false
                 }
             }
@@ -260,7 +296,7 @@ fun ByteArray.validateUtf8(
         }
 
         // F5..FF or a continuation byte used as a leading byte.
-//        onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
+        //        onError("invalid UTF-8 leading byte 0x${b0.toString(16)} at index $i")
         return false
     }
 

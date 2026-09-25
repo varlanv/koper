@@ -1,20 +1,17 @@
 package com.varlanv.koper.json.ksp
 
 import com.google.devtools.ksp.processing.CodeGenerator
-import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
-import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.validate
 
 class JsonCodecProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor =
-        JsonCodecProcessor(environment.codeGenerator, environment.logger)
+    override fun create(
+        environment: SymbolProcessorEnvironment,
+    ): SymbolProcessor = JsonCodecProcessor(codeGenerator = environment.codeGenerator, logger = environment.logger)
 }
 
 private class JsonCodecProcessor(
@@ -24,53 +21,73 @@ private class JsonCodecProcessor(
     private val generated = mutableSetOf<String>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = sequenceOf(
-            resolver.getSymbolsWithAnnotation("com.varlanv.koper.serde.Ser"),
-            resolver.getSymbolsWithAnnotation("com.varlanv.koper.serde.De"),
-        ).flatten().distinctBy { (it as? KSClassDeclaration)?.qualifiedName?.asString() ?: it.toString() }
-        val deferred = mutableListOf<KSAnnotated>()
-        for (symbol in symbols) {
-            if (!symbol.validate()) {
-                deferred += symbol
-                continue
-            }
-            val declaration = symbol as? KSClassDeclaration
-            if (declaration == null) {
-                logger.error("@Ser and @De require a class", symbol)
-                continue
-            }
-            val qualifiedName = declaration.qualifiedName?.asString() ?: continue
-            if (!generated.add(qualifiedName)) continue
-            val annotations = declaration.annotations.mapNotNull {
-                it.annotationType.resolve().declaration.qualifiedName?.asString()
-            }.toSet()
-            val ser = "com.varlanv.koper.serde.Ser" in annotations
-            val de = "com.varlanv.koper.serde.De" in annotations
-            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
-            val fieldName = field?.name?.asString()
-            if (declaration.classKind != ClassKind.CLASS ||
-                declaration.typeParameters.isNotEmpty() ||
-                field == null ||
-                (!field.isVal && !field.isVar) ||
-                field.type.resolve().declaration.qualifiedName?.asString() != "kotlin.Int" ||
-                fieldName == null ||
-                !Regex("[A-Za-z_][A-Za-z_0-9]*").matches(fieldName) ||
-                declaration.containingFile == null
-            ) {
-                logger.error("V1 JSON generation requires a class with one Int constructor property", declaration)
-                continue
-            }
-            val packageName = declaration.packageName.asString()
-            val typeName = declaration.simpleName.asString()
-            val codecName = typeName + "GeneratedJsonCodec"
-            val source = render(packageName, typeName, codecName, fieldName, ser, de)
-            codeGenerator.createNewFile(
-                Dependencies(aggregating = false, declaration.containingFile!!),
-                packageName,
-                codecName,
-            ).use { it.write(source.encodeToByteArray()) }
-        }
-        return deferred
+        return listOf()
+        //        val symbols = sequenceOf(
+        //            resolver.getSymbolsWithAnnotation(annotationName = "com.varlanv.koper.serde.Ser"),
+        //            resolver.getSymbolsWithAnnotation(annotationName = "com.varlanv.koper.serde.De"),
+        //        ).flatten().distinctBy { (it as? KSClassDeclaration)?.qualifiedName?.asString() ?: it.toString() }
+        //        val deferred = mutableListOf<KSAnnotated>()
+        //        for (symbol in symbols) {
+        //            if (!symbol.validate()) {
+        //                deferred += symbol
+        //                continue
+        //            }
+        //            val declaration = symbol as? KSClassDeclaration
+        //            if (declaration == null) {
+        //                logger.error(message = "@Ser and @De require a class", symbol = symbol)
+        //                continue
+        //            }
+        //            val qualifiedName = declaration.qualifiedName?.asString() ?: continue
+        //            if (!generated.add(qualifiedName)) {
+        //                continue
+        //            }
+        //            val annotations = declaration.annotations
+        //                .mapNotNull {
+        //                    it.annotationType.resolve().declaration.qualifiedName?.asString()
+        //                }
+        //                .toSet()
+        //            val ser = "com.varlanv.koper.serde.Ser" in annotations
+        //            val de = "com.varlanv.koper.serde.De" in annotations
+        //            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
+        //            val fieldName = field?.name?.asString()
+        //            if (declaration.classKind != ClassKind.CLASS ||
+        //                declaration.typeParameters.isNotEmpty() ||
+        //                field == null ||
+        //                (!field.isVal && !field.isVar) ||
+        //                field.type.resolve().declaration.qualifiedName?.asString() != "kotlin.Int" ||
+        //                fieldName == null ||
+        //                !Regex("[A-Za-z_][A-Za-z_0-9]*").matches(fieldName) ||
+        //                declaration.containingFile == null
+        //            ) {
+        //                logger.error(
+        //                    message = "V1 JSON generation requires a class with one Int constructor property",
+        //                    symbol = declaration,
+        //                )
+        //                continue
+        //            }
+        //            val packageName = declaration.packageName.asString()
+        //            val typeName = declaration.simpleName.asString()
+        //            val codecName = typeName + "GeneratedJsonCodec"
+        //            val source = render(
+        //                packageName = packageName,
+        //                typeName = typeName,
+        //                codecName = codecName,
+        //                fieldName = fieldName,
+        //                ser = ser,
+        //                de = de,
+        //            )
+        //            codeGenerator
+        //                .createNewFile(
+        //                    dependencies = Dependencies(
+        //                        aggregating = false,
+        //                        declaration.containingFile!!,
+        //                    ),
+        //                    packageName = packageName,
+        //                    fileName = codecName,
+        //                )
+        //                .use { it.write(source.encodeToByteArray()) }
+        //        }
+        //        return deferred
     }
 
     private fun render(
@@ -89,7 +106,9 @@ private class JsonCodecProcessor(
         appendLine("import com.varlanv.koper.json.JsonOutput")
         appendLine()
         appendLine("object " + codecName + " {")
-        if (ser || de) appendLine("    private val fieldName = \"" + fieldName + "\".encodeToByteArray()")
+        if (ser || de) {
+            appendLine("    private val fieldName = \"" + fieldName + "\".encodeToByteArray()")
+        }
         if (ser) {
             appendLine()
             appendLine("    fun write(writer: IdealJsonWriter, value: " + typeName + ", output: JsonOutput) {")

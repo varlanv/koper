@@ -8,10 +8,14 @@ import org.khronos.webgl.Uint8Array
 
 private val charCodesToString: dynamic = js("(chars) => String.fromCharCode.apply(null, chars)")
 private val utf8Encoder: dynamic = js("new TextEncoder()")
-private val hasUnpairedSurrogate: dynamic = js("(text) => /[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(^|[^\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/.test(text)")
+private val hasUnpairedSurrogate: dynamic = js(
+    "(text) => /[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(^|[^\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/.test(text)",
+)
 private val utf8Decoder: dynamic = js("new TextDecoder('utf-8', { ignoreBOM: true })")
 private val windows1252Decoder: dynamic = js("new TextDecoder('windows-1252')")
-private val nativeUtf16Decoder: dynamic = js("new Uint8Array(new Uint16Array([0x0102]).buffer)[0] === 0x02 ? new TextDecoder('utf-16le') : new TextDecoder('utf-16be')")
+private val nativeUtf16Decoder: dynamic = js(
+    "new Uint8Array(new Uint16Array([0x0102]).buffer)[0] === 0x02 ? new TextDecoder('utf-16le') : new TextDecoder('utf-16be')",
+)
 
 actual fun Charset.allocateByteSlice(
     string: String,
@@ -20,34 +24,56 @@ actual fun Charset.allocateByteSlice(
 ): ByteSlice {
     require(start <= end) { "start ($start) > end ($end)" }
     if (start < 0 || end > string.length) {
-        throw IndexOutOfBoundsException(
-            "range [$start, $end) exceeds string length ${string.length}"
-        )
+        throw IndexOutOfBoundsException("range [$start, $end) exceeds string length ${string.length}")
     }
 
     return when (this) {
         Charset.Utf8 -> {
             if (end - start >= 1024) {
-                val selected = if (start == 0 && end == string.length) string else string.substring(start, end)
+                val selected = if (start == 0 && end == string.length) {
+                    string
+                } else {
+                    string.substring(start, end)
+                }
                 // TextEncoder substitutes U+FFFD; the shared encoder substitutes '?'.
-                if (!hasUnpairedSurrogate(selected).unsafeCast<Boolean>()) encodeUtf8Native(selected)
-                else encodeUtf8(string, start, end)
+                if (!hasUnpairedSurrogate(selected).unsafeCast<Boolean>()) {
+                    encodeUtf8Native(selected)
+                } else {
+                    encodeUtf8(string = string, start = start, end = end)
+                }
             } else {
-                encodeUtf8(string, start, end)
+                encodeUtf8(string = string, start = start, end = end)
             }
         }
-        Charset.Ascii -> encodeSingleByte(string, start, end, 0x7F)
-        Charset.Latin1 -> encodeSingleByte(string, start, end, 0xFF)
+        Charset.Ascii -> {
+            encodeSingleByte(string = string, start = start, end = end, maxCodePoint = 0x7F)
+        }
+        Charset.Latin1 -> {
+            encodeSingleByte(string = string, start = start, end = end, maxCodePoint = 0xFF)
+        }
     }
 }
 
 private fun encodeUtf8Native(selected: String): ByteSlice {
     val unsigned = utf8Encoder.encode(selected).unsafeCast<Uint8Array>()
-    val signed = Int8Array(unsigned.buffer, unsigned.byteOffset, unsigned.byteLength).unsafeCast<ByteArray>()
-    return ByteSlice(ReadonlyBytes(signed), 0, signed.size)
+    val signed = Int8Array(
+        buffer = unsigned.buffer,
+        byteOffset = unsigned.byteOffset,
+        length = unsigned.byteLength,
+    ).unsafeCast<ByteArray>()
+    return ByteSlice(
+        bytes = ReadonlyBytes(signed),
+        offset = 0,
+        len = signed.size,
+    )
 }
 
-private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint: Int): ByteSlice {
+private fun encodeSingleByte(
+    string: String,
+    start: Int,
+    end: Int,
+    maxCodePoint: Int,
+): ByteSlice {
     val result = ByteArray(end - start)
     var input = start
     var output = 0
@@ -56,14 +82,26 @@ private fun encodeSingleByte(string: String, start: Int, end: Int, maxCodePoint:
         if (char.isHighSurrogate() && input < end && string[input].isLowSurrogate()) {
             input++
         }
-        result[output++] = if (char.code <= maxCodePoint) char.code.toByte() else 0x3F
+        result[output++] = if (char.code <= maxCodePoint) {
+            char.code.toByte()
+        } else {
+            0x3F
+        }
     }
-    return ByteSlice(ReadonlyBytes(result), 0, output)
+    return ByteSlice(
+        bytes = ReadonlyBytes(result),
+        offset = 0,
+        len = output,
+    )
 }
 
-private fun encodeUtf8(string: String, start: Int, end: Int): ByteSlice {
+private fun encodeUtf8(
+    string: String,
+    start: Int,
+    end: Int,
+): ByteSlice {
     var size = 0
-    string.forEachCodePointInRange(start, end) { cp ->
+    string.forEachCodePointInRange(start = start, end = end) { cp ->
         val width = when {
             cp <= 0x7F -> 1
             cp <= 0x7FF -> 2
@@ -80,11 +118,15 @@ private fun encodeUtf8(string: String, start: Int, end: Int): ByteSlice {
 
     val result = ByteArray(size)
     var position = 0
-    string.forEachCodePointInRange(start, end) { cp ->
+    string.forEachCodePointInRange(start = start, end = end) { cp ->
         Charset.encodeUtf8Inline(cp) { result[position++] = it }
     }
 
-    return ByteSlice(ReadonlyBytes(result), 0, result.size)
+    return ByteSlice(
+        bytes = ReadonlyBytes(result),
+        offset = 0,
+        len = result.size,
+    )
 }
 
 actual fun Charset.allocateString(
@@ -94,43 +136,66 @@ actual fun Charset.allocateString(
 ): String {
     // Validate before calculating offset + len.
     if (offset < 0 || len < 0 || offset > bytes.size - len) {
-        throw IndexOutOfBoundsException(
-            "offset=$offset, len=$len, size=${bytes.size}"
-        )
+        throw IndexOutOfBoundsException("offset=$offset, len=$len, size=${bytes.size}")
     }
 
     return when (this) {
-        Charset.Utf8 -> decodeWithTextDecoder(utf8Decoder, bytes, offset, len)
+        Charset.Utf8 -> {
+            decodeWithTextDecoder(decoder = utf8Decoder, bytes = bytes, offset = offset, len = len)
+        }
 
         Charset.Ascii -> {
-            if (len >= 256 && allAscii(bytes, offset, len)) {
-                decodeWithTextDecoder(utf8Decoder, bytes, offset, len)
+            if (len >= 256 && allAscii(bytes = bytes, offset = offset, len = len)) {
+                decodeWithTextDecoder(decoder = utf8Decoder, bytes = bytes, offset = offset, len = len)
             } else {
                 CharArray(len) { i ->
                     val byte = bytes[offset + i].toInt()
-                    if (byte >= 0) byte.toChar() else '\uFFFD'
+                    if (byte >= 0) {
+                        byte.toChar()
+                    } else {
+                        '\uFFFD'
+                    }
                 }.concatToString()
             }
         }
 
-        Charset.Latin1 -> latin1String(bytes, offset, len)
+        Charset.Latin1 -> {
+            latin1String(bytes = bytes, offset = offset, len = len)
+        }
     }
 }
 
-private fun allAscii(bytes: ByteArray, offset: Int, len: Int): Boolean {
+private fun allAscii(
+    bytes: ByteArray,
+    offset: Int,
+    len: Int,
+): Boolean {
     val end = offset + len
     var index = offset
     while (index < end) {
-        if (bytes[index] < 0) return false
+        if (bytes[index] < 0) {
+            return false
+        }
         index++
     }
     return true
 }
 
-private fun decodeWithTextDecoder(decoder: dynamic, bytes: ByteArray, offset: Int, len: Int): String {
-    if (len == 0) return ""
+private fun decodeWithTextDecoder(
+    decoder: dynamic,
+    bytes: ByteArray,
+    offset: Int,
+    len: Int,
+): String {
+    if (len == 0) {
+        return ""
+    }
     val signed = bytes.unsafeCast<Int8Array>()
-    val input = if (offset == 0 && len == bytes.size) signed else signed.subarray(offset, offset + len)
+    val input = if (offset == 0 && len == bytes.size) {
+        signed
+    } else {
+        signed.subarray(start = offset, end = offset + len)
+    }
     return decoder.decode(input).unsafeCast<String>()
 }
 
@@ -144,15 +209,21 @@ private fun latin1String(
         var index = offset
         while (index < end) {
             val value = bytes[index].toInt()
-            if (value in -128..-97) break // Windows-1252 differs from Latin1 at 0x80..0x9F.
+            if (value in -128..-97) {
+                break
+            } // Windows-1252 differs from Latin1 at 0x80..0x9F.
             index++
         }
-        if (index == end) return decodeWithTextDecoder(windows1252Decoder, bytes, offset, len)
-        if (len >= 1024) return latin1Utf16String(bytes, offset, len)
+        if (index == end) {
+            return decodeWithTextDecoder(decoder = windows1252Decoder, bytes = bytes, offset = offset, len = len)
+        }
+        if (len >= 1024) {
+            return latin1Utf16String(bytes = bytes, offset = offset, len = len)
+        }
     }
 
     val signed = bytes.unsafeCast<Int8Array>()
-    val unsigned = Uint8Array(signed.buffer, signed.byteOffset + offset, len)
+    val unsigned = Uint8Array(buffer = signed.buffer, byteOffset = signed.byteOffset + offset, length = len)
     if (len <= 4096) {
         return charCodesToString(unsigned).unsafeCast<String>()
     }
@@ -161,17 +232,21 @@ private fun latin1String(
     var start = 0
     while (start < len) {
         val end = minOf(start + 4096, len)
-        result += charCodesToString(unsigned.subarray(start, end)).unsafeCast<String>()
+        result += charCodesToString(unsigned.subarray(start = start, end = end)).unsafeCast<String>()
         start = end
     }
     return result
 }
 
-private fun latin1Utf16String(bytes: ByteArray, offset: Int, len: Int): String {
+private fun latin1Utf16String(
+    bytes: ByteArray,
+    offset: Int,
+    len: Int,
+): String {
     val signed = bytes.unsafeCast<Int8Array>()
-    val unsigned = Uint8Array(signed.buffer, signed.byteOffset + offset, len)
+    val unsigned = Uint8Array(buffer = signed.buffer, byteOffset = signed.byteOffset + offset, length = len)
     val chars = Uint16Array(len)
     chars.asDynamic().set(unsigned)
-    val view = Uint8Array(chars.buffer, chars.byteOffset, chars.byteLength)
+    val view = Uint8Array(buffer = chars.buffer, byteOffset = chars.byteOffset, length = chars.byteLength)
     return nativeUtf16Decoder.decode(view).unsafeCast<String>()
 }

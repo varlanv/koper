@@ -25,17 +25,26 @@ class DoubleNumbersJsBenchmark {
             val text = output.decodeToString(3, end)
             check(text.toDouble().toRawBits() == value.toRawBits())
             for (position in output.indices) {
-                if (position !in 3 until end) check(output[position] == 0x55.toByte())
+                if (position !in 3 until end) {
+                    check(output[position] == 0x55.toByte())
+                }
             }
             output.fill(0x55)
             check(writeDoubleAsciiPortable(value, output, 3) == end)
             check(output.decodeToString(3, end) == text)
             for (position in output.indices) {
-                if (position !in 3 until end) check(output[position] == 0x55.toByte())
+                if (position !in 3 until end) {
+                    check(output[position] == 0x55.toByte())
+                }
             }
             output.fill(0x55)
             val expected = value.toString()
-            check(output.decodeToString(3, writeString(expected)) == expected)
+            check(
+                output.decodeToString(
+                    3,
+                    writeString(expected),
+                ) == expected,
+            )
         }
     }
 

@@ -108,7 +108,6 @@ class Dec64JvmSpec : BaseSpec({
                 buf.decodeToString(0, len) shouldBe Dec64Gen.normalized(bd).toPlainString()
                 d.toString() shouldBe Dec64Gen.normalized(bd).toPlainString()
             }
-
         }
     }
 
@@ -232,7 +231,6 @@ class Dec64JvmSpec : BaseSpec({
                     }
                 }
             }
-
         }
 
         should("match BigDecimal on random pairs for every scale and mode") {

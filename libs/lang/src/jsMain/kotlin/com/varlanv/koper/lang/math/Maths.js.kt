@@ -24,14 +24,19 @@ actual fun Int.multiplyExact(other: Int): Int {
     val result = this * other
 
     // If both |x| and |y| < 2^15, multiplication cannot overflow Int.
-    val ax = if (this < 0) -this else this
-    val ay = if (other < 0) -other else other
+    val ax = if (this < 0) {
+        -this
+    } else {
+        this
+    }
+    val ay = if (other < 0) {
+        -other
+    } else {
+        other
+    }
 
     if (((ax or ay) ushr 15) != 0) {
-        if (
-            (this != 0 && result / this != other) ||
-            (this == -1 && other == Int.MIN_VALUE)
-        ) {
+        if ((this != 0 && result / this != other) || (this == -1 && other == Int.MIN_VALUE)) {
             throw ArithmeticException("integer overflow")
         }
     }
@@ -43,14 +48,19 @@ actual fun Long.multiplyExact(other: Long): Long {
     val result = this * other
 
     // If both |x| and |y| < 2^31, multiplication cannot overflow Long.
-    val ax = if (this < 0L) -this else this
-    val ay = if (other < 0L) -other else other
+    val ax = if (this < 0L) {
+        -this
+    } else {
+        this
+    }
+    val ay = if (other < 0L) {
+        -other
+    } else {
+        other
+    }
 
     if (((ax or ay) ushr 31) != 0L) {
-        if (
-            (this != 0L && result / this != other) ||
-            (this == -1L && other == Long.MIN_VALUE)
-        ) {
+        if ((this != 0L && result / this != other) || (this == -1L && other == Long.MIN_VALUE)) {
             throw ArithmeticException("long overflow")
         }
     }
@@ -67,14 +77,11 @@ actual fun Long.subtractExact(other: Long): Long {
     return result
 }
 
-actual fun Long.compareUnsigned(other: Long): Int =
-    toULong().compareTo(other.toULong())
+actual fun Long.compareUnsigned(other: Long): Int = toULong().compareTo(other.toULong())
 
-actual fun Long.remainderUnsigned(other: Long): Long =
-    (toULong() % other.toULong()).toLong()
+actual fun Long.remainderUnsigned(other: Long): Long = (toULong() % other.toULong()).toLong()
 
-actual fun Int.numberOfLeadingZeros(): Int =
-    countLeadingZeroBits()
+actual fun Int.numberOfLeadingZeros(): Int = countLeadingZeroBits()
 
 actual fun Long.multiplyHigh(other: Long): Long {
     val xHigh = this shr 32
@@ -90,6 +97,4 @@ actual fun Long.multiplyHigh(other: Long): Long {
 }
 
 actual fun Long.unsignedMultiplyHigh(other: Long): Long =
-    multiplyHigh(other) +
-            ((this shr 63) and other) +
-            ((other shr 63) and this)
+    multiplyHigh(other) + ((this shr 63) and other) + ((other shr 63) and this)

@@ -6,7 +6,6 @@ fun Inst.toJavaInstant(): Instant {
     return Instant.ofEpochMilli(millis)
 }
 
-
 fun Inst.Companion.from(instant: Instant): Inst {
     return Inst(instant.toEpochMilli())
 }

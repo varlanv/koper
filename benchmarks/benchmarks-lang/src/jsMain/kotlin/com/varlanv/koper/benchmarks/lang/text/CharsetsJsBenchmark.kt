@@ -45,23 +45,35 @@ class CharsetsJsBenchmark {
                 charset = Charset.Utf8
                 "A\uD800bcdefg"
             }
-            else -> error("Unknown scenario: $scenario")
+            else -> {
+                error("Unknown scenario: $scenario")
+            }
         }
         source = seed.repeat(length / seed.length)
         check(source.length == length)
-        encoded = charset.allocateByteSlice(source)
-        check(charset.allocateString(encoded.unsafeBorrowArray(), encoded.offset, encoded.len).isNotEmpty())
+        encoded = charset.allocateByteSlice(string = source)
+        check(
+            charset
+                .allocateString(bytes = encoded.unsafeBorrowArray(), offset = encoded.offset, len = encoded.len)
+                .isNotEmpty(),
+        )
     }
 
     @Benchmark
     fun encode(blackhole: Blackhole) {
-        val result = charset.allocateByteSlice(source)
+        val result = charset.allocateByteSlice(string = source)
         blackhole.consume(result.unsafeBorrowArray())
         blackhole.consume(result.len)
     }
 
     @Benchmark
     fun decode(blackhole: Blackhole) {
-        blackhole.consume(charset.allocateString(encoded.unsafeBorrowArray(), encoded.offset, encoded.len))
+        blackhole.consume(
+            charset.allocateString(
+                bytes = encoded.unsafeBorrowArray(),
+                offset = encoded.offset,
+                len = encoded.len,
+            ),
+        )
     }
 }

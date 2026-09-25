@@ -30,14 +30,14 @@ class DoubleAsciiJvmSpec : BaseSpec({
         val random = Random(718_903_521)
         val output = ByteArray(40)
         repeat(250_000) {
-            verifyDoubleAsciiAgainstJdk(random.nextLong(), output)
+            verifyDoubleAsciiAgainstJdk(bits = random.nextLong(), output = output)
         }
     }
 
     should("match JDK canonical strings at both sides of every exponent boundary") {
         val output = ByteArray(40)
         forEachAsciiDoubleBoundary { bits ->
-            verifyDoubleAsciiAgainstJdk(bits, output)
+            verifyDoubleAsciiAgainstJdk(bits = bits, output = output)
         }
     }
 
@@ -60,12 +60,12 @@ class DoubleAsciiJvmSpec : BaseSpec({
                 for (point in points) {
                     val positive = "${significand}e${point - length}".toDouble()
                     for (value in doubleArrayOf(positive, -positive)) {
-                        verifyDoubleAsciiAgainstJdk(value.toRawBits(), output)
+                        verifyDoubleAsciiAgainstJdk(bits = value.toRawBits(), output = output)
                         val expected = value.toString()
                         val offset = caseIndex++ and 7
                         val exact = ByteArray(offset + expected.length) { 0x5a }
                         withClue("significand=$significand, point=$point, expected=$expected, offset=$offset") {
-                            val end = writeDoubleAscii(value, exact, offset)
+                            val end = writeDoubleAscii(value = value, array = exact, offset = offset)
                             end shouldBe exact.size
                             exact.decodeToString(offset, end) shouldBe expected
                             for (index in 0 until offset) exact[index] shouldBe 0x5a.toByte()
@@ -83,7 +83,7 @@ private fun verifyDoubleAsciiAgainstJdk(bits: Long, output: ByteArray) {
     val offset = bits.toInt() and 7
     output.fill(0x5a)
     withClue("bits=$bits, expected=$expected, offset=$offset") {
-        val end = writeDoubleAscii(value, output, offset)
+        val end = writeDoubleAscii(value = value, array = output, offset = offset)
         end shouldBe offset + expected.length
         output.decodeToString(offset, end) shouldBe expected
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()

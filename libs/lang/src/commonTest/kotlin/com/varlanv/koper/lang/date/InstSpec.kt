@@ -4,14 +4,14 @@ import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Instant
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 @Serializable
 private data class InstHolder(
@@ -94,8 +94,7 @@ class InstSpec : BaseSpec({
             shouldThrow<ArithmeticException> { Inst(Long.MIN_VALUE).atStartOfDay() }
             Inst(Long.MIN_VALUE).atEndOfDay().millis shouldBe
                 Long.MIN_VALUE + (86_400_000L - 1 - Long.MIN_VALUE.mod(86_400_000L))
-            Inst(Long.MAX_VALUE).atStartOfDay().millis shouldBe
-                Long.MAX_VALUE - Long.MAX_VALUE.mod(86_400_000L)
+            Inst(Long.MAX_VALUE).atStartOfDay().millis shouldBe Long.MAX_VALUE - Long.MAX_VALUE.mod(86_400_000L)
             shouldThrow<ArithmeticException> { Inst(Long.MAX_VALUE).atEndOfDay() }
         }
 
@@ -182,8 +181,14 @@ class InstSpec : BaseSpec({
 
     context("serialization") {
         should("floor negative timestamps when serializing seconds") {
-            Json.encodeToString(InstSecondsSerializer, Inst(-1)) shouldBe "-1"
-            Json.encodeToString(InstStringSecondsSerializer, Inst(-1)) shouldBe "\"-1\""
+            Json.encodeToString(
+                InstSecondsSerializer,
+                Inst(-1),
+            ) shouldBe "-1"
+            Json.encodeToString(
+                InstStringSecondsSerializer,
+                Inst(-1),
+            ) shouldBe "\"-1\""
             Json.decodeFromString(InstSecondsSerializer, "-1") shouldBe Inst(-1_000)
             Json.decodeFromString(InstStringSecondsSerializer, "\"-1\"") shouldBe Inst(-1_000)
         }
@@ -191,16 +196,32 @@ class InstSpec : BaseSpec({
         should("preserve extreme millisecond values in numeric and string form") {
             for (millis in listOf(Long.MIN_VALUE, -1L, 0L, 1L, Long.MAX_VALUE)) {
                 val inst = Inst.fromMillis(millis)
-                Json.decodeFromString(InstSerializer, Json.encodeToString(InstSerializer, inst)) shouldBe inst
-                Json.decodeFromString(InstStringMillisSerializer, Json.encodeToString(InstStringMillisSerializer, inst)) shouldBe inst
+                Json.decodeFromString(
+                    InstSerializer,
+                    Json.encodeToString(
+                        InstSerializer,
+                        inst,
+                    ),
+                ) shouldBe inst
+                Json.decodeFromString(
+                    InstStringMillisSerializer,
+                    Json.encodeToString(
+                        InstStringMillisSerializer,
+                        inst,
+                    ),
+                ) shouldBe inst
             }
         }
 
         should("reject malformed string values and seconds that overflow milliseconds") {
             shouldThrow<NumberFormatException> { Json.decodeFromString(InstStringSecondsSerializer, "\"abc\"") }
-            shouldThrow<NumberFormatException> { Json.decodeFromString(InstStringMillisSerializer, "\"9223372036854775808\"") }
+            shouldThrow<NumberFormatException> {
+                Json.decodeFromString(InstStringMillisSerializer, "\"9223372036854775808\"")
+            }
             shouldThrow<ArithmeticException> { Json.decodeFromString(InstSecondsSerializer, Long.MAX_VALUE.toString()) }
-            shouldThrow<ArithmeticException> { Json.decodeFromString(InstStringSecondsSerializer, "\"${Long.MIN_VALUE}\"") }
+            shouldThrow<ArithmeticException> {
+                Json.decodeFromString(InstStringSecondsSerializer, "\"${Long.MIN_VALUE}\"")
+            }
         }
 
         should("encode millis by default, seconds and string via typealiases") {
@@ -211,7 +232,8 @@ class InstSpec : BaseSpec({
                 textSeconds = Inst(1_787_334_997_999),
             )
             val json = Json.encodeToString(InstHolder.serializer(), holder)
-            json shouldBe """{"millis":1787334997999,"seconds":1787334997,"text":"1787334997999","textSeconds":"1787334997"}"""
+            json shouldBe
+                """{"millis":1787334997999,"seconds":1787334997,"text":"1787334997999","textSeconds":"1787334997"}"""
             Json.decodeFromString(InstHolder.serializer(), json) shouldBe InstHolder(
                 millis = Inst(1_787_334_997_999),
                 seconds = Inst(1_787_334_997_000),

@@ -2,15 +2,15 @@ package com.varlanv.koper.lang.math
 
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.allocateString
+import kotlin.jvm.JvmInline
+import kotlin.math.roundToLong
+import kotlin.math.sign
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.jvm.JvmInline
-import kotlin.math.roundToLong
-import kotlin.math.sign
 
 enum class Rounding {
     UNNECESSARY,
@@ -168,7 +168,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         val cb = b shr SCALE_BITS
         var s = (a and SCALE_MASK).toInt() + (b and SCALE_MASK).toInt()
         val lo = ca * cb
-        val hi = ca.multiplyHigh( cb)
+        val hi = ca.multiplyHigh(cb)
         if (hi == (lo shr 63)) {
             val r = buildBits(coefficient = lo, scale = s)
             if (r == INVALID_BITS) {
@@ -253,7 +253,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
                 } else {
                     0L
                 }
-                qh = qh * 10L + ql.unsignedMultiplyHigh( 10L) + carry
+                qh = qh * 10L + ql.unsignedMultiplyHigh(10L) + carry
                 ql = nl
                 i++
             }
@@ -273,7 +273,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         } else {
             val p = POW10[-shift]
             val dlo = ub * p
-            val dhi = ub.multiplyHigh( p)
+            val dhi = ub.multiplyHigh(p)
             if (dhi == 0L && dlo >= 0L) {
                 ql = ua / dlo
                 val r = ua % dlo
@@ -335,7 +335,6 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         }
         return toString().toDouble()
     }
-
 
     fun toLongExact(): Long {
         if (scale != 0) {
@@ -488,7 +487,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
                     from = from,
                     to = to,
                     charAt = { bytes[it].toInt() },
-                    text = { Charset.Latin1.allocateString(bytes, from, to - from) },
+                    text = { Charset.Latin1.allocateString(bytes = bytes, offset = from, len = to - from) },
                 ),
             )
         }
@@ -674,9 +673,9 @@ private fun addScaled(
     scale: Int,
 ): Long {
     val lo0 = c * p
-    val hi0 = c.multiplyHigh( p)
+    val hi0 = c.multiplyHigh(p)
     val lo = lo0 + other
-    val carry = if (lo.compareUnsigned( lo0) < 0) {
+    val carry = if (lo.compareUnsigned(lo0) < 0) {
         1L
     } else {
         0L
@@ -708,7 +707,7 @@ private fun compareScaled(
     other: Long,
 ): Int {
     val lo = c * p
-    val hi = c.multiplyHigh( p)
+    val hi = c.multiplyHigh(p)
     val otherHi = other shr 63
     return if (hi != otherHi) {
         hi.compareTo(otherHi)
@@ -815,12 +814,7 @@ value class Dec64Array private constructor(@PublishedApi internal val values: Lo
         to: Int = values.size,
     ) {
         if (to - from > 1) {
-            quickSort(
-                a = values,
-                low = from,
-                high = to - 1,
-                depthLimit = 2 * (32 - (to - from).numberOfLeadingZeros()),
-            )
+            quickSort(a = values, low = from, high = to - 1, depthLimit = 2 * (32 - (to - from).numberOfLeadingZeros()))
         }
     }
 

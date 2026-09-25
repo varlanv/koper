@@ -13,7 +13,6 @@ class JitterDelay(
     private val jitter: Duration,
     private val random: Random = Random.Default,
 ) : DynamicDelay {
-
     init {
         require(jitter.isFinite() && jitter >= Duration.ZERO)
     }

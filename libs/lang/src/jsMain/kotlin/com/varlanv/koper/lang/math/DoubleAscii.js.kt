@@ -19,7 +19,11 @@ private val doublePowerLimbs = IntArray(617 * 6) { index ->
     } and 0x3fffff
 }
 
-internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset: Int): Int {
+internal actual fun writeDoubleAsciiImpl(
+    value: Double,
+    array: ByteArray,
+    offset: Int,
+): Int {
     doubleBitView.setFloat64(0, value, true)
     var low = doubleBitView.getInt32(0, true) as Int
     val bitsHigh = doubleBitView.getInt32(4, true) as Int
@@ -32,7 +36,9 @@ internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset
         return offset + 3
     }
     var start = offset
-    if (bitsHigh < 0) array[start++] = 45
+    if (bitsHigh < 0) {
+        array[start++] = 45
+    }
     if (exponentBits == 2047) {
         array[start] = 73
         array[start + 1] = 110
@@ -65,12 +71,22 @@ internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset
             val magnitude = abs(value)
             if (floor(magnitude) == magnitude) {
                 val upper = floor(magnitude / 4294967296.0).toInt()
-                return formatDoubleLimbs(upper, magnitude - upper * 4294967296.0, 0, array, start)
+                return formatDoubleLimbs(
+                    high = upper,
+                    low = magnitude - upper * 4294967296.0,
+                    exponent = 0,
+                    array = array,
+                    offset = start,
+                )
             }
         }
     }
     val asymmetric = high == 0x100000 && low == 0 && binaryExponent != -1074
-    val exponent = (binaryExponent * 315653 - if (asymmetric) 131008 else 0) shr 20
+    val exponent = (binaryExponent * 315653 - if (asymmetric) {
+        131008
+    } else {
+        0
+    }) shr 20
     val power = -exponent
     val shift = binaryExponent + ((power * 1741647) shr 19) + 2
     val table = (power + 292) * 6
@@ -80,15 +96,25 @@ internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset
     var upperLow = 0.0
     var scaledHigh = 0
     var scaledLow = 0.0
-    scaledDoubleLimbs(high, low, if (asymmetric) -1 else -2, shift, table) { h, l ->
+    scaledDoubleLimbs(
+        high = high,
+        low = low,
+        delta = if (asymmetric) {
+            -1
+        } else {
+            -2
+        },
+        shift = shift,
+        table = table,
+    ) { h, l ->
         lowerHigh = h
         lowerLow = l
     }
-    scaledDoubleLimbs(high, low, 2, shift, table) { h, l ->
+    scaledDoubleLimbs(high = high, low = low, delta = 2, shift = shift, table = table) { h, l ->
         upperHigh = h
         upperLow = l
     }
-    scaledDoubleLimbs(high, low, 0, shift, table) { h, l ->
+    scaledDoubleLimbs(high = high, low = low, delta = 0, shift = shift, table = table) { h, l ->
         scaledHigh = h
         scaledLow = l
     }
@@ -99,15 +125,50 @@ internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset
     var delta: Int
     if (downHigh != 0 || downLow >= 100.0) {
         val remainder = (((downHigh % 10) * 4294967296.0 + downLow) % 10.0).toInt()
-        val downInside = compareDoubleLimbs(scaledHigh, scaledLow, -quarter - remainder * 4 - excluded, lowerHigh, lowerLow) >= 0
-        val upInside = compareDoubleLimbs(scaledHigh, scaledLow, -quarter - remainder * 4 + 40 + excluded, upperHigh, upperLow) <= 0
+        val downInside = compareDoubleLimbs(
+            high = scaledHigh,
+            low = scaledLow,
+            delta = -quarter - remainder * 4 - excluded,
+            otherHigh = lowerHigh,
+            otherLow = lowerLow,
+        ) >= 0
+        val upInside = compareDoubleLimbs(
+            high = scaledHigh,
+            low = scaledLow,
+            delta = -quarter - remainder * 4 + 40 + excluded,
+            otherHigh = upperHigh,
+            otherLow = upperLow,
+        ) <= 0
         if (downInside != upInside) {
-            delta = if (downInside) -remainder else 10 - remainder
-            return formatAdjustedDouble(downHigh, downLow, delta, exponent, array, start)
+            delta = if (downInside) {
+                -remainder
+            } else {
+                10 - remainder
+            }
+            return formatAdjustedDouble(
+                high = downHigh,
+                low = downLow,
+                delta = delta,
+                exponent = exponent,
+                array = array,
+                offset = start,
+            )
         }
     }
-    val downInside = compareDoubleLimbs(scaledHigh, scaledLow, -quarter - excluded, lowerHigh, lowerLow) >= 0
-    val upInside = compareDoubleLimbs(scaledHigh, scaledLow, 4 - quarter + excluded, upperHigh, upperLow) <= 0
+    val downInside = compareDoubleLimbs(
+        high = scaledHigh,
+        low = scaledLow,
+        delta = -quarter - excluded,
+        otherHigh = lowerHigh,
+        otherLow = lowerLow,
+    ) >= 0
+    val upInside = compareDoubleLimbs(
+        high = scaledHigh,
+        low = scaledLow,
+        delta = 4 - quarter + excluded,
+        otherHigh = upperHigh,
+        otherLow = upperLow,
+    ) <= 0
     delta = when {
         !downInside -> 1
         !upInside -> 0
@@ -115,10 +176,24 @@ internal actual fun writeDoubleAsciiImpl(value: Double, array: ByteArray, offset
         quarter < 2 -> 0
         else -> (scaledLow.unsafeCast<Int>() ushr 2) and 1
     }
-    return formatAdjustedDouble(downHigh, downLow, delta, exponent + adjustment, array, start)
+    return formatAdjustedDouble(
+        high = downHigh,
+        low = downLow,
+        delta = delta,
+        exponent = exponent + adjustment,
+        array = array,
+        offset = start,
+    )
 }
 
-private inline fun scaledDoubleLimbs(high: Int, low: Int, delta: Int, shift: Int, table: Int, consume: (Int, Double) -> Unit) {
+private inline fun scaledDoubleLimbs(
+    high: Int,
+    low: Int,
+    delta: Int,
+    shift: Int,
+    table: Int,
+    consume: (Int, Double) -> Unit,
+) {
     val factor = (1 shl shift).toDouble()
     val first = (low and 0x3fffff) * (factor * 4.0) + delta * factor
     val firstCarry = floor(first / 4194304.0)
@@ -148,23 +223,65 @@ private inline fun scaledDoubleLimbs(high: Int, low: Int, delta: Int, shift: Int
     val c7 = sum.unsafeCast<Int>() and 0x3fffff
     val c8 = floor(sum / 4194304.0).toInt()
     val sticky = (c2 ushr 20) or c3 or c4 or (c5 and 0x7ffff)
-    val resultLow = ((c5 ushr 19) or (c6 shl 3) or (c7 shl 25)) or if (sticky != 0) 1 else 0
-    consume((c7 ushr 7) or (c8 shl 15), if (resultLow < 0) resultLow + 4294967296.0 else resultLow.toDouble())
+    val resultLow = ((c5 ushr 19) or (c6 shl 3) or (c7 shl 25)) or if (sticky != 0) {
+        1
+    } else {
+        0
+    }
+    consume(
+        (c7 ushr 7) or (c8 shl 15),
+        if (resultLow < 0) {
+            resultLow + 4294967296.0
+        } else {
+            resultLow.toDouble()
+        },
+    )
 }
 
-private fun compareDoubleLimbs(high: Int, low: Double, delta: Int, otherHigh: Int, otherLow: Double): Double =
+private fun compareDoubleLimbs(
+    high: Int,
+    low: Double,
+    delta: Int,
+    otherHigh: Int,
+    otherLow: Double,
+): Double =
     (high - otherHigh) * 4294967296.0 + (low - otherLow + delta)
 
-private fun formatAdjustedDouble(high: Int, low: Double, delta: Int, exponent: Int, array: ByteArray, offset: Int): Int {
+private fun formatAdjustedDouble(
+    high: Int,
+    low: Double,
+    delta: Int,
+    exponent: Int,
+    array: ByteArray,
+    offset: Int,
+): Int {
     val adjusted = low + delta
     return when {
-        adjusted < 0 -> formatDoubleLimbs(high - 1, adjusted + 4294967296.0, exponent, array, offset)
-        adjusted >= 4294967296.0 -> formatDoubleLimbs(high + 1, adjusted - 4294967296.0, exponent, array, offset)
-        else -> formatDoubleLimbs(high, adjusted, exponent, array, offset)
+        adjusted < 0 -> formatDoubleLimbs(
+            high = high - 1,
+            low = adjusted + 4294967296.0,
+            exponent = exponent,
+            array = array,
+            offset = offset,
+        )
+        adjusted >= 4294967296.0 -> formatDoubleLimbs(
+            high = high + 1,
+            low = adjusted - 4294967296.0,
+            exponent = exponent,
+            array = array,
+            offset = offset,
+        )
+        else -> formatDoubleLimbs(high = high, low = adjusted, exponent = exponent, array = array, offset = offset)
     }
 }
 
-private fun formatDoubleLimbs(high: Int, low: Double, exponent: Int, array: ByteArray, offset: Int): Int {
+private fun formatDoubleLimbs(
+    high: Int,
+    low: Double,
+    exponent: Int,
+    array: ByteArray,
+    offset: Int,
+): Int {
     val highQuotient = high / 1_000_000
     val combined = (high - highQuotient * 1_000_000) * 4294967296.0 + low
     val lowQuotient = floor(combined / 1_000_000.0)
@@ -195,14 +312,28 @@ private fun formatDoubleLimbs(high: Int, low: Double, exponent: Int, array: Byte
     if (point in 1..7) {
         if (point >= length) {
             var end = offset + length
-            writeDoubleChunks(leading, trailing, trailingLength, array, end, -1)
+            writeDoubleChunks(
+                leading = leading,
+                trailing = trailing,
+                count = trailingLength,
+                array = array,
+                end = end,
+                point = -1,
+            )
             repeat(point - length) { array[end++] = 48 }
             array[end] = 46
             array[end + 1] = 48
             return end + 2
         }
         val end = offset + length + 1
-        writeDoubleChunks(leading, trailing, trailingLength, array, end, offset + point)
+        writeDoubleChunks(
+            leading = leading,
+            trailing = trailing,
+            count = trailingLength,
+            array = array,
+            end = end,
+            point = offset + point,
+        )
         return end
     }
     if (point in -2..0) {
@@ -211,7 +342,14 @@ private fun formatDoubleLimbs(high: Int, low: Double, exponent: Int, array: Byte
         var start = offset + 2
         repeat(-point) { array[start++] = 48 }
         val end = start + length
-        writeDoubleChunks(leading, trailing, trailingLength, array, end, -1)
+        writeDoubleChunks(
+            leading = leading,
+            trailing = trailing,
+            count = trailingLength,
+            array = array,
+            end = end,
+            point = -1,
+        )
         return end
     }
     val end: Int
@@ -222,10 +360,17 @@ private fun formatDoubleLimbs(high: Int, low: Double, exponent: Int, array: Byte
         end = offset + 3
     } else {
         end = offset + length + 1
-        writeDoubleChunks(leading, trailing, trailingLength, array, end, offset + 1)
+        writeDoubleChunks(
+            leading = leading,
+            trailing = trailing,
+            count = trailingLength,
+            array = array,
+            end = end,
+            point = offset + 1,
+        )
     }
     array[end] = 69
-    return writeIntAscii(point - 1, array, end + 1)
+    return writeIntAscii(value = point - 1, array = array, offset = end + 1)
 }
 
 private fun doubleIntLength(value: Int): Int = when {
@@ -240,19 +385,30 @@ private fun doubleIntLength(value: Int): Int = when {
     else -> 1
 }
 
-private fun writeDoubleChunks(leading: Int, trailing: Int, count: Int, array: ByteArray, end: Int, point: Int) {
+private fun writeDoubleChunks(
+    leading: Int,
+    trailing: Int,
+    count: Int,
+    array: ByteArray,
+    end: Int,
+    point: Int,
+) {
     var cursor = end
     var digits = trailing
     repeat(count) {
         val quotient = digits / 10
-        if (--cursor == point) array[cursor--] = 46
+        if (--cursor == point) {
+            array[cursor--] = 46
+        }
         array[cursor] = (digits - quotient * 10 + 48).toByte()
         digits = quotient
     }
     digits = leading
     while (digits != 0) {
         val quotient = digits / 10
-        if (--cursor == point) array[cursor--] = 46
+        if (--cursor == point) {
+            array[cursor--] = 46
+        }
         array[cursor] = (digits - quotient * 10 + 48).toByte()
         digits = quotient
     }

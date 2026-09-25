@@ -4,7 +4,7 @@ import java.math.BigDecimal
 
 internal actual fun Dec64.allocateString(): String {
     val bytes = ByteArray(Dec64.MAX_CHARS)
-    val len = writeTo(bytes, 0)
+    val len = writeTo(buf = bytes, offset = 0)
     return String(bytes, 0, len, Charsets.ISO_8859_1)
 }
 

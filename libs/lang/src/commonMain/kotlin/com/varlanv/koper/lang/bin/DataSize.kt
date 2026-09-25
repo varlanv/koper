@@ -7,7 +7,6 @@ import kotlin.math.abs
 
 @JvmInline
 value class DataSize internal constructor(val bytes: Int) {
-
     operator fun plus(bytes: Int): DataSize = DataSize(this.bytes.addExact(bytes))
 
     operator fun plus(other: DataSize): DataSize = DataSize(this.bytes.addExact(other.bytes))
@@ -15,12 +14,14 @@ value class DataSize internal constructor(val bytes: Int) {
     override fun toString(): String {
         val magnitude = abs(bytes.toLong())
 
-        if (magnitude < KIB) return "${bytes}B"
+        if (magnitude < KIB) {
+            return "${bytes}B"
+        }
 
         val readable = when {
-            magnitude < MIB -> "${format(magnitude, KIB)}KiB"
-            magnitude < GIB -> "${format(magnitude, MIB)}MiB"
-            else -> "${format(magnitude, GIB)}GiB"
+            magnitude < MIB -> "${format(magnitude = magnitude, unit = KIB)}KiB"
+            magnitude < GIB -> "${format(magnitude = magnitude, unit = MIB)}MiB"
+            else -> "${format(magnitude = magnitude, unit = GIB)}GiB"
         }
 
         return "$readable ($bytes B)"
@@ -33,7 +34,9 @@ value class DataSize internal constructor(val bytes: Int) {
         val fraction = (scaled % 1000L).toInt()
 
         return buildString {
-            if (bytes < 0) append('-')
+            if (bytes < 0) {
+                append('-')
+            }
             append(scaled / 1000L)
 
             if (fraction != 0) {

@@ -7,7 +7,9 @@ import io.kotest.matchers.shouldBe
 class Utf8ValidationSpec : BaseSpec({
     should("accept empty ASCII and multibyte strings") {
         val inputs = listOf(
-            "", "plain ASCII /\u0000", "é中🙂",
+            "",
+            "plain ASCII /\u0000",
+            "é中🙂",
             "\u007F\u0080\u07FF\u0800\uD7FF\uE000\uFFFF",
             "\uD800\uDC00\uDBFF\uDFFF",
         )
@@ -24,12 +26,70 @@ class Utf8ValidationSpec : BaseSpec({
 
     should("reject overlong sequences surrogates and code points above Unicode") {
         val inputs = listOf(
-            listOf(0xC0, 0x80), listOf(0xC1, 0xBF),
-            listOf(0xE0, 0x80, 0x80), listOf(0xE0, 0x9F, 0xBF),
-            listOf(0xED, 0xA0, 0x80), listOf(0xED, 0xBF, 0xBF),
-            listOf(0xF0, 0x80, 0x80, 0x80), listOf(0xF0, 0x8F, 0xBF, 0xBF),
-            listOf(0xF4, 0x90, 0x80, 0x80), listOf(0xF4, 0xBF, 0xBF, 0xBF),
-            listOf(0xF5, 0x80, 0x80, 0x80), listOf(0xFF, 0xBF, 0xBF, 0xBF),
+            listOf(
+                0xC0,
+                0x80,
+            ),
+            listOf(
+                0xC1,
+                0xBF,
+            ),
+            listOf(
+                0xE0,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xE0,
+                0x9F,
+                0xBF,
+            ),
+            listOf(
+                0xED,
+                0xA0,
+                0x80,
+            ),
+            listOf(
+                0xED,
+                0xBF,
+                0xBF,
+            ),
+            listOf(
+                0xF0,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF0,
+                0x8F,
+                0xBF,
+                0xBF,
+            ),
+            listOf(
+                0xF4,
+                0x90,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF4,
+                0xBF,
+                0xBF,
+                0xBF,
+            ),
+            listOf(
+                0xF5,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xFF,
+                0xBF,
+                0xBF,
+                0xBF,
+            ),
         )
         for (input in inputs) {
             input.map { it.toByte() }.toByteArray().validateUtf8() shouldBe false
@@ -38,12 +98,60 @@ class Utf8ValidationSpec : BaseSpec({
 
     should("reject invalid continuation bytes at every position") {
         val sequences = listOf(
-            listOf(0xC2, 0x80),
-            listOf(0xE0, 0xA0, 0x80), listOf(0xE1, 0x80, 0x80),
-            listOf(0xED, 0x80, 0x80), listOf(0xEE, 0x80, 0x80),
-            listOf(0xF0, 0x90, 0x80, 0x80), listOf(0xF1, 0x80, 0x80, 0x80),
-            listOf(0xF2, 0x80, 0x80, 0x80), listOf(0xF3, 0x80, 0x80, 0x80),
-            listOf(0xF4, 0x80, 0x80, 0x80),
+            listOf(
+                0xC2,
+                0x80,
+            ),
+            listOf(
+                0xE0,
+                0xA0,
+                0x80,
+            ),
+            listOf(
+                0xE1,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xED,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xEE,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF0,
+                0x90,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF1,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF2,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF3,
+                0x80,
+                0x80,
+                0x80,
+            ),
+            listOf(
+                0xF4,
+                0x80,
+                0x80,
+                0x80,
+            ),
         )
         for (sequence in sequences) {
             val valid = sequence.map { it.toByte() }.toByteArray()
@@ -76,11 +184,16 @@ class Utf8ValidationSpec : BaseSpec({
     should("reject invalid ranges without overflow or exceptions") {
         val bytes = byteArrayOf(65, 66, 67)
         for ((offset, length) in listOf(
-            -1 to 1, 0 to -1, 4 to 0, 2 to 2,
-            Int.MIN_VALUE to 0, Int.MAX_VALUE to 1,
-            1 to Int.MAX_VALUE, Int.MAX_VALUE to Int.MAX_VALUE,
+            -1 to 1,
+            0 to -1,
+            4 to 0,
+            2 to 2,
+            Int.MIN_VALUE to 0,
+            Int.MAX_VALUE to 1,
+            1 to Int.MAX_VALUE,
+            Int.MAX_VALUE to Int.MAX_VALUE,
         )) {
-            bytes.validateUtf8(offset, length) shouldBe false
+            bytes.validateUtf8(offset = offset, len = length) shouldBe false
         }
     }
 })

@@ -8,7 +8,11 @@ import kotlin.random.Random
 class BytesJvmSpec : BaseSpec({
     should("expose exactly the slice as a byte buffer without copying") {
         val bytes = byteArrayOf(9, 8, 1, 2, 7)
-        val slice = ByteSlice(ReadonlyBytes(bytes), 2, 2)
+        val slice = ByteSlice(
+            bytes = ReadonlyBytes(bytes),
+            offset = 2,
+            len = 2,
+        )
         val buffer = slice.readBuff()
         buffer.position() shouldBe 0
         buffer.limit() shouldBe 2
@@ -24,7 +28,11 @@ class BytesJvmSpec : BaseSpec({
 
     should("expose empty slices as empty buffers") {
         for (offset in listOf(0, 3)) {
-            val buffer = ByteSlice(ReadonlyBytes(byteArrayOf(1, 2, 3)), offset, 0).readBuff()
+            val buffer = ByteSlice(
+                bytes = ReadonlyBytes(byteArrayOf(1, 2, 3)),
+                offset = offset,
+                len = 0,
+            ).readBuff()
             buffer.remaining() shouldBe 0
             buffer.capacity() shouldBe 0
         }
@@ -43,7 +51,7 @@ class BytesJvmSpec : BaseSpec({
             } catch (_: CharacterCodingException) {
                 false
             }
-            bytes.validateUtf8(offset, length) shouldBe expected
+            bytes.validateUtf8(offset = offset, len = length) shouldBe expected
         }
     }
 
@@ -51,10 +59,10 @@ class BytesJvmSpec : BaseSpec({
         for (length in (0..40).toList() + listOf(64, 127, 128, 129, 160, 256, 1024)) {
             for (offset in 0..7) {
                 val bytes = ByteArray(offset + length + 8) { 'a'.code.toByte() }
-                bytes.validateUtf8(offset, length) shouldBe true
+                bytes.validateUtf8(offset = offset, len = length) shouldBe true
                 for (position in offset until offset + length) {
                     bytes[position] = 0xFF.toByte()
-                    bytes.validateUtf8(offset, length) shouldBe false
+                    bytes.validateUtf8(offset = offset, len = length) shouldBe false
                     bytes[position] = 'a'.code.toByte()
                 }
             }

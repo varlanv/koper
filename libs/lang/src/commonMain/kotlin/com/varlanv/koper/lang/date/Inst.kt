@@ -3,16 +3,16 @@ package com.varlanv.koper.lang.date
 import com.varlanv.koper.lang.math.addExact
 import com.varlanv.koper.lang.math.multiplyExact
 import com.varlanv.koper.lang.math.subtractExact
+import kotlin.jvm.JvmInline
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.jvm.JvmInline
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Instant
 
 private const val MILLIS_PER_SECOND = 1_000L
 private const val MILLIS_PER_DAY = 86_400_000L
@@ -67,19 +67,11 @@ value class Inst internal constructor(val millis: Long) : Comparable<Inst> {
     }
 
     operator fun plus(duration: Duration): Inst {
-        return Inst(
-            millis.addExact(
-                finiteMillis(duration),
-            ),
-        )
+        return Inst(millis.addExact(finiteMillis(duration)))
     }
 
     operator fun minus(duration: Duration): Inst {
-        return Inst(
-            millis.subtractExact(
-                finiteMillis(duration),
-            ),
-        )
+        return Inst(millis.subtractExact(finiteMillis(duration)))
     }
 
     operator fun minus(other: Inst): Duration {

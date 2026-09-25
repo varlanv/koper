@@ -19,7 +19,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
 
     fun flush() {
         if (position != 0) {
-            output.write(buffer, 0, position)
+            output.write(source = buffer, offset = 0, length = position)
             position = 0
         }
     }
@@ -56,7 +56,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         if (length > buffer.size - position) {
             flush()
             if (length >= buffer.size) {
-                output.write(bytes, offset, length)
+                output.write(source = bytes, offset = offset, length = length)
                 return
             }
         }
@@ -66,64 +66,64 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
 
     fun writeRaw(first: Int, second: Short) {
         reserve(6)
-        PackedJsonBytes.setInt(buffer, position, first)
-        PackedJsonBytes.setShort(buffer, position + 4, second)
+        PackedJsonBytes.setInt(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setShort(bytes = buffer, offset = position + 4, value = second)
         position += 6
     }
 
     fun writeRaw(value: Long) {
         reserve(8)
-        PackedJsonBytes.setLong(buffer, position, value)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = value)
         position += 8
     }
 
     fun writeRaw(first: Long, second: Short) {
         reserve(10)
-        PackedJsonBytes.setLong(buffer, position, first)
-        PackedJsonBytes.setShort(buffer, position + 8, second)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setShort(bytes = buffer, offset = position + 8, value = second)
         position += 10
     }
 
     fun writeRaw(first: Long, second: Int) {
         reserve(12)
-        PackedJsonBytes.setLong(buffer, position, first)
-        PackedJsonBytes.setInt(buffer, position + 8, second)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setInt(bytes = buffer, offset = position + 8, value = second)
         position += 12
     }
 
     fun writeRawReserved(first: Int, second: Short) {
-        PackedJsonBytes.setInt(buffer, position, first)
-        PackedJsonBytes.setShort(buffer, position + 4, second)
+        PackedJsonBytes.setInt(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setShort(bytes = buffer, offset = position + 4, value = second)
         position += 6
     }
 
     fun writeRawReserved(value: Long) {
-        PackedJsonBytes.setLong(buffer, position, value)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = value)
         position += 8
     }
 
     fun writeRawReserved(first: Long, second: Short) {
-        PackedJsonBytes.setLong(buffer, position, first)
-        PackedJsonBytes.setShort(buffer, position + 8, second)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setShort(bytes = buffer, offset = position + 8, value = second)
         position += 10
     }
 
     fun writeRawReserved(first: Long, second: Int) {
-        PackedJsonBytes.setLong(buffer, position, first)
-        PackedJsonBytes.setInt(buffer, position + 8, second)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
+        PackedJsonBytes.setInt(bytes = buffer, offset = position + 8, value = second)
         position += 12
     }
 
     fun writeLong(value: Long) {
         val size = decimalSize(value)
         reserve(size)
-        writeLongReserved(value, size)
+        writeLongReserved(value = value, size = size)
     }
 
     fun writeLongReserved(value: Long) {
         writeLongReserved(
-            value,
-            decimalSize(value),
+            value = value,
+            size = decimalSize(value),
         )
     }
 
@@ -139,11 +139,11 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val quotient = number / 1000
             val digits = triplets[(quotient * 1000 - number).toInt()]
             index -= 3
-            PackedJsonBytes.setShort(buffer, index, digits.toShort())
+            PackedJsonBytes.setShort(bytes = buffer, offset = index, value = digits.toShort())
             buffer[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
-        index = writeLeadingDigits((-number).toInt(), index)
+        index = writeLeadingDigits(number = (-number).toInt(), end = index)
         if (value < 0) {
             buffer[index - 1] = '-'.code.toByte()
         }
@@ -153,13 +153,13 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     fun writeInt(value: Int) {
         val size = decimalSize(value.toLong())
         reserve(size)
-        writeIntReserved(value, size)
+        writeIntReserved(value = value, size = size)
     }
 
     fun writeIntReserved(value: Int) {
         writeIntReserved(
-            value,
-            decimalSize(value.toLong()),
+            value = value,
+            size = decimalSize(value.toLong()),
         )
     }
 
@@ -175,11 +175,11 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val quotient = number / 1000
             val digits = triplets[quotient * 1000 - number]
             index -= 3
-            PackedJsonBytes.setShort(buffer, index, digits.toShort())
+            PackedJsonBytes.setShort(bytes = buffer, offset = index, value = digits.toShort())
             buffer[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
-        index = writeLeadingDigits(-number, index)
+        index = writeLeadingDigits(number = -number, end = index)
         if (value < 0) {
             buffer[index - 1] = '-'.code.toByte()
         }
@@ -246,7 +246,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
 
     fun writeBoolean(value: Boolean) {
         writeRaw(
-            if (value) {
+            bytes = if (value) {
                 trueBytes
             } else {
                 falseBytes
@@ -260,21 +260,21 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         val bytes = slice.unsafeBorrowArray()
         val end = slice.offset + slice.len
         var index = if (vectorized) {
-            scan.firstSpecial(bytes, slice.offset, end)
+            scan.firstSpecial(bytes = bytes, start = slice.offset, end = end)
         } else {
             slice.offset
         }
         while (index < end) {
             val b = bytes[index].toInt() and 0xFF
             if (b == '"'.code || b == '\\'.code || b < 0x20) {
-                writeRaw(bytes, slice.offset, index - slice.offset)
-                writeEscaped(bytes, index, end)
+                writeRaw(bytes = bytes, offset = slice.offset, length = index - slice.offset)
+                writeEscaped(bytes = bytes, start = index, end = end)
                 writeByte('"'.code)
                 return
             }
             index++
         }
-        writeRaw(bytes, slice.offset, slice.len)
+        writeRaw(bytes = bytes, offset = slice.offset, length = slice.len)
         writeByte('"'.code)
     }
 
@@ -284,7 +284,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         val bytes = slice.unsafeBorrowArray()
         val end = slice.offset + slice.len
         var index = if (vectorized) {
-            scan.firstSpecial(bytes, slice.offset, end)
+            scan.firstSpecial(bytes = bytes, start = slice.offset, end = end)
         } else {
             slice.offset
         }
@@ -293,7 +293,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             if (b == '"'.code || b == '\\'.code || b < 0x20) {
                 bytes.copyInto(buffer, position, slice.offset, index)
                 position += index - slice.offset
-                position = writeEscapedRange(bytes, index, end, position)
+                position = writeEscapedRange(bytes = bytes, start = index, end = end, targetStart = position)
                 buffer[position++] = '"'.code.toByte()
                 return
             }
@@ -315,7 +315,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         var index = 0
         while (index < value.length) {
             reserve(6)
-            index = writeStringChar(value, index)
+            index = writeStringChar(value = value, index = index)
         }
         writeByte('"'.code)
     }
@@ -323,7 +323,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     fun writeStringReserved(value: String) {
         buffer[position++] = '"'.code.toByte()
         var index = 0
-        while (index < value.length) index = writeStringChar(value, index)
+        while (index < value.length) index = writeStringChar(value = value, index = index)
         buffer[position++] = '"'.code.toByte()
     }
 
@@ -334,10 +334,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             if (pair.toInt() == 0) {
                 buffer[position++] = char.toByte()
             } else {
-                PackedJsonBytes.setShort(buffer, position, pair)
+                PackedJsonBytes.setShort(bytes = buffer, offset = position, value = pair)
                 position += 2
                 if (pair == unicodePair) {
-                    PackedJsonBytes.setInt(buffer, position, unicodeTails[char])
+                    PackedJsonBytes.setInt(bytes = buffer, offset = position, value = unicodeTails[char])
                     position += 4
                 }
             }
@@ -358,11 +358,11 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     }
 
     fun writeBooleanObjectEndReserved(value: Boolean) {
-        PackedJsonBytes.setLong(buffer, position, 0x657669746361222cL)
+        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = 0x657669746361222cL)
         PackedJsonBytes.setLong(
-            buffer,
-            position + 8,
-            if (value) {
+            bytes = buffer,
+            offset = position + 8,
+            value = if (value) {
                 0x007d657572743a22L
             } else {
                 0x7d65736c61663a22L
@@ -400,7 +400,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                     flush()
                 }
             }
-            position = writeEscapedRange(bytes, index, chunkEnd, position)
+            position = writeEscapedRange(bytes = bytes, start = index, end = chunkEnd, targetStart = position)
             index = chunkEnd
         }
     }
@@ -419,14 +419,14 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             while (end - index >= width) {
                 val blockStart = index
                 val blockEnd = blockStart + width
-                var events = scan.specialMask(bytes, blockStart)
+                var events = scan.specialMask(bytes = bytes, start = blockStart)
                 while (events != 0L) {
                     val special = blockStart + events.countTrailingZeroBits()
                     val length = special - index
                     if (length != 0) {
                         if (length <= 8 && index <= bytes.size - 8) {
-                            val word = PackedJsonBytes.getLong(bytes, index)
-                            PackedJsonBytes.setLong(target, offset, word)
+                            val word = PackedJsonBytes.getLong(bytes = bytes, offset = index)
+                            PackedJsonBytes.setLong(bytes = target, offset = offset, value = word)
                         } else {
                             bytes.copyInto(target, offset, index, special)
                         }
@@ -434,10 +434,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                     }
                     val b = bytes[special].toInt() and 255
                     val escaped = escapePairs[b]
-                    PackedJsonBytes.setShort(target, offset, escaped)
+                    PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
                     offset += 2
                     if (escaped == unicodePair) {
-                        PackedJsonBytes.setInt(target, offset, unicodeTails[b])
+                        PackedJsonBytes.setInt(bytes = target, offset = offset, value = unicodeTails[b])
                         offset += 4
                     }
                     index = special + 1
@@ -454,10 +454,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val b = bytes[index++].toInt() and 0xFF
             val escaped = escapePairs[b]
             if (escaped.toInt() != 0) {
-                PackedJsonBytes.setShort(target, offset, escaped)
+                PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    PackedJsonBytes.setInt(target, offset, unicodeTails[b])
+                    PackedJsonBytes.setInt(bytes = target, offset = offset, value = unicodeTails[b])
                     offset += 4
                 }
             } else {
@@ -471,8 +471,6 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         val triplets = IntArray(1000) {
             ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
         }
-
-
 
         const val unicodePair: Short = 0x755c
         val unicodeTails = IntArray(32) { value ->

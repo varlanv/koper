@@ -18,14 +18,26 @@ class DoubleAsciiJsSpec : BaseSpec({
     }
 
     should("preserve carries at every limb boundary across all finite binary exponents") {
-        val fingerprint = JsDoubleFingerprint(exactFit = true)
+        val fingerprint = JsDoubleFingerprint(true)
         val mantissas = longArrayOf(
-            0, 1, 2,
-            (1L shl 22) - 1, 1L shl 22, (1L shl 22) + 1,
-            (1L shl 32) - 1, 1L shl 32, (1L shl 32) + 1,
-            (1L shl 44) - 1, 1L shl 44, (1L shl 44) + 1,
-            (1L shl 51) - 1, 1L shl 51, (1L shl 51) + 1,
-            (1L shl 52) - 3, (1L shl 52) - 2, (1L shl 52) - 1,
+            0,
+            1,
+            2,
+            (1L shl 22) - 1,
+            1L shl 22,
+            (1L shl 22) + 1,
+            (1L shl 32) - 1,
+            1L shl 32,
+            (1L shl 32) + 1,
+            (1L shl 44) - 1,
+            1L shl 44,
+            (1L shl 44) + 1,
+            (1L shl 51) - 1,
+            1L shl 51,
+            (1L shl 51) + 1,
+            (1L shl 52) - 3,
+            (1L shl 52) - 2,
+            (1L shl 52) - 1,
         )
         for (exponent in 0L..2046L) {
             for (mantissa in mantissas) {
@@ -39,11 +51,17 @@ class DoubleAsciiJsSpec : BaseSpec({
     }
 
     should("write exact decimal chunks around integer precision boundaries and zero tails") {
-        val fingerprint = JsDoubleFingerprint(exactFit = true)
+        val fingerprint = JsDoubleFingerprint(true)
         for (base in doubleArrayOf(
-            1e6, 1e9, 1e12, 1e15, 1e16,
-            4_294_967_296.0, 9_007_199_254_740_992.0,
-            999_999_999_999_999.0, 9_999_999_999_999_999.0,
+            1e6,
+            1e9,
+            1e12,
+            1e15,
+            1e16,
+            4_294_967_296.0,
+            9_007_199_254_740_992.0,
+            999_999_999_999_999.0,
+            9_999_999_999_999_999.0,
         )) {
             val bits = base.toRawBits()
             for (delta in -32L..32L) {
@@ -66,7 +84,7 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
         val value = Double.fromBits(bits)
         val offset = count++ and 7
         output.fill(85)
-        val end = writeDoubleAscii(value, output, offset)
+        val end = writeDoubleAscii(value = value, array = output, offset = offset)
         check(end in offset + 1..offset + 24) { "Invalid output length for bits=$bits" }
         for (index in 0 until offset) {
             check(output[index] == 85.toByte()) { "Modified prefix for bits=$bits" }
@@ -83,7 +101,9 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
         second *= 16_777_619
         if (exactFit) {
             val exact = ByteArray(end) { 85 }
-            check(writeDoubleAscii(value, exact, offset) == end) { "Invalid exact fit length for bits=$bits" }
+            check(
+                writeDoubleAscii(value = value, array = exact, offset = offset) == end,
+            ) { "Invalid exact fit length for bits=$bits" }
             for (index in exact.indices) {
                 check(exact[index] == output[index]) { "Different exact fit output for bits=$bits" }
             }

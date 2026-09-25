@@ -2,7 +2,6 @@ package com.varlanv.koper.lang
 
 import kotlin.reflect.KClass
 
-
 /**
  * SIMD activation utilities. This class should NEVER load any Vector modules directly.
  * In most Vector paths, the point is to have 2 interface implementations for specific logic: one Vector and one Scalar.
@@ -11,7 +10,6 @@ import kotlin.reflect.KClass
  * fails to load against current incubator version.
  */
 interface VectorApi {
-
     /**
      * Smoke test that current vectorized API is actually working on current JVM version.
      * Implementations are supposed to do a quick vectorized operation on a small throwaway dataset.
@@ -33,22 +31,27 @@ interface VectorApi {
          */
         private val anyMarker = Any()
         val enabled = java.lang.Boolean.getBoolean("koper.lang.utf8.vector.enabled") &&
-                ModuleLayer.boot().findModule("jdk.incubator.vector").isPresent
+            ModuleLayer.boot().findModule("jdk.incubator.vector").isPresent
         private val isDebug = java.lang.Boolean.getBoolean("koper.lang.utf8.vector.debug")
 
-
         fun <T : VectorApi> tryLoad(block: () -> T): T? {
-            if (!enabled) return null
+            if (!enabled) {
+                return null
+            }
             val api: T
             val smokeTestRes: Any?
             try {
                 api = block()
                 smokeTestRes = api.smokeTest()
             } catch (e: LinkageError) {
-                if (isDebug) e.printStackTrace(System.err)
+                if (isDebug) {
+                    e.printStackTrace(System.err)
+                }
                 return null
             } catch (e: Exception) {
-                if (isDebug) e.printStackTrace(System.err)
+                if (isDebug) {
+                    e.printStackTrace(System.err)
+                }
                 return null
             }
             if (smokeTestRes === anyMarker) {
@@ -56,7 +59,9 @@ interface VectorApi {
             }
             if (smokeTestRes == false) {
                 if (isDebug) {
-                    System.err.println("[ ${api::class} ] returned `false` from smoke test - Vector API will be disabled")
+                    System.err.println(
+                        "[ ${api::class} ] returned `false` from smoke test - Vector API will be disabled",
+                    )
                 }
                 return null
             }

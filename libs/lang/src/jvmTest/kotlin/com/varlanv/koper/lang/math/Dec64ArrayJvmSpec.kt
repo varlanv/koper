@@ -81,7 +81,5 @@ class Dec64ArrayJvmSpec : BaseSpec({
                 }
             }
         }
-
-
     }
 })

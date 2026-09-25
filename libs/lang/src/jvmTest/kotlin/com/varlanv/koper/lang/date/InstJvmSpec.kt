@@ -33,7 +33,11 @@ private fun randomDuration(r: Random): Duration {
 }
 
 private fun utcDayStart(millis: Long): Long {
-    return java.time.Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().let { it.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() }
+    return java.time.Instant
+        .ofEpochMilli(millis)
+        .atZone(ZoneOffset.UTC)
+        .toLocalDate()
+        .let { it.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() }
 }
 
 class InstJvmSpec : BaseSpec({
@@ -67,7 +71,6 @@ class InstJvmSpec : BaseSpec({
                 }
             }
         }
-
     }
 
     context("arithmetic and comparison") {
@@ -86,8 +89,12 @@ class InstJvmSpec : BaseSpec({
                     val expectedMinus = runCatching { Math.subtractExact(millis, d.inWholeMilliseconds) }
                     plus.isSuccess shouldBe expectedPlus.isSuccess
                     minus.isSuccess shouldBe expectedMinus.isSuccess
-                    if (plus.isSuccess) plus.getOrThrow().millis shouldBe expectedPlus.getOrThrow()
-                    if (minus.isSuccess) minus.getOrThrow().millis shouldBe expectedMinus.getOrThrow()
+                    if (plus.isSuccess) {
+                        plus.getOrThrow().millis shouldBe expectedPlus.getOrThrow()
+                    }
+                    if (minus.isSuccess) {
+                        minus.getOrThrow().millis shouldBe expectedMinus.getOrThrow()
+                    }
                     if (plus.isSuccess) {
                         plus.getOrThrow().toInstant() shouldBe instant + wholeMillis
                     }
@@ -118,13 +125,12 @@ class InstJvmSpec : BaseSpec({
                     if (expected.isSuccess) {
                         diff.getOrThrow().inWholeMilliseconds shouldBe expected.getOrThrow()
                         diff.getOrThrow() shouldBe (
-                            Instant.fromEpochMilliseconds(a) - Instant.fromEpochMilliseconds(b)
+                        Instant.fromEpochMilliseconds(a) - Instant.fromEpochMilliseconds(b)
                         )
                     }
                 }
             }
         }
-
     }
 
     context("calendar") {

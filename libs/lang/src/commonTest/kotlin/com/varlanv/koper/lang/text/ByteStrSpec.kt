@@ -6,8 +6,14 @@ import io.kotest.matchers.equals.shouldEqual
 
 private data class Fixture1(val payload: String, val len: Int)
 
-private val fixtures1 =
-    listOf("123", "qwe", "привіт", "é中🙂", "A\u0000z", "Aéÿ").map { Fixture1(it, it.encodeToByteArray().size) }
+private val fixtures1 = listOf(
+    "123",
+    "qwe",
+    "привіт",
+    "é中🙂",
+    "A\u0000z",
+    "Aéÿ",
+).map { Fixture1(payload = it, len = it.encodeToByteArray().size) }
 
 class ByteStrSpec : BaseSpec({
 
@@ -26,8 +32,8 @@ class ByteStrSpec : BaseSpec({
             }
 
             should("return do correct asBytesSlice round-trip") {
-                ByteStr.allocateFromString(fixture.payload).asBytesSlice()
-                    .allocateArray() shouldContainExactly fixture.payload.encodeToByteArray()
+                ByteStr.allocateFromString(fixture.payload).asBytesSlice().allocateArray() shouldContainExactly
+                    fixture.payload.encodeToByteArray()
             }
         }
     }
@@ -49,7 +55,7 @@ class ByteStrSpec : BaseSpec({
             val s = ByteStr.allocateFromString("12345678")
             val dest = ByteArray(10)
 
-            s.copyInto(2, dest, 4, 4)
+            s.copyInto(sourceOffset = 2, destination = dest, destinationOffset = 4, length = 4)
 
             dest shouldContainExactly byteArrayOf(0, 0, 0, 0, 51, 52, 53, 54, 0, 0)
         }

@@ -6,9 +6,9 @@ import com.varlanv.koper.json.jsonSpecialScan
 import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.allocateString
 import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.allocateString
 import kotlin.text.iterator
 
 class IdealJsonReader(
@@ -60,7 +60,7 @@ class IdealJsonReader(
         require(last == 34) { "Expected JSON string" }
         val start = position
         var index = if (vectorized) {
-            scan.firstSpecial(buffer, start, limit)
+            scan.firstSpecial(bytes = buffer, start = start, end = limit)
         } else {
             start
         }
@@ -72,7 +72,15 @@ class IdealJsonReader(
                     return Utf8Str.empty
                 }
                 val bytes = buffer.copyOfRange(start, index)
-                return Utf8Str(Str(ByteSlice(ReadonlyBytes(bytes), 0, bytes.size)))
+                return Utf8Str(
+                    Str(
+                        ByteSlice(
+                            bytes = ReadonlyBytes(bytes),
+                            offset = 0,
+                            len = bytes.size,
+                        ),
+                    ),
+                )
             }
             if (value == 92 || value < 32) {
                 break
@@ -87,14 +95,22 @@ class IdealJsonReader(
             readStringToScratch(false)
         }
         val bytes = scratch.copyOf(scratchSize)
-        return Utf8Str(Str(ByteSlice(ReadonlyBytes(bytes), 0, bytes.size)))
+        return Utf8Str(
+            Str(
+                ByteSlice(
+                    bytes = ReadonlyBytes(bytes),
+                    offset = 0,
+                    len = bytes.size,
+                ),
+            ),
+        )
     }
 
     fun readString(): String {
         require(last == 34) { "Expected JSON string" }
         val start = position
         var index = if (vectorized) {
-            scan.firstSpecial(buffer, start, limit)
+            scan.firstSpecial(bytes = buffer, start = start, end = limit)
         } else {
             start
         }
@@ -102,7 +118,7 @@ class IdealJsonReader(
             val value = buffer[index].toInt() and 255
             if (value == 34) {
                 position = index + 1
-                return Charset.Utf8.allocateString(buffer, start, index - start)
+                return Charset.Utf8.allocateString(bytes = buffer, offset = start, len = index - start)
             }
             if (value == 92 || value < 32) {
                 break
@@ -116,12 +132,12 @@ class IdealJsonReader(
         if (index == limit || !readBufferedEscapes()) {
             readStringToScratch(false)
         }
-        return Charset.Utf8.allocateString(scratch, 0, scratchSize)
+        return Charset.Utf8.allocateString(bytes = scratch, offset = 0, len = scratchSize)
     }
 
     fun peekFieldWord(): Long {
         return if (limit - position >= 8) {
-            PackedJsonBytes.getLong(buffer, position)
+            PackedJsonBytes.getLong(bytes = buffer, offset = position)
         } else {
             0L
         }
@@ -390,7 +406,7 @@ class IdealJsonReader(
     }
 
     private fun readEightDigits(index: Int): Long {
-        val word = PackedJsonBytes.getLong(buffer, index)
+        val word = PackedJsonBytes.getLong(bytes = buffer, offset = index)
         if (((word + 0x4646464646464646L) or (word - 0x3030303030303030L)) and -0x7f7f7f7f7f7f7f80L != 0L) {
             return -1L
         }
@@ -475,13 +491,17 @@ class IdealJsonReader(
         }
         return when (last) {
             116 -> {
-                require(PackedJsonBytes.getInt(buffer, position) and 0xffffff == 0x657572) { "Invalid JSON literal" }
+                require(
+                    PackedJsonBytes.getInt(bytes = buffer, offset = position) and 0xffffff == 0x657572,
+                ) { "Invalid JSON literal" }
                 position += 3
                 requireDelimiter(buffer[position].toInt() and 255)
                 true
             }
             102 -> {
-                require(PackedJsonBytes.getInt(buffer, position) == 0x65736c61) { "Invalid JSON literal" }
+                require(
+                    PackedJsonBytes.getInt(bytes = buffer, offset = position) == 0x65736c61,
+                ) { "Invalid JSON literal" }
                 position += 4
                 requireDelimiter(buffer[position].toInt() and 255)
                 false
@@ -622,11 +642,11 @@ class IdealJsonReader(
         scan@ while (limit - index >= width) {
             val start = index
             val end = start + width
-            var events = scan.specialMask(buffer, start)
+            var events = scan.specialMask(bytes = buffer, start = start)
             while (events != 0L) {
                 val special = start + events.countTrailingZeroBits()
                 if (special > index) {
-                    copyRun(output, size, index, special)
+                    copyRun(output = output, offset = size, start = index, end = special)
                     size += special - index
                 }
                 index = special
@@ -682,7 +702,7 @@ class IdealJsonReader(
                 events = events and (-1L shl consumed)
             }
             if (index < end) {
-                copyRun(output, size, index, end)
+                copyRun(output = output, offset = size, start = index, end = end)
                 size += end - index
                 index = end
             }
@@ -699,8 +719,8 @@ class IdealJsonReader(
         end: Int,
     ) {
         if (end - start <= 8 && start <= buffer.size - 8 && offset <= output.size - 8) {
-            val word = PackedJsonBytes.getLong(buffer, start)
-            PackedJsonBytes.setLong(output, offset, word)
+            val word = PackedJsonBytes.getLong(bytes = buffer, offset = start)
+            PackedJsonBytes.setLong(bytes = output, offset = offset, value = word)
         } else {
             buffer.copyInto(output, offset, start, end)
         }
@@ -774,7 +794,7 @@ class IdealJsonReader(
         while (true) {
             val start = position
             var end = if (vectorized) {
-                scan.firstSpecial(buffer, start, limit)
+                scan.firstSpecial(bytes = buffer, start = start, end = limit)
             } else {
                 start
             }
@@ -904,7 +924,7 @@ class IdealJsonReader(
         position = 0
         limit = remaining
         while (limit < size) {
-            val read = input.read(buffer, limit, buffer.size - limit)
+            val read = input.read(destination = buffer, offset = limit, length = buffer.size - limit)
             if (read > 0) {
                 limit += read
             } else if (read < 0) {
@@ -960,7 +980,5 @@ class IdealJsonReader(
 
     private companion object {
         const val swarNumbers = true
-
-
     }
 }
