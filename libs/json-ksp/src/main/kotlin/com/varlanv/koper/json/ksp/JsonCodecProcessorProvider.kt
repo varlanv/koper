@@ -1,8 +1,12 @@
 package com.varlanv.koper.json.ksp
 
 import com.google.devtools.ksp.processing.*
+import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.Visibility
 import com.google.devtools.ksp.validate
 
 const val serQualifiedName = "com.varlanv.koper.serde.Ser"
@@ -43,7 +47,40 @@ private class JsonCodecProcessor(
                 continue
             }
             val resolvedAnnotations = resolveAnnotations(declaration)
-            // todo
+            val primaryConstructor = declaration.primaryConstructor
+            if (primaryConstructor == null) {
+                logger.error(message = "@Ser and @De require a primary constructor", symbol = declaration)
+                continue
+            }
+            val constructorArgs = primaryConstructor.parameters
+            val constructorOrInvoke = if (primaryConstructor.getVisibility() == Visibility.PUBLIC) {
+                primaryConstructor
+            } else {
+                declaration.declarations
+                    .filterIsInstance<KSClassDeclaration>()
+                    .firstOrNull { it.isCompanionObject }
+                    ?.declarations
+                    ?.filterIsInstance<KSFunctionDeclaration>()
+                    ?.firstOrNull { function ->
+                        function.simpleName.asString() == "invoke" &&
+                            Modifier.OPERATOR in function.modifiers &&
+                            function.returnType?.resolve()?.let { type ->
+                                type.declaration == declaration && !type.isMarkedNullable
+                            } == true &&
+                            function.parameters.size == constructorArgs.size &&
+                            constructorArgs.all { constructorArg ->
+                                function.parameters.any { invokeArg ->
+                                    invokeArg.name?.asString() == constructorArg.name?.asString() &&
+                                        invokeArg.type.resolve() == constructorArg.type.resolve()
+                                }
+                            }
+                    }
+            }
+            if (constructorOrInvoke == null) {
+                logger.error(message = "A non-public primary constructor requires a matching companion operator fun invoke", symbol = declaration)
+                continue
+            }
+
 
 //            val primaryConstructor = declaration.primaryConstructor
 //            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
