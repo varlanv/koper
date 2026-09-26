@@ -306,3 +306,94 @@ fun ByteArray.validateUtf8(
 
 /** Returns the first non-ASCII byte, or [end] if the range is all ASCII. */
 internal expect fun ByteArray.skipAscii(start: Int, end: Int): Int
+
+/** Reads bytes into a caller-provided array. */
+interface ByteSource {
+    /** Reads up to [length] bytes into [sink] at [offset]; returns -1 at end, or 0 for zero length. */
+    fun readAtMostTo(
+        sink: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int
+}
+
+/** Writes bytes from a caller-provided array. */
+interface ByteSink {
+    /** Writes [length] bytes from [source] starting at [offset]. */
+    fun writeTo(
+        source: ByteArray,
+        offset: Int,
+        length: Int,
+    )
+}
+
+/** Reads the contents of [slice] in order. */
+class ByteArraySource(private val slice: ByteSlice) : ByteSource {
+    private var position: Int = 0
+
+    override fun readAtMostTo(
+        sink: ByteArray,
+        offset: Int,
+        length: Int,
+    ): Int {
+        if (offset < 0 || length < 0 || offset > sink.size - length) {
+            throw IndexOutOfBoundsException()
+        }
+        if (length == 0) {
+            return 0
+        }
+        val remaining = slice.len - position
+        if (remaining == 0) {
+            return -1
+        }
+        val count = minOf(length, remaining)
+        val start = slice.offset + position
+        slice.bytes.array.copyInto(sink, offset, start, start + count)
+        position += count
+        return count
+    }
+}
+
+/** Accumulates bytes in a reusable, growing array. */
+class ReusableByteArraySink(initialCapacity: Int) : ByteSink {
+    @PublishedApi
+    internal var bytes: ByteArray = ByteArray(initialCapacity)
+
+    @PublishedApi
+    internal var position: Int = 0
+
+    /** Clears the written length while retaining the allocated array. */
+    fun reset() {
+        position = 0
+    }
+
+    /** Borrows the first `length` bytes without copying; do not mutate or retain the array. */
+    inline fun <R> unsafeUseBytes(block: (bytes: ByteArray, length: Int) -> R): R {
+        return block(bytes, position)
+    }
+
+    override fun writeTo(
+        source: ByteArray,
+        offset: Int,
+        length: Int,
+    ) {
+        if (offset < 0 || length < 0 || offset > source.size - length) {
+            throw IndexOutOfBoundsException()
+        }
+        ensureCapacity(length)
+        source.copyInto(bytes, position, offset, offset + length)
+        position += length
+    }
+
+    private fun ensureCapacity(additionalBytes: Int) {
+        if (additionalBytes <= bytes.size - position) {
+            return
+        }
+        val requiredCapacity = position.toLong() + additionalBytes
+        if (requiredCapacity > Int.MAX_VALUE) {
+            error("Required buffer capacity exceeds Int.MAX_VALUE")
+        }
+        val newCapacity = maxOf(requiredCapacity, bytes.size.toLong() * 2).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        bytes = bytes.copyOf(newCapacity)
+    }
+}
