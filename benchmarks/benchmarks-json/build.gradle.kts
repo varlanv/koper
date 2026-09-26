@@ -2,6 +2,16 @@ import org.gradle.jvm.tasks.Jar
 
 plugins {
     alias(libs.plugins.internalBenchmark)
+    alias(libs.plugins.ksp)
+}
+
+dependencies {
+    add("kspJvm", projects.libs.serde.serdeKsp)
+    add("kspJvm", projects.libs.json.jsonKsp)
+}
+
+ksp {
+    arg("koper.serde.generators", "com.varlanv.koper.json.ksp.JsonSerdeGenerator")
 }
 
 tasks.withType<Jar>().configureEach {

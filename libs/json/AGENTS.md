@@ -85,3 +85,31 @@ Do not change them while building the generator.
   special-byte scanning. Do not copy the JVM-only vector implementation into common code.
 - For reusable performance utilities that are not unique to JSON encoding, consider putting them in `lang` module and
   testing/benchmarking separately.
+
+## JSON benchmark baseline
+
+Stored JMH results, ns/op (lower is better). Generated codecs use vectorized mode. Both runs used one fork, two 1-second
+warmups, and three 1-second measurements. They used different JDK builds, so treat the numbers as a baseline rather than
+a controlled speedup claim. Payload sizes are 281, 233, 289, and 41,033 bytes in the order shown below.
+
+| UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
+|---|---:|---:|---:|---:|---:|
+| ASCII_SMALL | Read | 139.0 | 197.8 | 197.5 | 120.4 |
+| ASCII_SMALL | Write | 53.3 | 125.6 | 125.5 | 61.6 |
+| UTF8_SMALL | Read | 144.4 | 172.9 | 177.2 | 123.4 |
+| UTF8_SMALL | Write | 57.8 | 108.1 | 107.8 | 64.4 |
+| ESCAPED_SMALL | Read | 269.2 | 309.0 | 306.4 | 248.1 |
+| ESCAPED_SMALL | Write | 146.6 | 211.2 | 206.6 | 139.0 |
+| UTF8_LARGE | Read | 4,761.4 | 95,283.1 | 63,584.2 | 5,190.5 |
+| UTF8_LARGE | Write | 2,482.8 | 16,520.8 | 16,554.0 | 1,845.7 |
+
+| Native sample (String symbol, Utf8Str text) | Operation | Generated | Ideal handwritten |
+|---|---:|---:|---:|
+| ASCII_SMALL | Read | 133.5 | 94.0 |
+| ASCII_SMALL | Write | 54.0 | 62.8 |
+| UTF8_SMALL | Read | 135.4 | 96.2 |
+| UTF8_SMALL | Write | 56.9 | 67.3 |
+| ESCAPED_SMALL | Read | 273.4 | 226.0 |
+| ESCAPED_SMALL | Write | 156.3 | 151.3 |
+| UTF8_LARGE | Read | 4,747.2 | 4,841.6 |
+| UTF8_LARGE | Write | 2,259.8 | 1,600.0 |
