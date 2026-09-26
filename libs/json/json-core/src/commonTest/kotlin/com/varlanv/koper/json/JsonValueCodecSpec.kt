@@ -6,30 +6,39 @@ import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
 
 class JsonValueCodecSpec : BaseSpec({
-    should("write and read values through public codecs") {
-        fun <T> roundTrip(
-            writerCodec: JsonSer<T>,
-            readerCodec: JsonDe<T>,
-            value: T,
-            expectedJson: String,
-        ) {
-            val output = ReusableByteArraySink(512)
-            val writer = JsonWriteProtocol()
-            writer.reset(output)
-            writerCodec.write(writer = writer, value = value)
-            writer.flush()
-            val bytes = output.toByteArray()
-            bytes.decodeToString() shouldBe expectedJson
-
-            for (bufferSize in listOf(1, 32768)) {
-                val reader = JsonReadProtocol(bufferSize = bufferSize)
-                reader.reset(bytes.asByteSource())
-                reader.nextToken()
-                readerCodec.read(reader) shouldBe value
-                reader.nextToken() shouldBe -1
+    fun <T> roundTrip(
+        writerCodec: JsonCodec.Write<T>,
+        readerCodec: JsonCodec.Read<T>,
+        value: T,
+        expectedJson: String,
+        reserveFromHints: Boolean = true,
+    ) {
+        val output = ReusableByteArraySink(512)
+        val writer = JsonWriteProtocol()
+        writer.reset(output)
+        if (reserveFromHints) {
+            val maximumBytes = when (val size = writerCodec.hints.size) {
+                is JsonValueSize.Static -> size.maximumBytes
+                is JsonValueSize.FromValue -> size.maximumBytes(value)
+                JsonValueSize.Dynamic -> error("This test requires a bounded codec")
             }
+            writer.reserve(maximumBytes)
         }
+        writerCodec.write(writer = writer, value = value)
+        writer.flush()
+        val bytes = output.toByteArray()
+        bytes.decodeToString() shouldBe expectedJson
 
+        for (bufferSize in listOf(1, 32768)) {
+            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            reader.reset(bytes.asByteSource())
+            reader.nextToken()
+            readerCodec.read(reader) shouldBe value
+            reader.nextToken() shouldBe -1
+        }
+    }
+
+    should("write and read bounded built-in values") {
         roundTrip(
             writerCodec = IntJsonCodec,
             readerCodec = IntJsonCodec,
@@ -55,8 +64,28 @@ class JsonValueCodecSpec : BaseSpec({
             value = Utf8Str.allocateFromString("é\n"),
             expectedJson = "\"é\\n\"",
         )
+    }
 
-        IntJsonCodec.size.maximumBytes shouldBe 11L
-        (StringJsonCodec.size as JsonValueSize.FromValue<String>).maximumBytes("A\n") shouldBe 14L
+    should("write and read a reserved object with built-in field codecs") {
+        val text = "é\n" + "x".repeat(600)
+        val value = HandwrittenJsonSample(id = Int.MIN_VALUE, text = text)
+        roundTrip(
+            writerCodec = HandwrittenJsonSampleCodec,
+            readerCodec = HandwrittenJsonSampleCodec,
+            value = value,
+            expectedJson = "{\"id\":-2147483648,\"text\":\"é\\n${"x".repeat(600)}\"}",
+            reserveFromHints = false,
+        )
+    }
+
+    should("read object fields in any order and skip unknown values") {
+        val bytes = "{\"extra\":[null,{\"nested\":true}],\"text\":\"A\\n\",\"id\":42}".encodeToByteArray()
+        for (bufferSize in listOf(1, 32768)) {
+            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            reader.reset(bytes.asByteSource())
+            reader.nextToken()
+            HandwrittenJsonSampleCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
+            reader.nextToken() shouldBe -1
+        }
     }
 })

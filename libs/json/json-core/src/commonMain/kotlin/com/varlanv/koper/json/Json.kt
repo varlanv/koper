@@ -6,10 +6,13 @@ import com.varlanv.koper.lang.bin.ReusableByteArraySink
 
 class Json(
     private val readProtocol: JsonReadProtocol = JsonReadProtocol(),
-    private val writeProtocol: JsonWriteProtocol = JsonWriteProtocol()
+    private val writeProtocol: JsonWriteProtocol = JsonWriteProtocol(),
 ) {
-
-    fun <T> writeTo(sink: ByteSink, write: JsonCodec.Write<T>, value: T) {}
+    fun <T> writeTo(
+        sink: ByteSink,
+        write: JsonCodec.Write<T>,
+        value: T,
+    ) {}
 
     fun <T> readFrom(source: ByteSource, read: JsonCodec.Read<T>): T {
         read.read(readProtocol)
@@ -22,7 +25,11 @@ fun main() {
     val json = Json()
 
     // sample 1 - Codec has both "Read" and "Write" sides implemented
-    json.writeTo(ReusableByteArraySink(10), IntJsonCodec, 1)
+    json.writeTo(
+        sink = ReusableByteArraySink(10),
+        write = IntJsonCodec,
+        value = 1,
+    )
 
     // todo sample 2 - for example user specified his type `User` with only @Ser annotation.
     //  Then, we generate `UserJsonCodec` that implements only `Write` side.

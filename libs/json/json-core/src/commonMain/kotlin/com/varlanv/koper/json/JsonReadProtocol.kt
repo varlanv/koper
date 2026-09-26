@@ -1,28 +1,22 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ByteSource
-import com.varlanv.koper.lang.bin.ReadonlyBytes
-import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
-import com.varlanv.koper.lang.text.Utf8Str
-import com.varlanv.koper.lang.text.allocateString
 
 class JsonReadProtocol(
     bufferSize: Int = 32768,
-    private val vectorized: Boolean = false,
+    vectorized: Boolean = false,
 ) {
-    private val scan = jsonSpecialScan(vectorized)
-    private val buffer = ByteArray(bufferSize.also { require(it > 0) })
+    internal val stringScanner = JsonStringScanner(vectorized)
+    internal val buffer = ByteArray(bufferSize.also { require(it > 0) })
     private lateinit var input: ByteSource
-    private var position = 0
-    private var limit = 0
+    internal var position = 0
+    internal var limit = 0
     private var last = -1
-    private var scratch = ByteArray(256)
-    private var scratchSize = 0
     private var field = buffer
     private var fieldOffset = 0
     private var fieldSize = 0
+
+    val token: Int get() = last
 
     fun reset(input: ByteSource) {
         this.input = input
@@ -51,85 +45,6 @@ class JsonReadProtocol(
         }
         require(nextToken() == 58) { "Expected colon" }
         require(nextToken() != -1) { "Expected JSON value" }
-    }
-
-    fun readUtf8(): Utf8Str {
-        require(last == 34) { "Expected JSON string" }
-        val start = position
-        var index = if (vectorized) {
-            scan.firstSpecial(bytes = buffer, start = start, end = limit)
-        } else {
-            start
-        }
-        while (index < limit) {
-            val value = buffer[index].toInt() and 255
-            if (value == 34) {
-                position = index + 1
-                if (index == start) {
-                    return Utf8Str.empty
-                }
-                val bytes = buffer.copyOfRange(start, index)
-                return Utf8Str(
-                    Str(
-                        ByteSlice(
-                            bytes = ReadonlyBytes(bytes),
-                            offset = 0,
-                            len = bytes.size,
-                        ),
-                    ),
-                )
-            }
-            if (value == 92 || value < 32) {
-                break
-            }
-            index++
-        }
-        scratchSize = index - start
-        ensureScratch(scratchSize)
-        buffer.copyInto(scratch, 0, start, index)
-        position = index
-        if (index == limit || !readBufferedEscapes()) {
-            readStringToScratch(false)
-        }
-        val bytes = scratch.copyOf(scratchSize)
-        return Utf8Str(
-            Str(
-                ByteSlice(
-                    bytes = ReadonlyBytes(bytes),
-                    offset = 0,
-                    len = bytes.size,
-                ),
-            ),
-        )
-    }
-
-    fun readString(): String {
-        require(last == 34) { "Expected JSON string" }
-        val start = position
-        var index = if (vectorized) {
-            scan.firstSpecial(bytes = buffer, start = start, end = limit)
-        } else {
-            start
-        }
-        while (index < limit) {
-            val value = buffer[index].toInt() and 255
-            if (value == 34) {
-                position = index + 1
-                return Charset.Utf8.allocateString(bytes = buffer, offset = start, len = index - start)
-            }
-            if (value == 92 || value < 32) {
-                break
-            }
-            index++
-        }
-        scratchSize = index - start
-        ensureScratch(scratchSize)
-        buffer.copyInto(scratch, 0, start, index)
-        position = index
-        if (index == limit || !readBufferedEscapes()) {
-            readStringToScratch(false)
-        }
-        return Charset.Utf8.allocateString(bytes = scratch, offset = 0, len = scratchSize)
     }
 
     fun peekFieldWord(): Long {
@@ -205,10 +120,10 @@ class JsonReadProtocol(
             hash = 31 * hash + value
             index++
         }
-        readStringToScratch()
-        fieldSize = scratchSize
-        field = scratch
-        fieldOffset = 0
+        stringScanner.readToScratch(this)
+        fieldSize = stringScanner.length
+        field = stringScanner.bytes
+        fieldOffset = stringScanner.offset
         hash = 0
         for (i in 0 until fieldSize) hash = 31 * hash + (field[i].toInt() and 255)
         return hash
@@ -224,299 +139,21 @@ class JsonReadProtocol(
         return true
     }
 
-    fun readLong(): Long {
-        return if (swarNumbers) {
-            readLongGrouped()
-        } else {
-            readLongScalar()
-        }
-    }
-
-    fun readLongReserved(): Long {
-        return if (ensureAvailable(20)) {
-            readLongContiguous()
-        } else {
-            readLong()
-        }
-    }
-
-    private fun readLongContiguous(): Long {
-        val negative = last == 45
-        val digit = if (negative) {
-            buffer[position++].toInt() and 255
-        } else {
-            last
-        }
-        require(digit in 48..57) { "Expected JSON integer" }
-        val minimum = if (negative) {
-            Long.MIN_VALUE
-        } else {
-            -Long.MAX_VALUE
-        }
-        val multiplyMinimum = minimum / 10
-        var result = -(digit - 48).toLong()
-        val leadingZero = digit == 48
-        var index = position
-        var groups = 0
-        while (groups < 2) {
-            val number = readEightDigits(index)
-            if (number < 0) {
-                break
-            }
-            require(!leadingZero) { "Leading zero in JSON integer" }
-            require(result >= -92233720368L) { "Integer overflow" }
-            result *= 100000000L
-            require(result >= minimum + number) { "Integer overflow" }
-            result -= number
-            index += 8
-            groups++
-        }
-        while (true) {
-            val next = buffer[index].toInt() and 255
-            if (next !in 48..57) {
-                position = index
-                requireDelimiter(next)
-                return if (negative) {
-                    result
-                } else {
-                    -result
-                }
-            }
-            require(!leadingZero) { "Leading zero in JSON integer" }
-            require(result >= multiplyMinimum) { "Integer overflow" }
-            result *= 10
-            val number = next - 48
-            require(result >= minimum + number) { "Integer overflow" }
-            result -= number
-            index++
-        }
-    }
-
-    private fun readLongScalar(): Long {
-        val negative = last == 45
-        val digit = if (negative) {
-            take()
-        } else {
-            last
-        }
-        require(digit in 48..57) { "Expected JSON integer" }
-        val minimum = if (negative) {
-            Long.MIN_VALUE
-        } else {
-            -Long.MAX_VALUE
-        }
-        val multiplyMinimum = minimum / 10
-        var result = -(digit - 48).toLong()
-        val leadingZero = digit == 48
-        var index = position
-        while (true) {
-            while (index < limit) {
-                val next = buffer[index].toInt() and 255
-                if (next !in 48..57) {
-                    position = index
-                    requireDelimiter(next)
-                    return if (negative) {
-                        result
-                    } else {
-                        -result
-                    }
-                }
-                require(!leadingZero) { "Leading zero in JSON integer" }
-                require(result >= multiplyMinimum) { "Integer overflow" }
-                result *= 10
-                val number = next - 48
-                require(result >= minimum + number) { "Integer overflow" }
-                result -= number
-                index++
-            }
-            position = index
-            if (!refill()) {
-                return if (negative) {
-                    result
-                } else {
-                    -result
-                }
-            }
-            index = 0
-        }
-    }
-
-    private fun readLongGrouped(): Long {
-        val negative = last == 45
-        val digit = if (negative) {
-            take()
-        } else {
-            last
-        }
-        require(digit in 48..57) { "Expected JSON integer" }
-        val minimum = if (negative) {
-            Long.MIN_VALUE
-        } else {
-            -Long.MAX_VALUE
-        }
-        val multiplyMinimum = minimum / 10
-        var result = -(digit - 48).toLong()
-        val leadingZero = digit == 48
-        var index = position
-        while (true) {
-            while (limit - index >= 8) {
-                val number = readEightDigits(index)
-                if (number < 0) {
-                    break
-                }
-                require(!leadingZero) { "Leading zero in JSON integer" }
-                require(result >= -92233720368L) { "Integer overflow" }
-                result *= 100000000L
-                require(result >= minimum + number) { "Integer overflow" }
-                result -= number
-                index += 8
-            }
-            while (index < limit) {
-                val next = buffer[index].toInt() and 255
-                if (next !in 48..57) {
-                    position = index
-                    requireDelimiter(next)
-                    return if (negative) {
-                        result
-                    } else {
-                        -result
-                    }
-                }
-                require(!leadingZero) { "Leading zero in JSON integer" }
-                require(result >= multiplyMinimum) { "Integer overflow" }
-                result *= 10
-                val number = next - 48
-                require(result >= minimum + number) { "Integer overflow" }
-                result -= number
-                index++
-            }
-            position = index
-            if (!refill()) {
-                return if (negative) {
-                    result
-                } else {
-                    -result
-                }
-            }
-            index = 0
-        }
-    }
-
-    private fun readEightDigits(index: Int): Long {
-        val word = PackedJsonBytes.getLong(bytes = buffer, offset = index)
-        if (((word + 0x4646464646464646L) or (word - 0x3030303030303030L)) and -0x7f7f7f7f7f7f7f80L != 0L) {
-            return -1L
-        }
-        val digits = word - 0x3030303030303030L
-        val pairs = (digits * 10 + (digits ushr 8)) and 0x00ff00ff00ff00ffL
-        val quads = (pairs * 100 + (pairs ushr 16)) and 0x0000ffff0000ffffL
-        return (quads * 10000 + (quads ushr 32)) and 0xffffffffL
-    }
-
-    fun readInt(): Int {
-        val value = readLong()
-        require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
-        return value.toInt()
-    }
-
-    fun readIntReserved(): Int {
-        if (!ensureAvailable(11)) {
-            return readInt()
-        }
-        val negative = last == 45
-        val digit = if (negative) {
-            buffer[position++].toInt() and 255
-        } else {
-            last
-        }
-        require(digit in 48..57) { "Expected JSON integer" }
-        val minimum = if (negative) {
-            Int.MIN_VALUE
-        } else {
-            -Int.MAX_VALUE
-        }
-        val multiplyMinimum = minimum / 10
-        var result = -(digit - 48)
-        val leadingZero = digit == 48
-        var index = position
-        while (true) {
-            val next = buffer[index].toInt() and 255
-            if (next !in 48..57) {
-                position = index
-                requireDelimiter(next)
-                return if (negative) {
-                    result
-                } else {
-                    -result
-                }
-            }
-            require(!leadingZero) { "Leading zero in JSON integer" }
-            require(result >= multiplyMinimum) { "Integer overflow" }
-            result *= 10
-            val number = next - 48
-            require(result >= minimum + number) { "Integer overflow" }
-            result -= number
-            index++
-        }
-    }
-
-    fun readBoolean(): Boolean {
-        return when (last) {
-            116 -> {
-                readLiteral("rue")
-                true
-            }
-            102 -> {
-                readLiteral("alse")
-                false
-            }
-            else -> {
-                throw IllegalArgumentException("Expected JSON boolean")
-            }
-        }
-    }
-
-    fun readBooleanReserved(): Boolean {
-        if (!ensureAvailable(
-            if (last == 116) {
-                4
-            } else {
-                5
-            },
-        )) {
-            return readBoolean()
-        }
-        return when (last) {
-            116 -> {
-                require(
-                    PackedJsonBytes.getInt(bytes = buffer, offset = position) and 0xffffff == 0x657572,
-                ) { "Invalid JSON literal" }
-                position += 3
-                requireDelimiter(buffer[position].toInt() and 255)
-                true
-            }
-            102 -> {
-                require(
-                    PackedJsonBytes.getInt(bytes = buffer, offset = position) == 0x65736c61,
-                ) { "Invalid JSON literal" }
-                position += 4
-                requireDelimiter(buffer[position].toInt() and 255)
-                false
-            }
-            else -> {
-                throw IllegalArgumentException("Expected JSON boolean")
-            }
-        }
+    fun skipValue() {
+        skipValue(0)
     }
 
     private fun skipValue(depth: Int) {
         require(depth <= 128) { "JSON nesting limit exceeded" }
         when (last) {
             34 -> {
-                readStringToScratch()
+                stringScanner.readToScratch(this)
             }
-            116, 102 -> {
-                readBoolean()
+            116 -> {
+                readLiteral("rue")
+            }
+            102 -> {
+                readLiteral("alse")
             }
             110 -> {
                 readLiteral("ull")
@@ -527,7 +164,7 @@ class JsonReadProtocol(
                 }
                 while (true) {
                     require(last == 34) { "Expected JSON field name" }
-                    readStringToScratch()
+                    stringScanner.readToScratch(this)
                     require(nextToken() == 58) { "Expected colon" }
                     nextToken()
                     skipValue(depth + 1)
@@ -605,7 +242,7 @@ class JsonReadProtocol(
         requireDelimiter(peek())
     }
 
-    private fun requireDelimiter(value: Int) {
+    internal fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
                 value == 32 ||
@@ -618,318 +255,12 @@ class JsonReadProtocol(
         ) { "Invalid JSON value suffix" }
     }
 
-    private fun readBufferedEscapes(): Boolean {
-        return if (vectorized && limit - position >= scan.laneCount) {
-            readVectorEscapes()
-        } else {
-            readScalarEscapes()
-        }
-    }
-
-    private fun readVectorEscapes(): Boolean {
-        ensureScratch(scratchSize + limit - position)
-        var index = position
-        var size = scratchSize
-        val output = scratch
-        val width = scan.laneCount
-        scan@ while (limit - index >= width) {
-            val start = index
-            val end = start + width
-            var events = scan.specialMask(bytes = buffer, start = start)
-            while (events != 0L) {
-                val special = start + events.countTrailingZeroBits()
-                if (special > index) {
-                    copyRun(output = output, offset = size, start = index, end = special)
-                    size += special - index
-                }
-                index = special
-                val value = buffer[index].toInt() and 255
-                if (value == 34) {
-                    position = index + 1
-                    scratchSize = size
-                    return true
-                }
-                require(value == 92) { "Unescaped control character" }
-                if (limit - index < 2) {
-                    break@scan
-                }
-                val escaped = buffer[index + 1].toInt() and 255
-                if (escaped == 117) {
-                    if (limit - index < 6) {
-                        break@scan
-                    }
-                    var codepoint = readHexAt(index + 2)
-                    var consumed = 6
-                    if (codepoint in 0xD800..0xDBFF) {
-                        if (limit - index < 12) {
-                            break@scan
-                        }
-                        require(buffer[index + 6].toInt() == 92 && buffer[index + 7].toInt() == 117) {
-                            "Expected low surrogate escape"
-                        }
-                        val low = readHexAt(index + 8)
-                        require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
-                        codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
-                        consumed = 12
-                    } else {
-                        require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
-                    }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
-                    index += consumed
-                } else {
-                    output[size++] = when (escaped) {
-                        34, 92, 47 -> escaped.toByte()
-                        98 -> 8
-                        102 -> 12
-                        110 -> 10
-                        114 -> 13
-                        116 -> 9
-                        else -> throw IllegalArgumentException("Invalid JSON escape")
-                    }
-                    index += 2
-                }
-                val consumed = index - start
-                if (consumed >= width) {
-                    break
-                }
-                events = events and (-1L shl consumed)
-            }
-            if (index < end) {
-                copyRun(output = output, offset = size, start = index, end = end)
-                size += end - index
-                index = end
-            }
-        }
-        position = index
-        scratchSize = size
-        return readScalarEscapes()
-    }
-
-    private fun copyRun(
-        output: ByteArray,
-        offset: Int,
-        start: Int,
-        end: Int,
-    ) {
-        if (end - start <= 8 && start <= buffer.size - 8 && offset <= output.size - 8) {
-            val word = PackedJsonBytes.getLong(bytes = buffer, offset = start)
-            PackedJsonBytes.setLong(bytes = output, offset = offset, value = word)
-        } else {
-            buffer.copyInto(output, offset, start, end)
-        }
-    }
-
-    private fun readScalarEscapes(): Boolean {
-        ensureScratch(scratchSize + limit - position)
-        var index = position
-        var size = scratchSize
-        val output = scratch
-        while (index < limit) {
-            val value = buffer[index].toInt() and 255
-            if (value == 34) {
-                position = index + 1
-                scratchSize = size
-                return true
-            }
-            require(value >= 32) { "Unescaped control character" }
-            if (value == 92) {
-                if (index + 1 == limit) {
-                    break
-                }
-                if (buffer[index + 1].toInt() == 117) {
-                    if (limit - index < 6) {
-                        break
-                    }
-                    var codepoint = readHexAt(index + 2)
-                    var consumed = 6
-                    if (codepoint in 0xD800..0xDBFF) {
-                        if (limit - index < 12) {
-                            break
-                        }
-                        require(buffer[index + 6].toInt() == 92 && buffer[index + 7].toInt() == 117) {
-                            "Expected low surrogate escape"
-                        }
-                        val low = readHexAt(index + 8)
-                        require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
-                        codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
-                        consumed = 12
-                    } else {
-                        require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
-                    }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
-                    index += consumed
-                    continue
-                }
-                output[size++] = when (val escaped = buffer[index + 1].toInt() and 255) {
-                    34, 92, 47 -> escaped.toByte()
-                    98 -> 8
-                    102 -> 12
-                    110 -> 10
-                    114 -> 13
-                    116 -> 9
-                    else -> throw IllegalArgumentException("Invalid JSON escape")
-                }
-                index += 2
-            } else {
-                output[size++] = value.toByte()
-                index++
-            }
-        }
-        position = index
-        scratchSize = size
-        return false
-    }
-
-    private fun readStringToScratch(clear: Boolean = true) {
-        if (clear) {
-            scratchSize = 0
-        }
-        while (true) {
-            val start = position
-            var end = if (vectorized) {
-                scan.firstSpecial(bytes = buffer, start = start, end = limit)
-            } else {
-                start
-            }
-            while (end < limit) {
-                val value = buffer[end].toInt() and 255
-                if (value == 34 || value == 92 || value < 32) {
-                    break
-                }
-                end++
-            }
-            if (end > start) {
-                val size = end - start
-                ensureScratch(scratchSize + size)
-                buffer.copyInto(scratch, scratchSize, start, end)
-                scratchSize += size
-                position = end
-            }
-            val value = take()
-            when {
-                value == 34 -> return
-                value == 92 -> readEscape()
-                value < 32 -> throw IllegalArgumentException("Unterminated string or unescaped control character")
-                else -> append(value.toByte())
-            }
-        }
-    }
-
-    private fun readEscape() {
-        when (val value = take()) {
-            34, 92, 47 -> {
-                append(value.toByte())
-            }
-            98 -> {
-                append(8)
-            }
-            102 -> {
-                append(12)
-            }
-            110 -> {
-                append(10)
-            }
-            114 -> {
-                append(13)
-            }
-            116 -> {
-                append(9)
-            }
-            117 -> {
-                var codepoint = readHex()
-                if (codepoint in 0xD800..0xDBFF) {
-                    require(take() == 92 && take() == 117) { "Expected low surrogate escape" }
-                    val low = readHex()
-                    require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
-                    codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
-                } else {
-                    require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
-                }
-                ensureScratch(scratchSize + 4)
-                Charset.encodeUtf8Inline(codepoint) { scratch[scratchSize++] = it }
-            }
-            else -> {
-                throw IllegalArgumentException("Invalid JSON escape")
-            }
-        }
-    }
-
-    private fun readHexAt(index: Int): Int {
-        return (hexDigit(buffer[index].toInt() and 255) shl 12) or
-            (hexDigit(buffer[index + 1].toInt() and 255) shl 8) or
-            (hexDigit(buffer[index + 2].toInt() and 255) shl 4) or
-            hexDigit(buffer[index + 3].toInt() and 255)
-    }
-
-    private fun hexDigit(value: Int): Int {
-        return when (value) {
-            in 48..57 -> value - 48
-            in 65..70 -> value - 55
-            in 97..102 -> value - 87
-            else -> throw IllegalArgumentException("Invalid Unicode escape")
-        }
-    }
-
-    private fun readHex(): Int {
-        var result = 0
-        repeat(4) {
-            val value = take()
-            val digit = when (value) {
-                in 48..57 -> value - 48
-                in 65..70 -> value - 55
-                in 97..102 -> value - 87
-                else -> throw IllegalArgumentException("Invalid Unicode escape")
-            }
-            result = (result shl 4) or digit
-        }
-        return result
-    }
-
-    private fun append(value: Byte) {
-        if (scratchSize == scratch.size) {
-            ensureScratch(scratchSize + 1)
-        }
-        scratch[scratchSize++] = value
-    }
-
-    private fun ensureScratch(size: Int) {
-        if (size > scratch.size) {
-            scratch = scratch.copyOf(maxOf(size, scratch.size * 2))
-        }
-    }
-
-    private fun take(): Int {
+    internal fun take(): Int {
         val value = peek()
         if (value >= 0) {
             position++
         }
         return value
-    }
-
-    private fun ensureAvailable(size: Int): Boolean {
-        if (size > buffer.size) {
-            return false
-        }
-        if (limit - position >= size) {
-            return true
-        }
-        val remaining = limit - position
-        if (remaining != 0) {
-            buffer.copyInto(buffer, 0, position, limit)
-        }
-        position = 0
-        limit = remaining
-        while (limit < size) {
-            val read = input.readAtMostTo(sink = buffer, offset = limit, length = buffer.size - limit)
-            if (read > 0) {
-                limit += read
-            } else if (read < 0) {
-                return false
-            } else {
-                error("ByteSource returned zero bytes for a non-empty read")
-            }
-        }
-        return true
     }
 
     private fun nextValue(index: Int) {
@@ -945,14 +276,14 @@ class JsonReadProtocol(
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    private fun peek(): Int {
+    internal fun peek(): Int {
         if (position == limit && !refill()) {
             return -1
         }
         return buffer[position].toInt() and 255
     }
 
-    private fun refill(): Boolean {
+    internal fun refill(): Boolean {
         position = 0
         limit = input.readAtMostTo(sink = buffer, offset = 0, length = buffer.size)
         if (limit <= 0) {
@@ -961,9 +292,5 @@ class JsonReadProtocol(
             return false
         }
         return true
-    }
-
-    private companion object {
-        const val swarNumbers = true
     }
 }
