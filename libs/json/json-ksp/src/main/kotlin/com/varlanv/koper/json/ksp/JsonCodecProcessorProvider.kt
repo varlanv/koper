@@ -1,10 +1,13 @@
 package com.varlanv.koper.json.ksp
 
+import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Visibility
 import com.google.devtools.ksp.validate
@@ -21,6 +24,28 @@ class JsonCodecProcessorProvider : SymbolProcessorProvider {
 private data class ResolvedAnnotations(val isSer: Boolean, val isDe: Boolean) {
     fun hasSerde(): Boolean = isSer || isDe
 }
+
+private enum class FieldCodec(
+    val typeName: String,
+    val writeMethod: String,
+    val readMethod: String,
+    val fixedMaximumValueBytes: Int?,
+) {
+    INT("kotlin.Int", "writeInt", "readInt", 11),
+    LONG("kotlin.Long", "writeLong", "readLong", 20),
+    BOOLEAN("kotlin.Boolean", "writeBoolean", "readBoolean", 5),
+    STRING("kotlin.String", "writeString", "readString", null),
+    UTF8_STRING("com.varlanv.koper.lang.text.Utf8Str", "writeUtf8", "readUtf8", null),
+}
+
+private val fieldCodecs = FieldCodec.entries.associateBy(FieldCodec::typeName)
+
+private data class ResolvedField(
+    val name: String,
+    val parameter: KSValueParameter,
+    val property: KSPropertyDeclaration?,
+    val codec: FieldCodec,
+)
 
 private class JsonCodecProcessor(
     private val codeGenerator: CodeGenerator,
@@ -88,46 +113,14 @@ private class JsonCodecProcessor(
                 )
                 continue
             }
-
-            //            val primaryConstructor = declaration.primaryConstructor
-            //            val field = declaration.primaryConstructor?.parameters?.singleOrNull()
-            //            val fieldName = field?.name?.asString()
-            //            if (declaration.classKind != ClassKind.CLASS ||
-            //                declaration.typeParameters.isNotEmpty() ||
-            //                declaration.containingFile == null ||
-            //                field == null ||
-            //                (!field.isVal && !field.isVar) ||
-            //                fieldName == null
-            //            ) {
-            //                logger.error(
-            //                    message = "V1 JSON generation requires a class with one Int constructor property",
-            //                    symbol = declaration,
-            //                )
-            //                continue
-            //            }
-            //            val packageName = declaration.packageName.asString()
-            //            val typeName = declaration.simpleName.asString()
-            //            val codecName = typeName + "GeneratedJsonCodec"
-            //            val source = render(
-            //                packageName = packageName,
-            //                typeName = typeName,
-            //                codecName = codecName,
-            //                fieldName = fieldName,
-            //                ser = ser,
-            //                de = de,
-            //            )
-            //            codeGenerator
-            //                .createNewFile(
-            //                    dependencies = Dependencies(
-            //                        aggregating = false,
-            //                        declaration.containingFile!!,
-            //                    ),
-            //                    packageName = packageName,
-            //                    fileName = codecName,
-            //                )
-            //                .use { it.write(source.encodeToByteArray()) }
+            if (resolveFields(
+                declaration = declaration,
+                parameters = constructorArgs,
+                annotations = resolvedAnnotations,
+            ) == null) {
+                continue
+            }
         }
-        //        return deferred
         return listOf()
     }
 
@@ -147,5 +140,70 @@ private class JsonCodecProcessor(
             }
         }
         return ResolvedAnnotations(isSer = ser, isDe = de)
+    }
+
+    private fun resolveFields(
+        declaration: KSClassDeclaration,
+        parameters: List<KSValueParameter>,
+        annotations: ResolvedAnnotations,
+    ): List<ResolvedField>? {
+        val properties = if (annotations.isSer) {
+            declaration.getDeclaredProperties().associateBy { it.simpleName.asString() }
+        } else {
+            emptyMap()
+        }
+        val fields = ArrayList<ResolvedField>(parameters.size)
+        for (parameter in parameters) {
+            val name = parameter.name?.asString()
+            if (name == null) {
+                logger.error(message = "JSON codec requires named primary constructor parameters", symbol = declaration)
+                return null
+            }
+            if (parameter.isVararg) {
+                logger.error(message = "JSON codec does not support vararg field '$name'", symbol = declaration)
+                return null
+            }
+            val type = parameter.type.resolve()
+            if (type.isMarkedNullable) {
+                logger.error(
+                    message = "JSON codec does not support nullable field '$name' (${type})",
+                    symbol = declaration,
+                )
+                return null
+            }
+            val typeName = type.declaration.qualifiedName?.asString()
+            val codec = fieldCodecs[typeName]
+            if (codec == null) {
+                logger.error(
+                    message = "JSON codec does not support field '$name' of type '${typeName ?: type}'",
+                    symbol = declaration,
+                )
+                return null
+            }
+            val property = properties[name]
+            if (annotations.isSer) {
+                if (property == null || property.extensionReceiver != null) {
+                    logger.error(
+                        message = "@Ser requires a readable property '$name' matching its primary constructor parameter",
+                        symbol = declaration,
+                    )
+                    return null
+                }
+                if (property.type.resolve() != type) {
+                    logger.error(
+                        message = "@Ser property '$name' must have the same type as its primary constructor parameter",
+                        symbol = declaration,
+                    )
+                    return null
+                }
+                val visibility = property.getVisibility()
+                if (visibility != Visibility.PUBLIC && visibility != Visibility.INTERNAL) {
+                    logger.error(message = "@Ser property '$name' must be public or internal", symbol = declaration)
+                    return null
+                }
+            }
+            fields += ResolvedField(name = name, parameter = parameter, property = property, codec = codec)
+        }
+        return fields
     }
 }

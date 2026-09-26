@@ -97,7 +97,9 @@ class ByteSlice(
 
     /**
      * Returns backing array. The caller is responsible for ensuring "readonly" invariant
-     * Returned array should not be modified in range from [offset] to [offset] + [len]
+     * Returned array should not be modified in range from [offset] to [offset] + [len].
+     * Useful for cases when array is needed to be passed to trusted source that works only with [ByteArray]s,
+     * and is trusted to not modify the array.
      */
     fun unsafeBorrowArray(): ByteArray = bytes.array
 
