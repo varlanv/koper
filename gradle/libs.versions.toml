@@ -74,9 +74,9 @@ wrasse-compiler-plugin = { module = "com.varlanv.wrasse:compiler-plugin", versio
 wrasse-gradle-plugin = { module = "com.varlanv.wrasse:wrasse-gradle-plugin", version.ref = "wrasseVersion" }
 
 [plugins]
-internalConvention = { id = "com.varlanv.kryptoid.gradle.internal-gradle-convention-plugin" }
-internalMultiplatform = { id = "com.varlanv.kryptoid.gradle.internal-multiplatform-convention-plugin" }
-internalBenchmark = { id = "com.varlanv.koper.gradle.internal-benchmark-convention-plugin" }
+internalConvention = { id = "com.varlanv.gradle.internal-gradle-convention-plugin" }
+internalMultiplatform = { id = "com.varlanv.gradle.internal-multiplatform-convention-plugin" }
+internalBenchmark = { id = "com.varlanv.gradle.internal-benchmark-convention-plugin" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmhPluginVersion" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
 kotest = { id = "io.kotest", version.ref = "kotestVersion" }
