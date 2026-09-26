@@ -3,8 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.ksp.api)
-    implementation(projects.libs.serde.serdeKsp)
+    api(libs.ksp.api)
     testImplementation(libs.ksp.aaEmbeddable)
     testImplementation(libs.ksp.commonDeps)
     testImplementation(projects.libs.serde.serdeFixtures)
