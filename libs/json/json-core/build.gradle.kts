@@ -7,7 +7,12 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    add("kspCommonMainMetadata", projects.libs.serde.serdeKsp)
     add("kspCommonMainMetadata", projects.libs.json.jsonKsp)
+}
+
+ksp {
+    arg("koper.serde.generators", "com.varlanv.koper.json.ksp.JsonSerdeGenerator")
 }
 
 kotlin {

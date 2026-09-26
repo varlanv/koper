@@ -1,26 +1,25 @@
 package com.varlanv.koper.benchmarks.json
 
-import com.varlanv.koper.json.ByteArrayJsonOutput
-
-import com.varlanv.koper.json.tmp.NativeJsonUtf8Codec
-import com.varlanv.koper.json.StreamJsonInput
-import com.varlanv.koper.json.StreamJsonOutput
 import com.varlanv.koper.json.tmp.IdealJsonReader
 import com.varlanv.koper.json.tmp.IdealJsonUtf8Codec
 import com.varlanv.koper.json.tmp.IdealJsonWriter
 import com.varlanv.koper.json.tmp.JsonNativeSample
 import com.varlanv.koper.json.tmp.JsonUtf8Sample
+import com.varlanv.koper.json.tmp.NativeJsonUtf8Codec
 import com.varlanv.koper.lang.VectorApi
+import com.varlanv.koper.lang.bin.InputStreamByteSource
+import com.varlanv.koper.lang.bin.OutputStreamByteSink
+import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.text.Utf8Str
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
+import kotlin.jvm.JvmField
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.Fork
 import org.openjdk.jmh.annotations.Param
 import org.openjdk.jmh.annotations.Scope
 import org.openjdk.jmh.annotations.Setup
 import org.openjdk.jmh.annotations.State
-import kotlin.jvm.JvmField
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])
@@ -32,9 +31,9 @@ class JsonStreamBenchmark {
     private lateinit var utf8Value: JsonUtf8Sample
     private lateinit var nativeValue: JsonNativeSample
     private lateinit var input: ByteArrayInputStream
-    private lateinit var streamInput: StreamJsonInput
+    private lateinit var streamInput: InputStreamByteSource
     private lateinit var output: RecycledOutputStream
-    private lateinit var streamOutput: StreamJsonOutput
+    private lateinit var streamOutput: OutputStreamByteSink
     private val scalarReader = IdealJsonReader()
     private val scalarWriter = IdealJsonWriter()
     private val vectorReader = IdealJsonReader(vectorized = true)
@@ -59,13 +58,13 @@ class JsonStreamBenchmark {
         )
         nativeValue =
             JsonNativeSample(id = 123456789L, symbol = "BTCUSDT", text = utf8Value.text, sequence = 42, active = true)
-        val expectedOutput = ByteArrayJsonOutput()
+        val expectedOutput = ReusableByteArraySink(512)
         IdealJsonUtf8Codec.write(writer = scalarWriter, value = utf8Value, output = expectedOutput)
-        val bytes = expectedOutput.toByteArray()
+        val bytes = expectedOutput.unsafeUseBytes { data, length -> data.copyOf(length) }
         input = ByteArrayInputStream(bytes)
-        streamInput = StreamJsonInput(input)
+        streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)
-        streamOutput = StreamJsonOutput(output)
+        streamOutput = OutputStreamByteSink(output)
         check(idealUtf8Read() == utf8Value)
         check(vectorUtf8Read() == utf8Value)
         check(nativeUtf8Read() == nativeValue)

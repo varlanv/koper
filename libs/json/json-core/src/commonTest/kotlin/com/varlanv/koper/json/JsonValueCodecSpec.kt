@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
@@ -12,7 +13,7 @@ class JsonValueCodecSpec : BaseSpec({
             value: T,
             expectedJson: String,
         ) {
-            val output = ByteArrayJsonOutput()
+            val output = ReusableByteArraySink(512)
             val writer = JsonWriter()
             writer.reset(output)
             writerCodec.write(writer = writer, value = value)
@@ -20,11 +21,13 @@ class JsonValueCodecSpec : BaseSpec({
             val bytes = output.toByteArray()
             bytes.decodeToString() shouldBe expectedJson
 
-            val reader = JsonReader()
-            reader.reset(ByteArrayJsonInput(bytes))
-            reader.nextToken()
-            readerCodec.read(reader) shouldBe value
-            reader.nextToken() shouldBe -1
+            for (bufferSize in listOf(1, 32768)) {
+                val reader = JsonReader(bufferSize = bufferSize)
+                reader.reset(bytes.asByteSource())
+                reader.nextToken()
+                readerCodec.read(reader) shouldBe value
+                reader.nextToken() shouldBe -1
+            }
         }
 
         roundTrip(

@@ -5,10 +5,10 @@
 - [libs/testing/common-test](libs/testing/common-test): shared test utilities.
 - [libs/serde/serde-core](libs/serde/serde-core): serde annotations.
 - [libs/serde/serde-fixtures](libs/serde/serde-fixtures): serde sample builders for tests.
-- [libs/serde/serde-ksp](libs/serde/serde-ksp): reusable class-shape analysis for format processors; not a KSP
-  processor.
+- [libs/serde/serde-ksp-model](libs/serde/serde-ksp-model): shared KSP shape model and generator interface.
+- [libs/serde/serde-ksp](libs/serde/serde-ksp): the sole serde KSP processor and class-shape analysis.
 - [libs/json/json-core](libs/json/json-core): JSON runtime. See [JSON instructions](libs/json/AGENTS.md).
-- [libs/json/json-ksp](libs/json/json-ksp): JSON KSP processor.
+- [libs/json/json-ksp](libs/json/json-ksp): JSON generator called by `serde-ksp`.
 - [benchmarks/benchmarks-lang](benchmarks/benchmarks-lang) and [benchmarks/benchmarks-json](benchmarks/benchmarks-json):
   benchmarks.
 

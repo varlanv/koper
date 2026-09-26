@@ -1,7 +1,7 @@
 package com.varlanv.koper.json.tmp
 
-import com.varlanv.koper.json.JsonInput
-import com.varlanv.koper.json.JsonOutput
+import com.varlanv.koper.lang.bin.ByteSink
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.text.Utf8Str
 
 object IdealJsonUtf8Codec {
@@ -19,7 +19,7 @@ object IdealJsonUtf8Codec {
 
     fun writeToStream(
         value: JsonUtf8Sample,
-        output: JsonOutput,
+        output: ByteSink,
         writer: IdealJsonWriter = IdealJsonWriter(),
     ) {
         write(writer = writer, value = value, output = output)
@@ -27,7 +27,7 @@ object IdealJsonUtf8Codec {
 
     fun writeVectorToStream(
         value: JsonUtf8Sample,
-        output: JsonOutput,
+        output: ByteSink,
         writer: IdealJsonWriter = IdealJsonWriter(true),
     ) {
         write(writer = writer, value = value, output = output)
@@ -36,7 +36,7 @@ object IdealJsonUtf8Codec {
     fun write(
         writer: IdealJsonWriter,
         value: JsonUtf8Sample,
-        output: JsonOutput,
+        output: ByteSink,
     ) {
         writer.reset(output)
         writer.writeRaw(bytes = idPrefix)
@@ -54,14 +54,14 @@ object IdealJsonUtf8Codec {
     }
 
     fun readFromStream(
-        input: JsonInput,
+        input: ByteSource,
         reader: IdealJsonReader = IdealJsonReader(),
     ): JsonUtf8Sample {
         return read(reader = reader, input = input)
     }
 
     fun readVectorFromStream(
-        input: JsonInput,
+        input: ByteSource,
         reader: IdealJsonReader = IdealJsonReader(vectorized = true),
     ): JsonUtf8Sample {
         return read(reader = reader, input = input)
@@ -89,7 +89,7 @@ object IdealJsonUtf8Codec {
         }
     }
 
-    fun read(reader: IdealJsonReader, input: JsonInput): JsonUtf8Sample {
+    fun read(reader: IdealJsonReader, input: ByteSource): JsonUtf8Sample {
         reader.reset(input)
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L

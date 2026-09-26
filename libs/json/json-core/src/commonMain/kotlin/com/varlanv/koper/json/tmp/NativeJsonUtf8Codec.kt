@@ -1,7 +1,7 @@
 package com.varlanv.koper.json.tmp
 
-import com.varlanv.koper.json.JsonInput
-import com.varlanv.koper.json.JsonOutput
+import com.varlanv.koper.lang.bin.ByteSink
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.text.Utf8Str
 
 object NativeJsonUtf8Codec {
@@ -13,7 +13,7 @@ object NativeJsonUtf8Codec {
 
     fun writeToStream(
         value: JsonNativeSample,
-        output: JsonOutput,
+        output: ByteSink,
         writer: IdealJsonWriter = IdealJsonWriter(),
     ) {
         write(writer = writer, value = value, output = output)
@@ -21,7 +21,7 @@ object NativeJsonUtf8Codec {
 
     fun writeVectorToStream(
         value: JsonNativeSample,
-        output: JsonOutput,
+        output: ByteSink,
         writer: IdealJsonWriter = IdealJsonWriter(true),
     ) {
         write(writer = writer, value = value, output = output)
@@ -30,7 +30,7 @@ object NativeJsonUtf8Codec {
     fun write(
         writer: IdealJsonWriter,
         value: JsonNativeSample,
-        output: JsonOutput,
+        output: ByteSink,
     ) {
         val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.bytes.len.toLong() * 6L
         require(maximumSize <= Int.MAX_VALUE) { "JSON object is too large" }
@@ -62,14 +62,14 @@ object NativeJsonUtf8Codec {
     }
 
     fun readFromStream(
-        input: JsonInput,
+        input: ByteSource,
         reader: IdealJsonReader = IdealJsonReader(),
     ): JsonNativeSample {
         return read(reader = reader, input = input)
     }
 
     fun readVectorFromStream(
-        input: JsonInput,
+        input: ByteSource,
         reader: IdealJsonReader = IdealJsonReader(vectorized = true),
     ): JsonNativeSample {
         return read(reader = reader, input = input)
@@ -87,7 +87,7 @@ object NativeJsonUtf8Codec {
         }
     }
 
-    fun read(reader: IdealJsonReader, input: JsonInput): JsonNativeSample {
+    fun read(reader: IdealJsonReader, input: ByteSource): JsonNativeSample {
         reader.reset(input)
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L

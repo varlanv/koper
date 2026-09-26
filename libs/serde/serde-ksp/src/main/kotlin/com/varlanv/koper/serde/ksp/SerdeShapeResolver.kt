@@ -4,14 +4,10 @@ import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSValueParameter
-import com.google.devtools.ksp.symbol.Modifier
-import com.google.devtools.ksp.symbol.Visibility
+import com.google.devtools.ksp.symbol.*
+import com.varlanv.koper.serde.ksp.model.SerdeAnnotations
+import com.varlanv.koper.serde.ksp.model.SerdeClassShape
+import com.varlanv.koper.serde.ksp.model.SerdeField
 
 const val serQualifiedName = "com.varlanv.koper.serde.Ser"
 const val deQualifiedName = "com.varlanv.koper.serde.De"
@@ -20,23 +16,6 @@ fun Resolver.getSerdeSymbols(): Sequence<KSAnnotated> = sequenceOf(
     getSymbolsWithAnnotation(annotationName = serQualifiedName),
     getSymbolsWithAnnotation(annotationName = deQualifiedName),
 ).flatten().distinctBy { (it as? KSClassDeclaration)?.qualifiedName?.asString() ?: it.toString() }
-
-data class SerdeAnnotations(val isSer: Boolean, val isDe: Boolean)
-
-data class SerdeField(
-    val name: String,
-    val parameter: KSValueParameter,
-    val property: KSPropertyDeclaration?,
-    val type: KSType,
-)
-
-data class SerdeClassShape(
-    val declaration: KSClassDeclaration,
-    val annotations: SerdeAnnotations,
-    val constructor: KSFunctionDeclaration,
-    val constructorOrFactory: KSFunctionDeclaration,
-    val fields: List<SerdeField>,
-)
 
 class SerdeShapeResolver(private val logger: KSPLogger) {
     fun resolve(symbol: KSAnnotated): SerdeClassShape? {

@@ -1,9 +1,9 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.json.JsonInput
 import com.varlanv.koper.json.PackedJsonBytes
 import com.varlanv.koper.json.jsonSpecialScan
 import com.varlanv.koper.lang.bin.ByteSlice
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Str
@@ -17,7 +17,7 @@ class JsonReader(
 ) {
     private val scan = jsonSpecialScan(vectorized)
     private val buffer = ByteArray(bufferSize.also { require(it > 0) })
-    private lateinit var input: JsonInput
+    private lateinit var input: ByteSource
     private var position = 0
     private var limit = 0
     private var last = -1
@@ -27,7 +27,7 @@ class JsonReader(
     private var fieldOffset = 0
     private var fieldSize = 0
 
-    fun reset(input: JsonInput) {
+    fun reset(input: ByteSource) {
         this.input = input
         position = 0
         limit = 0
@@ -914,6 +914,9 @@ class JsonReader(
     }
 
     private fun ensureAvailable(size: Int): Boolean {
+        if (size > buffer.size) {
+            return false
+        }
         if (limit - position >= size) {
             return true
         }
@@ -924,17 +927,13 @@ class JsonReader(
         position = 0
         limit = remaining
         while (limit < size) {
-            val read = input.read(destination = buffer, offset = limit, length = buffer.size - limit)
+            val read = input.readAtMostTo(sink = buffer, offset = limit, length = buffer.size - limit)
             if (read > 0) {
                 limit += read
             } else if (read < 0) {
                 return false
             } else {
-                val value = input.read()
-                if (value < 0) {
-                    return false
-                }
-                buffer[limit++] = value.toByte()
+                error("ByteSource returned zero bytes for a non-empty read")
             }
         }
         return true
@@ -962,16 +961,9 @@ class JsonReader(
 
     private fun refill(): Boolean {
         position = 0
-        limit = input.read(buffer)
+        limit = input.readAtMostTo(sink = buffer, offset = 0, length = buffer.size)
         if (limit <= 0) {
-            if (limit == 0) {
-                val value = input.read()
-                if (value >= 0) {
-                    buffer[0] = value.toByte()
-                    limit = 1
-                    return true
-                }
-            }
+            check(limit != 0) { "ByteSource returned zero bytes for a non-empty read" }
             limit = 0
             return false
         }

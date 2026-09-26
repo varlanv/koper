@@ -1,8 +1,8 @@
 package com.varlanv.koper.json.tmp
 
-import com.varlanv.koper.json.JsonOutput
 import com.varlanv.koper.json.PackedJsonBytes
 import com.varlanv.koper.json.jsonSpecialScan
+import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 
@@ -10,16 +10,16 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     private val scan = jsonSpecialScan(vectorized)
     private var buffer = ByteArray(512)
     private var position = 0
-    private lateinit var output: JsonOutput
+    private lateinit var output: ByteSink
 
-    fun reset(output: JsonOutput) {
+    fun reset(output: ByteSink) {
         this.output = output
         position = 0
     }
 
     fun flush() {
         if (position != 0) {
-            output.write(source = buffer, offset = 0, length = position)
+            output.writeTo(source = buffer, offset = 0, length = position)
             position = 0
         }
     }
@@ -56,7 +56,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         if (length > buffer.size - position) {
             flush()
             if (length >= buffer.size) {
-                output.write(source = bytes, offset = offset, length = length)
+                output.writeTo(source = bytes, offset = offset, length = length)
                 return
             }
         }

@@ -7,12 +7,14 @@ import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.serde.Ser
+import com.varlanv.koper.serde.ksp.SerdeKspProcessorProvider
+import com.varlanv.koper.serde.ksp.serdeGeneratorsOption
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
 import java.io.File
 import java.nio.file.Files
 
-class JsonCodecProcessorSpec : BaseSpec({
+class JsonSerdeGeneratorSpec : BaseSpec({
     should("apply serde shape analysis and reject unsupported JSON fields") {
         val root = Files.createTempDirectory("json-ksp-invalid-").toFile()
         try {
@@ -43,6 +45,7 @@ class JsonCodecProcessorSpec : BaseSpec({
                     moduleName = "json-ksp-invalid"
                     sourceRoots = listOf(input.parentFile)
                     libraries = classpath
+                    processorOptions = mapOf(serdeGeneratorsOption to JsonSerdeGenerator::class.qualifiedName!!)
                     jdkHome = File(System.getProperty("java.home"))
                     jvmTarget = Runtime.version().feature().toString()
                     languageVersion = version
@@ -59,7 +62,7 @@ class JsonCodecProcessorSpec : BaseSpec({
 
             KotlinSymbolProcessing(
                 kspConfig = config,
-                symbolProcessorProviders = listOf(JsonCodecProcessorProvider()),
+                symbolProcessorProviders = listOf(SerdeKspProcessorProvider()),
                 logger = logger,
             ).execute() shouldBe KotlinSymbolProcessing.ExitCode.PROCESSING_ERROR
 

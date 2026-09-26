@@ -2,28 +2,8 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.longViewHandle
-import java.io.InputStream
-import java.io.OutputStream
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
-
-class StreamJsonInput(private val stream: InputStream) : JsonInput {
-    override fun read(
-        destination: ByteArray,
-        offset: Int,
-        length: Int,
-    ): Int = stream.read(destination, offset, length)
-
-    override fun read(): Int = stream.read()
-}
-
-class StreamJsonOutput(private val stream: OutputStream) : JsonOutput {
-    override fun write(
-        source: ByteArray,
-        offset: Int,
-        length: Int,
-    ) = stream.write(source, offset, length)
-}
 
 internal actual fun ByteArray.getPackedJsonLong(offset: Int): Long = longViewHandle.get(this, offset) as Long
 

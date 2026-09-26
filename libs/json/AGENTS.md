@@ -5,12 +5,13 @@ Do not change them while building the generator.
 
 ## Serde and format boundary
 
-- `serde` owns the protocol-independent annotations and class-shape analysis: constructor or factory, fields, types,
-  and readable properties. `serde-ksp` is a library called by format processors, not a processor that must run before
-  them.
-- `json-ksp` calls the shared serde analysis during the same KSP pass and emits a JSON implementation. There is no
-  generated intermediate schema file or second KSP pass. Future YAML or binary generators can reuse the same analysis
-  and emit their own implementations.
+- `serde-ksp` is the only KSP processor. It discovers annotated types, validates shared class shape (constructor or
+  factory, fields, types, readable properties), and passes the result to configured generators. It loads generator classes
+  from a Gradle-provided list once during initialization; an empty list warns and does no processing.
+- `serde-ksp-model` owns the shared shape types and generator interface. KSP types are allowed in this boundary.
+  `json-ksp` implements the interface without registering another processor. It owns JSON-specific validation and code
+  emission. There is no intermediate schema file or second processor entrypoint. Future formats add generators to the
+  configured list. Generator implementations have a public no-argument constructor.
 - Generated codecs and public reading and writing APIs are protocol-specific. The JSON implementation keeps direct field
   access, JSON-specific field order, capacity planning, packed names, and specialized reading and writing. A generic
   runtime callback for every field would obstruct the all-fields-at-once reservation plan and must not replace the JSON
@@ -26,9 +27,8 @@ Do not change them while building the generator.
 
 ## KMP byte I/O
 
-- Put a small, format-neutral bulk byte source/sink API in `lang`. The current `JsonInput` and `JsonOutput` names in
-  `json-core` are temporary. `kotlinx.io` adapters may be offered without requiring that dependency in the shared byte
-  I/O API.
+- Use the format-neutral `ByteSource` and `ByteSink` APIs in `lang`. `kotlinx.io` adapters may be offered without requiring
+  that dependency in the shared byte I/O API.
 - JSON readers and writers own their reusable internal byte buffers. Writers flush chunks to a sink and readers refill
   from a source, so streaming takes one pass without a full intermediate byte array. A caller-owned output array is not
   required; byte-array inputs and outputs remain optional in-memory conveniences.
@@ -37,8 +37,7 @@ Do not change them while building the generator.
 
 ## Open design questions
 
-- What operations should the `lang` byte source and sink expose, and who closes the source or sink when a reader or writer
-  is reused?
+- Who closes the source or sink when a reader or writer is reused?
 - What overloads should the JSON facade provide for explicit codecs, buffering configuration, and reusable readers or
   writers?
 - Should sequence reading support strict JSON Lines, whitespace-separated JSON values, or both? Define framing and error

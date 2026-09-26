@@ -6,6 +6,8 @@ import com.varlanv.koper.json.tmp.IdealJsonWriter
 import com.varlanv.koper.json.tmp.JsonNativeSample
 import com.varlanv.koper.json.tmp.JsonUtf8Sample
 import com.varlanv.koper.json.tmp.NativeJsonUtf8Codec
+import com.varlanv.koper.lang.bin.ByteSource
+import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
@@ -50,13 +52,10 @@ class IdealJsonCodecSpec : BaseSpec({
                             sequence = value.sequence,
                             active = value.active,
                         )
-                        val output = ByteArrayJsonOutput()
+                        val output = ReusableByteArraySink(512)
                         IdealJsonUtf8Codec.write(writer = writer, value = value, output = output)
                         val json = output.toByteArray()
-                        IdealJsonUtf8Codec.read(
-                            reader = reader,
-                            input = ByteArrayJsonInput(json),
-                        ) shouldBe value
+                        IdealJsonUtf8Codec.read(reader = reader, input = json.asByteSource()) shouldBe value
                         val expected = Json.parseToJsonElement(
                             """{"id":$id,"symbol":"symbol-$id","text":${Json.encodeToString(
                                 kotlinx.serialization.serializer<String>(),
@@ -66,10 +65,8 @@ class IdealJsonCodecSpec : BaseSpec({
                         Json.parseToJsonElement(json.decodeToString()) shouldBe expected
                         output.reset()
                         NativeJsonUtf8Codec.write(writer = writer, value = native, output = output)
-                        NativeJsonUtf8Codec.read(
-                            reader = reader,
-                            input = ByteArrayJsonInput(output.toByteArray()),
-                        ) shouldBe native
+                        NativeJsonUtf8Codec.read(reader = reader, input = output.toByteArray().asByteSource()) shouldBe
+                            native
                         Json.parseToJsonElement(output.toByteArray().decodeToString()) shouldBe expected
                     }
                 }
@@ -87,23 +84,21 @@ class IdealJsonCodecSpec : BaseSpec({
                     active = false,
                 )
                 for (chunk in listOf(1, 7, 31, 32768)) {
-                    val input = object : JsonInput {
-                        private val delegate = ByteArrayJsonInput(bytes)
+                    val input = object : ByteSource {
+                        private val delegate = bytes.asByteSource()
 
-                        override fun read(
-                            destination: ByteArray,
+                        override fun readAtMostTo(
+                            sink: ByteArray,
                             offset: Int,
                             length: Int,
-                        ): Int = delegate.read(
-                            destination = destination,
+                        ): Int = delegate.readAtMostTo(
+                            sink = sink,
                             offset = offset,
                             length = minOf(
                                 length,
                                 chunk,
                             ),
                         )
-
-                        override fun read(): Int = delegate.read()
                     }
                     IdealJsonUtf8Codec.read(
                         reader = IdealJsonReader(vectorized = vectorized),
@@ -126,18 +121,18 @@ class IdealJsonCodecSpec : BaseSpec({
                         val json = """{"${name + suffix}":null,$known}"""
                         IdealJsonUtf8Codec.read(
                             reader = IdealJsonReader(vectorized = vectorized),
-                            input = ByteArrayJsonInput(json.encodeToByteArray()),
+                            input = json.encodeToByteArray().asByteSource(),
                         ) shouldBe expected
                     }
                 }
                 val duplicate = """{"id":1,"symbol":"old","text":"old","sequence":1,"active":false,$known}"""
                 IdealJsonUtf8Codec.read(
                     reader = IdealJsonReader(vectorized = vectorized),
-                    input = ByteArrayJsonInput(duplicate.encodeToByteArray()),
+                    input = duplicate.encodeToByteArray().asByteSource(),
                 ) shouldBe expected
                 NativeJsonUtf8Codec.read(
                     reader = IdealJsonReader(vectorized = vectorized),
-                    input = ByteArrayJsonInput(duplicate.encodeToByteArray()),
+                    input = duplicate.encodeToByteArray().asByteSource(),
                 ) shouldBe JsonNativeSample(id = 2, symbol = "new", text = expected.text, sequence = 2, active = true)
             }
 
@@ -152,7 +147,7 @@ class IdealJsonCodecSpec : BaseSpec({
                     shouldThrow<IllegalArgumentException> {
                         IdealJsonUtf8Codec.read(
                             reader = IdealJsonReader(vectorized = vectorized),
-                            input = ByteArrayJsonInput(json.encodeToByteArray()),
+                            input = json.encodeToByteArray().asByteSource(),
                         )
                     }
                 }

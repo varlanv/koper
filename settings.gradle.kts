@@ -40,6 +40,7 @@ include(
         "libs:serde:serde-core",
         "libs:serde:serde-fixtures",
         "libs:serde:serde-ksp",
+        "libs:serde:serde-ksp-model",
         "libs:json:json-core",
         "libs:json:json-ksp",
     )
