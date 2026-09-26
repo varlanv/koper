@@ -18,7 +18,9 @@ class JsonCodecProcessorProvider : SymbolProcessorProvider {
     ): SymbolProcessor = JsonCodecProcessor(codeGenerator = environment.codeGenerator, logger = environment.logger)
 }
 
-private data class ResolvedAnnotations(val isSer: Boolean, val isDe: Boolean)
+private data class ResolvedAnnotations(val isSer: Boolean, val isDe: Boolean) {
+    fun hasSerde(): Boolean = isSer || isDe
+}
 
 private class JsonCodecProcessor(
     private val codeGenerator: CodeGenerator,
@@ -47,6 +49,9 @@ private class JsonCodecProcessor(
                 continue
             }
             val resolvedAnnotations = resolveAnnotations(declaration)
+            if (!resolvedAnnotations.hasSerde()) {
+                continue
+            }
             val primaryConstructor = declaration.primaryConstructor
             if (primaryConstructor == null) {
                 logger.error(message = "@Ser and @De require a primary constructor", symbol = declaration)
