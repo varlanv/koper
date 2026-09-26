@@ -1,5 +1,10 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.serde.De
+import com.varlanv.koper.serde.Ser
+
+@Ser
+@De
 internal data class HandwrittenJsonSample(val id: Int, val text: String)
 
 internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSample>, JsonCodec.Write<HandwrittenJsonSample> {
@@ -30,9 +35,9 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
             while (true) {
                 require(token == '"'.code) { "Expected JSON field name" }
                 val hash = reader.readField()
-                val field = when {
-                    hash == 3355 && reader.fieldEquals(idName) -> 1
-                    hash == 3556653 && reader.fieldEquals(textName) -> 2
+                val field = when (hash) {
+                    3355 if reader.fieldEquals(idName) -> 1
+                    3556653 if reader.fieldEquals(textName) -> 2
                     else -> 0
                 }
                 reader.nextFieldValue()

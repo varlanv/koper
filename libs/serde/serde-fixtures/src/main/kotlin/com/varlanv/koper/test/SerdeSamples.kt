@@ -106,10 +106,12 @@ object SerdeSamples {
                 SampleBuffer.append("object ")
                 SampleBuffer.append(shape.name)
             }
+
             Kind.DATA_OBJECT -> {
                 SampleBuffer.append("data object ")
                 SampleBuffer.append(shape.name)
             }
+
             Kind.CLASS, Kind.DATA_CLASS -> {
                 renderClass(shape)
             }
@@ -278,7 +280,8 @@ object SerdeSamples {
         SampleBuffer.append(shape.name)
         if (shape.parameters.isNotEmpty() ||
             shape.constructorVisibility != Visibility.PUBLIC ||
-            shape.kind == Kind.DATA_CLASS) {
+            shape.kind == Kind.DATA_CLASS
+        ) {
             if (shape.constructorVisibility != Visibility.PUBLIC) {
                 SampleBuffer.append(" ")
                 SampleBuffer.append(shape.constructorVisibility.name.lowercase())

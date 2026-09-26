@@ -1,8 +1,6 @@
-package com.varlanv.koper.json.tmp
+package com.varlanv.koper.benchmarks.json
 
 import com.varlanv.koper.lang.text.Utf8Str
-import com.varlanv.koper.serde.De
-import com.varlanv.koper.serde.Ser
 
 data class JsonUtf8Sample(
     val id: Long,
@@ -19,7 +17,3 @@ data class JsonNativeSample(
     val sequence: Int,
     val active: Boolean,
 )
-
-@Ser
-@De
-data class JsonIntSample(val quantity: Int)

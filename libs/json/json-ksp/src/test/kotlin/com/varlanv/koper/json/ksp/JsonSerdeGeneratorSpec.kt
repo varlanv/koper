@@ -27,6 +27,13 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                     @com.varlanv.koper.serde.Ser class NullableInt(val value: kotlin.Int?)
                     @com.varlanv.koper.serde.Ser class VarargInts(vararg val value: kotlin.Int)
                     @com.varlanv.koper.serde.Ser class SupportedTypes(val i: kotlin.Int, val l: kotlin.Long, val b: kotlin.Boolean, val s: kotlin.String, val u: com.varlanv.koper.lang.text.Utf8Str)
+                    @com.varlanv.koper.serde.Ser class GenericType<T>(val value: kotlin.Int)
+                    @com.varlanv.koper.serde.Ser abstract class AbstractType(val value: kotlin.Int)
+                    class Outer { @com.varlanv.koper.serde.Ser class Nested(val value: kotlin.Int) }
+                    @com.varlanv.koper.serde.Ser private class PrivateType(val value: kotlin.Int)
+                    @com.varlanv.koper.serde.Ser class WriteOnly(val value: kotlin.Int)
+                    @com.varlanv.koper.serde.De class ReadOnly(value: kotlin.Int)
+                    @com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class EscapedName(val `a"b`: kotlin.Int)
                     """
                     .trimIndent(),
             )
@@ -72,8 +79,21 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                     "UnsupportedDouble" to "JSON codec does not support field 'value' of type 'kotlin.Double'",
                     "NullableInt" to "JSON codec does not support nullable field 'value' (Int?)",
                     "VarargInts" to "JSON codec does not support vararg field 'value'",
+                    "GenericType" to "JSON codec does not support generic classes",
+                    "AbstractType" to "JSON codec does not support abstract classes",
+                    "Nested" to "JSON codec requires a top-level class",
+                    "PrivateType" to "JSON codec requires a public or internal class",
                 )
-            logger.errors.size shouldBe 4
+            logger.errors.size shouldBe 8
+
+            val writeOnly = output.resolve("kotlin/WriteOnlyJsonCodec.kt").readText()
+            val readOnly = output.resolve("kotlin/ReadOnlyJsonCodec.kt").readText()
+            writeOnly.contains("JsonCodec.Write<") shouldBe true
+            writeOnly.contains("JsonCodec.Read<") shouldBe false
+            readOnly.contains("JsonCodec.Read<") shouldBe true
+            readOnly.contains("JsonCodec.Write<") shouldBe false
+            output.resolve("kotlin/EscapedNameJsonCodec.kt").readText().contains("byteArrayOf(97, 34, 98)") shouldBe
+                true
         } finally {
             root.deleteRecursively()
         }

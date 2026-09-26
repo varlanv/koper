@@ -2,9 +2,8 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.text.Charset
 
-internal class JsonStringScanner(vectorized: Boolean) {
+internal class JsonStringScanner(val vectorized: Boolean) {
     private val scan = jsonSpecialScan(vectorized)
-    private val vectorized = vectorized
     private var scratch = ByteArray(256)
     private var scratchSize = 0
     var bytes: ByteArray = scratch

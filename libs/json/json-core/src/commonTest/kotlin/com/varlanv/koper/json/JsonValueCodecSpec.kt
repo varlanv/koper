@@ -69,11 +69,19 @@ class JsonValueCodecSpec : BaseSpec({
     should("write and read a reserved object with built-in field codecs") {
         val text = "é\n" + "x".repeat(600)
         val value = HandwrittenJsonSample(id = Int.MIN_VALUE, text = text)
+        val expectedJson = "{\"id\":-2147483648,\"text\":\"é\\n${"x".repeat(600)}\"}"
         roundTrip(
             writerCodec = HandwrittenJsonSampleCodec,
             readerCodec = HandwrittenJsonSampleCodec,
             value = value,
-            expectedJson = "{\"id\":-2147483648,\"text\":\"é\\n${"x".repeat(600)}\"}",
+            expectedJson = expectedJson,
+            reserveFromHints = false,
+        )
+        roundTrip(
+            writerCodec = HandwrittenJsonSampleJsonCodec,
+            readerCodec = HandwrittenJsonSampleJsonCodec,
+            value = value,
+            expectedJson = expectedJson,
             reserveFromHints = false,
         )
     }
@@ -86,6 +94,64 @@ class JsonValueCodecSpec : BaseSpec({
             reader.nextToken()
             HandwrittenJsonSampleCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
             reader.nextToken() shouldBe -1
+
+            reader.reset(bytes.asByteSource())
+            reader.nextToken()
+            HandwrittenJsonSampleJsonCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
+            reader.nextToken() shouldBe -1
         }
+    }
+
+    should("write and read all supported generated field types") {
+        val longUtf8 = "A\t" + "x".repeat(600)
+        val value = GeneratedJsonSample(
+            intValue = Int.MIN_VALUE,
+            longValue = Long.MIN_VALUE,
+            booleanValue = true,
+            stringValue = "é\n",
+            utf8Value = Utf8Str.allocateFromString(longUtf8),
+        )
+        val expectedJson =
+            "{\"intValue\":-2147483648,\"longValue\":-9223372036854775808," +
+                "\"booleanValue\":true,\"stringValue\":\"é\\n\"," +
+                "\"utf8Value\":\"A\\t${"x".repeat(600)}\"}"
+        roundTrip(
+            writerCodec = GeneratedJsonSampleJsonCodec,
+            readerCodec = GeneratedJsonSampleJsonCodec,
+            value = value,
+            expectedJson = expectedJson,
+            reserveFromHints = false,
+        )
+    }
+
+    should("read generated fields with colliding hashes and a non-ASCII name") {
+        val expectedJson = "{\"axx\":1,\"bYx\":2,\"aaaaé\":4}"
+        val reader = JsonReadProtocol(bufferSize = 1)
+        reader.reset(expectedJson.encodeToByteArray().asByteSource())
+        reader.nextToken()
+        val value = GeneratedJsonNamesJsonCodec.read(reader)
+        reader.nextToken() shouldBe -1
+        roundTrip(
+            writerCodec = GeneratedJsonNamesJsonCodec,
+            readerCodec = GeneratedJsonNamesJsonCodec,
+            value = value,
+            expectedJson = expectedJson,
+            reserveFromHints = false,
+        )
+        val bytes = "{\"bYx\":2,\"aaaaé\":4,\"axx\":1}".encodeToByteArray()
+        reader.reset(bytes.asByteSource())
+        reader.nextToken()
+        GeneratedJsonNamesJsonCodec.read(reader) shouldBe value
+        reader.nextToken() shouldBe -1
+    }
+
+    should("read through a companion factory") {
+        roundTrip(
+            writerCodec = GeneratedFactorySampleJsonCodec,
+            readerCodec = GeneratedFactorySampleJsonCodec,
+            value = GeneratedFactorySample(value = 7),
+            expectedJson = "{\"value\":7}",
+            reserveFromHints = false,
+        )
     }
 })

@@ -1,11 +1,5 @@
 package com.varlanv.koper.benchmarks.json
 //
-// import com.varlanv.koper.json.tmp.IdealJsonReader
-// import com.varlanv.koper.json.tmp.IdealJsonUtf8Codec
-// import com.varlanv.koper.json.tmp.IdealJsonWriter
-// import com.varlanv.koper.json.tmp.JsonNativeSample
-// import com.varlanv.koper.json.tmp.JsonUtf8Sample
-// import com.varlanv.koper.json.tmp.NativeJsonUtf8Codec
 // import com.varlanv.koper.lang.VectorApi
 // import com.varlanv.koper.lang.bin.InputStreamByteSource
 // import com.varlanv.koper.lang.bin.OutputStreamByteSink

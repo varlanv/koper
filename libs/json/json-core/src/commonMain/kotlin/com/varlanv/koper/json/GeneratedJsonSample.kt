@@ -1,0 +1,32 @@
+package com.varlanv.koper.json
+
+import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.serde.De
+import com.varlanv.koper.serde.Ser
+
+@Ser
+@De
+internal data class GeneratedJsonSample(
+    val intValue: Int,
+    val longValue: Long,
+    val booleanValue: Boolean,
+    val stringValue: String,
+    val utf8Value: Utf8Str,
+)
+
+@Ser
+@De
+@ConsistentCopyVisibility
+internal data class GeneratedFactorySample private constructor(val value: Int) {
+    companion object {
+        operator fun invoke(value: Int): GeneratedFactorySample = GeneratedFactorySample(value)
+    }
+}
+
+@Ser
+@De
+internal data class GeneratedJsonNames(
+    val axx: Int,
+    val bYx: Int,
+    val aaaaé: Int,
+)
