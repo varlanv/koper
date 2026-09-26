@@ -27,6 +27,8 @@ value class DataSize internal constructor(val bytes: Int) {
         return "$readable ($bytes B)"
     }
 
+    fun allocate(): ByteArray = ByteArray(bytes)
+
     private fun format(magnitude: Long, unit: Int): String {
         // Round to thousandths, with ties away from zero.
         // Safe in Long for every possible Int byte count.
