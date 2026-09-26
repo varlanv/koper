@@ -1,7 +1,5 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.json.PackedJsonBytes
-import com.varlanv.koper.json.jsonSpecialScan
 import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.ReadonlyBytes
@@ -9,9 +7,8 @@ import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
-import kotlin.text.iterator
 
-class JsonReader(
+class JsonReadProtocol(
     bufferSize: Int = 32768,
     private val vectorized: Boolean = false,
 ) {
@@ -510,10 +507,6 @@ class JsonReader(
                 throw IllegalArgumentException("Expected JSON boolean")
             }
         }
-    }
-
-    fun skipValue() {
-        skipValue(0)
     }
 
     private fun skipValue(depth: Int) {

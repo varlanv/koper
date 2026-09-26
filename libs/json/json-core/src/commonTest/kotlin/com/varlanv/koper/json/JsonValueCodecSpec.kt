@@ -8,13 +8,13 @@ import io.kotest.matchers.shouldBe
 class JsonValueCodecSpec : BaseSpec({
     should("write and read values through public codecs") {
         fun <T> roundTrip(
-            writerCodec: JsonValueWriter<T>,
-            readerCodec: JsonValueReader<T>,
+            writerCodec: JsonSer<T>,
+            readerCodec: JsonDe<T>,
             value: T,
             expectedJson: String,
         ) {
             val output = ReusableByteArraySink(512)
-            val writer = JsonWriter()
+            val writer = JsonWriteProtocol()
             writer.reset(output)
             writerCodec.write(writer = writer, value = value)
             writer.flush()
@@ -22,7 +22,7 @@ class JsonValueCodecSpec : BaseSpec({
             bytes.decodeToString() shouldBe expectedJson
 
             for (bufferSize in listOf(1, 32768)) {
-                val reader = JsonReader(bufferSize = bufferSize)
+                val reader = JsonReadProtocol(bufferSize = bufferSize)
                 reader.reset(bytes.asByteSource())
                 reader.nextToken()
                 readerCodec.read(reader) shouldBe value

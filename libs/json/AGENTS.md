@@ -23,7 +23,7 @@ Do not change them while building the generator.
   type lookup. It can provide configured default buffering and allow callers to supply reusable JSON readers or writers.
 - JSON-specific value codecs remain useful for custom field types. A writer's maximum encoded size can be fixed,
   calculated from the value before writing, or unknown; unknown-size writers use the streaming path. The current
-  `JsonValueWriter`, `JsonValueReader`, and `JsonValueSize` API in `json-core` is an initial scratch implementation.
+  `JsonSer`, `JsonDe`, and `JsonValueSize` API in `json-core` is an initial scratch implementation.
 
 ## KMP byte I/O
 

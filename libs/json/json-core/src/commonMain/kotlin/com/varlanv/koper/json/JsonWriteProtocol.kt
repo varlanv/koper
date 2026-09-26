@@ -1,12 +1,10 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.json.PackedJsonBytes
-import com.varlanv.koper.json.jsonSpecialScan
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 
-class JsonWriter(private val vectorized: Boolean = false) {
+class JsonWriteProtocol(private val vectorized: Boolean = false) {
     private val scan = jsonSpecialScan(vectorized)
     private var buffer = ByteArray(512)
     private var position = 0
