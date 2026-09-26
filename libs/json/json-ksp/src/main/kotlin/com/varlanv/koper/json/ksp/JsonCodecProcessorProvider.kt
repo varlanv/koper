@@ -25,26 +25,19 @@ private data class ResolvedAnnotations(val isSer: Boolean, val isDe: Boolean) {
     fun hasSerde(): Boolean = isSer || isDe
 }
 
-private enum class FieldCodec(
-    val typeName: String,
-    val writeMethod: String,
-    val readMethod: String,
-    val fixedMaximumValueBytes: Int?,
-) {
-    INT("kotlin.Int", "writeInt", "readInt", 11),
-    LONG("kotlin.Long", "writeLong", "readLong", 20),
-    BOOLEAN("kotlin.Boolean", "writeBoolean", "readBoolean", 5),
-    STRING("kotlin.String", "writeString", "readString", null),
-    UTF8_STRING("com.varlanv.koper.lang.text.Utf8Str", "writeUtf8", "readUtf8", null),
-}
-
-private val fieldCodecs = FieldCodec.entries.associateBy(FieldCodec::typeName)
+private val knownFieldTypes = setOf(
+    "kotlin.Int",
+    "kotlin.Long",
+    "kotlin.Boolean",
+    "kotlin.String",
+    "com.varlanv.koper.lang.text.Utf8Str",
+)
 
 private data class ResolvedField(
     val name: String,
     val parameter: KSValueParameter,
     val property: KSPropertyDeclaration?,
-    val codec: FieldCodec,
+    val typeName: String,
 )
 
 private class JsonCodecProcessor(
@@ -172,8 +165,8 @@ private class JsonCodecProcessor(
                 return null
             }
             val typeName = type.declaration.qualifiedName?.asString()
-            val codec = fieldCodecs[typeName]
-            if (codec == null) {
+            val supportedTypeName = typeName?.takeIf { it in knownFieldTypes }
+            if (supportedTypeName == null) {
                 logger.error(
                     message = "JSON codec does not support field '$name' of type '${typeName ?: type}'",
                     symbol = declaration,
@@ -202,7 +195,8 @@ private class JsonCodecProcessor(
                     return null
                 }
             }
-            fields += ResolvedField(name = name, parameter = parameter, property = property, codec = codec)
+            fields +=
+                ResolvedField(name = name, parameter = parameter, property = property, typeName = supportedTypeName)
         }
         return fields
     }

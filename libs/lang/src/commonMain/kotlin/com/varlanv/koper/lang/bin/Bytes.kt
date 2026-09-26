@@ -117,7 +117,6 @@ class ByteSlice(
         if (other !is ByteSlice || len != other.len) {
             return false
         }
-
         return bytes.array.equals(
             aFromIndex = offset,
             aToIndex = offset + len,

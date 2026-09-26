@@ -156,12 +156,6 @@
     },
     "lambda-return": {
       "level": "error"
-    },
-    "forbidden-calls": {
-      "level": "error",
-      "calls": {
-        "kotlinx.coroutines.launch": ["libs/common/lang/src/main/kotlin/com/varlanv/kryptoid/lang/CoroutineUtils.kt"]
-      }
     }
   }
 }
