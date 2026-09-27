@@ -4,7 +4,7 @@ import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.io.OutputStream
 
-object NativeJsonUtf8Codec {
+object MixedJsonUtf8Codec {
     private val readers = ThreadLocal.withInitial { IdealJsonReader() }
     private val writers = ThreadLocal.withInitial { IdealJsonWriter() }
     private val vectorReaders = ThreadLocal.withInitial { IdealJsonReader(vectorized = true) }
@@ -15,17 +15,17 @@ object NativeJsonUtf8Codec {
     private val sequenceName = "sequence".encodeToByteArray()
     private val activeName = "active".encodeToByteArray()
 
-    fun writeToStream(value: JsonNativeSample, output: OutputStream) {
+    fun writeToStream(value: JsonMixedSample, output: OutputStream) {
         write(writer = writers.get(), value = value, output = output)
     }
 
-    fun writeVectorToStream(value: JsonNativeSample, output: OutputStream) {
+    fun writeVectorToStream(value: JsonMixedSample, output: OutputStream) {
         write(writer = vectorWriters.get(), value = value, output = output)
     }
 
     private fun write(
         writer: IdealJsonWriter,
-        value: JsonNativeSample,
+        value: JsonMixedSample,
         output: OutputStream,
     ) {
         val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.bytes.len.toLong() * 6L
@@ -57,11 +57,11 @@ object NativeJsonUtf8Codec {
         writer.flush()
     }
 
-    fun readFromStream(input: InputStream): JsonNativeSample {
+    fun readFromStream(input: InputStream): JsonMixedSample {
         return read(reader = readers.get(), input = input)
     }
 
-    fun readVectorFromStream(input: InputStream): JsonNativeSample {
+    fun readVectorFromStream(input: InputStream): JsonMixedSample {
         return read(reader = vectorReaders.get(), input = input)
     }
 
@@ -77,7 +77,7 @@ object NativeJsonUtf8Codec {
         }
     }
 
-    private fun read(reader: IdealJsonReader, input: InputStream): JsonNativeSample {
+    private fun read(reader: IdealJsonReader, input: InputStream): JsonMixedSample {
         reader.reset(input)
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L
@@ -158,7 +158,7 @@ object NativeJsonUtf8Codec {
         }
         require(seen == 31) { "Missing required JSON field" }
         require(reader.nextToken() == -1) { "Unexpected trailing JSON content" }
-        return JsonNativeSample(id = id, symbol = symbol, text = text, sequence = sequence, active = active)
+        return JsonMixedSample(id = id, symbol = symbol, text = text, sequence = sequence, active = active)
     }
 
     private const val reservedObjectLimit = 32768L

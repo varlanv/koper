@@ -18,9 +18,21 @@ data class JsonUtf8Sample(
 
 @Ser
 @De
-data class JsonNativeSample(
+data class JsonMixedSample(
     val id: Long,
     val symbol: String,
+    val text: Utf8Str,
+    val sequence: Int,
+    val active: Boolean,
+)
+
+@CompiledJson
+@JvmExposeBoxed
+@OptIn(ExperimentalStdlibApi::class)
+data class DslMixedSample(
+    val id: Long,
+    val symbol: String,
+    @get:JsonAttribute(converter = Utf8StrConverter::class)
     val text: Utf8Str,
     val sequence: Int,
     val active: Boolean,

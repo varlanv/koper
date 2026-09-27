@@ -51,15 +51,15 @@ The handwritten codecs in `benchmarks/benchmarks-json` are the performance refer
   with a compile-time maximum byte count (for example integer, boolean, encoded field name), fields whose maximum can be
   calculated once from the value at write time (`String`, `Utf8Str`), and fields with no known maximum (for example an
   arbitrary `Iterable`). Place the bounded fields in one contiguous run, at the start or end, so one reservation can
-  cover that run; write unbounded fields through checked, streaming operations. The current `NativeJsonUtf8Codec`
-  demonstrates the all-bounded case; a mixed case still needs to be implemented and measured.
+  cover that run; write unbounded fields through checked, streaming operations. The current `MixedJsonUtf8Codec`
+  demonstrates the all-bounded case; a case with bounded and unbounded fields still needs to be implemented and measured.
 - For strings, budget the worst-case escaped size: `2 + 6 * String.length` or `2 + 6 * Utf8Str.bytes.len` including
   quotes. Control bytes can expand to six ASCII bytes. Add fixed punctuation, field names, numeric maxima, and booleans
   to the object bound. Do the arithmetic in `Long`, then check the supported `Int`/buffer limit before converting.
-  `NativeJsonUtf8Codec` uses `87L + 6L * symbol.length + 6L * text.bytes.len` for its exact shape.
+  `MixedJsonUtf8Codec` uses `87L + 6L * symbol.length + 6L * text.bytes.len` for its exact shape.
 - `IdealJsonWriter.reserveObject` ensures contiguous capacity before the reserved write methods. `writeRawReserved`,
   `writeLongReserved`, `writeIntReserved`, `writeStringReserved`, and `writeUtf8Reserved` then avoid repeated capacity
-  checks. Their callers must prove the reservation covers every byte; these methods do not check it. The native codec
+  checks. Their callers must prove the reservation covers every byte; these methods do not check it. The mixed sample codec
   takes this path only up to its 32 KiB object limit, then switches to checked, streaming writes. Preserve a large-value
   path instead of allocating an arbitrarily large temporary writer buffer.
 - Emit fixed JSON fragments as packed bytes where the reference does, rather than rebuilding field names at runtime.
@@ -87,12 +87,14 @@ The handwritten codecs in `benchmarks/benchmarks-json` are the performance refer
 
 ## JSON benchmark baseline
 
-JMH results from one run, ns/op (lower is better). Generated and handwritten codecs use vectorized mode. All cases use
-the same input bytes and one fork, three 1-second warmups, and five 1-second measurements on Adoptium JDK 26. Generated
-and handwritten reads check trailing EOF; DSL-JSON reads use its existing entrypoint. Payload sizes are 281, 233, 289,
-and 41,033 bytes in the order shown below.
+JMH results in ns/op (lower is better). Generated and handwritten codecs use vectorized mode. All cases use the same input
+bytes and one fork, three 1-second warmups, and five 1-second measurements. Generated and handwritten reads check
+trailing EOF; DSL-JSON reads use its existing entrypoint. Payload sizes are 281, 233, 289, and 41,033 bytes in the order
+shown below. The UTF-8 sample results used Adoptium JDK 26; the mixed sample results used Amazon JDK 26.0.1.
 
-Current report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/packed-field-read-2026-09-27/jvm.json`.
+UTF-8 sample report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/packed-field-read-2026-09-27/jvm.json`.
+Mixed sample reports: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/dsl-mixed-2026-09-27.json`
+and `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/mixed-generated-ideal-2026-09-27.json`.
 
 | UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
 |---|---:|---:|---:|---:|---:|
@@ -105,13 +107,13 @@ Current report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonCompari
 | UTF8_LARGE | Read | 4,794.7 | 63,024.7 | 63,228.0 | 4,786.8 |
 | UTF8_LARGE | Write | 2,178.5 | 16,465.4 | 16,328.6 | 1,772.6 |
 
-| Native sample (String symbol, Utf8Str text) | Operation | Generated | Ideal handwritten |
-|---|---:|---:|---:|
-| ASCII_SMALL | Read | 110.3 | 94.7 |
-| ASCII_SMALL | Write | 53.1 | 61.5 |
-| UTF8_SMALL | Read | 110.3 | 101.5 |
-| UTF8_SMALL | Write | 57.8 | 66.5 |
-| ESCAPED_SMALL | Read | 243.2 | 223.8 |
-| ESCAPED_SMALL | Write | 152.4 | 146.2 |
-| UTF8_LARGE | Read | 4,651.7 | 4,858.0 |
-| UTF8_LARGE | Write | 1,997.2 | 1,593.4 |
+| Mixed sample (String symbol, Utf8Str text) | Operation | Generated | DSL-JSON mixed | Ideal handwritten |
+|---|---:|---:|---:|---:|
+| ASCII_SMALL | Read | 107.4 | 198.8 | 94.0 |
+| ASCII_SMALL | Write | 52.8 | 125.8 | 59.7 |
+| UTF8_SMALL | Read | 109.7 | 177.2 | 99.2 |
+| UTF8_SMALL | Write | 58.3 | 102.4 | 65.5 |
+| ESCAPED_SMALL | Read | 249.3 | 393.5 | 223.0 |
+| ESCAPED_SMALL | Write | 145.2 | 206.7 | 136.8 |
+| UTF8_LARGE | Read | 4,612.4 | 63,435.1 | 4,758.8 |
+| UTF8_LARGE | Write | 2,029.4 | 16,322.3 | 1,604.2 |

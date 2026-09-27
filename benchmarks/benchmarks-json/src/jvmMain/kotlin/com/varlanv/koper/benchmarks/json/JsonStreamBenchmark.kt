@@ -29,11 +29,13 @@ class JsonStreamBenchmark {
     final var vectorized: Boolean = false
 
     private lateinit var utf8Value: JsonUtf8Sample
-    private lateinit var nativeValue: JsonNativeSample
+    private lateinit var mixedValue: JsonMixedSample
+    private lateinit var dslMixedValue: DslMixedSample
     private lateinit var dslStringValue: DslStringSample
     private lateinit var dslUtf8Value: DslUtf8Sample
     private lateinit var dslUtf8DirectValue: DslUtf8DirectSample
     private lateinit var dslStringParent: DslJsonParent<DslStringSample>
+    private lateinit var dslMixedParent: DslJsonParent<DslMixedSample>
     private lateinit var dslUtf8Parent: DslJsonParent<DslUtf8Sample>
     private lateinit var dslUtf8DirectParent: DslJsonParent<DslUtf8DirectSample>
     private lateinit var input: ByteArrayInputStream
@@ -60,18 +62,26 @@ class JsonStreamBenchmark {
             sequence = 42,
             active = true,
         )
-        nativeValue =
-            JsonNativeSample(
+        mixedValue =
+            JsonMixedSample(
                 id = utf8Value.id,
                 symbol = "BTCUSDT",
                 text = utf8Value.text,
                 sequence = utf8Value.sequence,
                 active = utf8Value.active,
             )
+        dslMixedValue =
+            DslMixedSample(
+                id = mixedValue.id,
+                symbol = mixedValue.symbol,
+                text = mixedValue.text,
+                sequence = mixedValue.sequence,
+                active = mixedValue.active,
+            )
         dslStringValue =
             DslStringSample(
                 id = utf8Value.id,
-                symbol = nativeValue.symbol,
+                symbol = mixedValue.symbol,
                 text = text,
                 sequence = utf8Value.sequence,
                 active = utf8Value.active,
@@ -93,6 +103,7 @@ class JsonStreamBenchmark {
                 active = utf8Value.active,
             )
         dslStringParent = object : DslJsonParent<DslStringSample>(DslStringSample::class) {}
+        dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
         dslUtf8Parent = object : DslJsonParent<DslUtf8Sample>(DslUtf8Sample::class) {}
         dslUtf8DirectParent = object : DslJsonParent<DslUtf8DirectSample>(DslUtf8DirectSample::class) {}
         reader = JsonReadProtocol(vectorized = vectorized)
@@ -110,23 +121,26 @@ class JsonStreamBenchmark {
 
         check(utf8Read() == utf8Value)
         check(reader.nextToken() == -1)
-        check(nativeRead() == nativeValue)
+        check(mixedRead() == mixedValue)
         check(reader.nextToken() == -1)
         utf8Write()
         check(output.toByteArray().contentEquals(bytes))
-        nativeWrite()
+        mixedWrite()
         check(output.toByteArray().contentEquals(bytes))
         check(idealUtf8Read() == utf8Value)
-        check(nativeIdealRead() == nativeValue)
+        check(mixedIdealRead() == mixedValue)
         idealUtf8Write()
         check(output.toByteArray().contentEquals(bytes))
-        nativeIdealWrite()
+        mixedIdealWrite()
         check(output.toByteArray().contentEquals(bytes))
         check(dslStringRead() == dslStringValue)
+        check(dslMixedRead() == dslMixedValue)
         check(dslUtf8Read() == dslUtf8Value)
         check(dslUtf8DirectRead() == dslUtf8DirectValue)
         dslStringWrite()
         check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == utf8Value)
+        dslMixedWrite()
+        check(MixedJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == mixedValue)
         dslUtf8Write()
         check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == utf8Value)
         dslUtf8DirectWrite()
@@ -153,20 +167,20 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun nativeWrite(): RecycledOutputStream {
+    fun mixedWrite(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
-        JsonNativeSampleJsonCodec.write(writer = writer, value = nativeValue)
+        JsonMixedSampleJsonCodec.write(writer = writer, value = mixedValue)
         writer.flush()
         return output
     }
 
     @Benchmark
-    fun nativeRead(): JsonNativeSample {
+    fun mixedRead(): JsonMixedSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
-        val value = JsonNativeSampleJsonCodec.read(reader)
+        val value = JsonMixedSampleJsonCodec.read(reader)
         check(reader.nextToken() == -1)
         return value
     }
@@ -185,16 +199,16 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun nativeIdealWrite(): RecycledOutputStream {
+    fun mixedIdealWrite(): RecycledOutputStream {
         output.reset()
-        NativeJsonUtf8Codec.writeVectorToStream(value = nativeValue, output = output)
+        MixedJsonUtf8Codec.writeVectorToStream(value = mixedValue, output = output)
         return output
     }
 
     @Benchmark
-    fun nativeIdealRead(): JsonNativeSample {
+    fun mixedIdealRead(): JsonMixedSample {
         input.reset()
-        return NativeJsonUtf8Codec.readVectorFromStream(input)
+        return MixedJsonUtf8Codec.readVectorFromStream(input)
     }
 
     @Benchmark
@@ -208,6 +222,19 @@ class JsonStreamBenchmark {
     fun dslStringRead(): DslStringSample {
         input.reset()
         return JsonV2.readFromStream(parent = dslStringParent, stream = input)
+    }
+
+    @Benchmark
+    fun dslMixedWrite(): RecycledOutputStream {
+        output.reset()
+        JsonV2.writeToStream(parent = dslMixedParent, value = dslMixedValue, stream = output)
+        return output
+    }
+
+    @Benchmark
+    fun dslMixedRead(): DslMixedSample {
+        input.reset()
+        return JsonV2.readFromStream(parent = dslMixedParent, stream = input)
     }
 
     @Benchmark
