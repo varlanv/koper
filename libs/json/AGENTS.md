@@ -117,3 +117,39 @@ handwritten reads check trailing EOF; DSL-JSON reads use its existing entrypoint
 | ESCAPED_SMALL | Write | 168.2 | 203.6 | 148.8 |
 | UTF8_LARGE | Read | 4,699.7 | 63,238.6 | 4,998.2 |
 | UTF8_LARGE | Write | 2,035.3 | 16,346.3 | 1,614.0 |
+
+### Lenovo X1 Carbon Gen 13 Intel Core Ultra 7 258V Performance mode run (2026-09-27)
+
+JMH results in ns/op (lower is better) at HEAD `6689b217907c998051f0ce289c7cf61efd49d717`. The machine has an
+Intel Core Ultra 7 258V (8 cores), 32 GB RAM, and Bazzite 44. Gradle ran the benchmark on Adoptium JDK 26 (VM build
+`26+35`). Run with `./gradlew :benchmarks:benchmarks-json:jvmJsonComparisonBenchmark --offline --console=plain`.
+The benchmark used the same vectorized mode, payloads, one fork, three 1-second warmups, and five 1-second measurements
+as the baseline above.
+
+| UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
+|---|---:|---:|---:|---:|---:|
+| ASCII_SMALL | Read | 122.1 | 188.6 | 197.0 | 138.8 |
+| ASCII_SMALL | Write | 48.2 | 104.3 | 101.1 | 51.4 |
+| UTF8_SMALL | Read | 108.3 | 172.9 | 170.7 | 129.0 |
+| UTF8_SMALL | Write | 38.3 | 77.4 | 78.7 | 45.6 |
+| ESCAPED_SMALL | Read | 228.0 | 529.4 | 521.2 | 263.0 |
+| ESCAPED_SMALL | Write | 252.7 | 172.9 | 173.3 | 142.9 |
+| UTF8_LARGE | Read | 5,247.9 | 63,060.1 | 62,033.1 | 4,919.4 |
+| UTF8_LARGE | Write | 2,349.5 | 12,074.1 | 12,077.0 | 1,897.8 |
+
+| Mixed sample (String symbol, Utf8Str text) | Operation | Generated | DSL-JSON mixed | Ideal handwritten |
+|---|---:|---:|---:|---:|
+| ASCII_SMALL | Read | 116.1 | 191.1 | 109.6 |
+| ASCII_SMALL | Write | 43.4 | 101.5 | 51.6 |
+| UTF8_SMALL | Read | 108.8 | 180.5 | 102.0 |
+| UTF8_SMALL | Write | 38.0 | 86.1 | 47.6 |
+| ESCAPED_SMALL | Read | 231.9 | 513.5 | 236.6 |
+| ESCAPED_SMALL | Write | 148.2 | 178.5 | 143.5 |
+| UTF8_LARGE | Read | 5,428.2 | 62,539.8 | 5,233.2 |
+| UTF8_LARGE | Write | 2,703.8 | 11,943.8 | 1,798.4 |
+
+Compared with the Ryzen 9 9950X baseline, generated `UTF8_LARGE` reads took 13% longer for the UTF-8 sample and 16%
+longer for the mixed sample; generated writes took 7% and 33% longer, respectively. DSL-JSON `UTF8_LARGE` writes took
+about 26–27% less time on this run, while its large reads were within 2% of the baseline. The generated
+`ESCAPED_SMALL` UTF-8 write was 72% slower (252.7 versus 146.9 ns/op). These are cross-machine results from different
+commits, so the differences do not isolate CPU performance or a code change.
