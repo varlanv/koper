@@ -115,11 +115,11 @@ class StringsSpec : BaseSpec({
             offset = 2,
             len = payload.size,
         )
-        val str = Utf8Str.fromTainted(slice)
+        val str = Utf8Str.unsafeWrapBytes(slice)
         (str.bytes === slice) shouldBe true
         str.allocateString() shouldBe "é中🙂"
         Utf8Str
-            .fromTainted(
+            .unsafeWrapBytes(
                 ByteSlice(
                     bytes = ReadonlyBytes(bytes),
                     offset = bytes.size,
@@ -148,7 +148,7 @@ class StringsSpec : BaseSpec({
             ),
         )) {
             shouldThrow<IllegalStateException> {
-                Utf8Str.fromTainted(
+                Utf8Str.unsafeWrapBytes(
                     ByteSlice(
                         bytes = ReadonlyBytes(bytes),
                         offset = 0,
@@ -159,7 +159,7 @@ class StringsSpec : BaseSpec({
         }
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 1 to 2)) {
             shouldThrow<IllegalStateException> {
-                Utf8Str.fromTainted(
+                Utf8Str.unsafeWrapBytes(
                     ByteSlice(
                         bytes = ReadonlyBytes(byteArrayOf(65)),
                         offset = offset,

@@ -73,9 +73,7 @@ expect fun ByteStr.copyInto(
  * This type merely serves as a type-level documentation.
  */
 @JvmInline
-value class Latin1Str private constructor(val bytes: ByteSlice) {
-    fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(Charset.Latin1))
-}
+value class Latin1Str private constructor(val bytes: ByteSlice)
 
 /**
  * Bytes view on Utf8 string.
@@ -95,27 +93,32 @@ value class Utf8Str private constructor(val bytes: ByteSlice) {
         )
 
         /**
-         * Creates Utf8Str out of given Str, without validation.
+         * Validates given byte slice against utf8 and wraps into Utf8Str.
+         * No allocations are performed, input bytes are only validated.
          */
-        operator fun invoke(str: Str): Utf8Str = Utf8Str(str.bytes)
+        operator fun invoke(str: Str): Utf8Str {
+            if (!str.bytes.bytes.array.validateUtf8(offset = str.bytes.offset, len = str.bytes.len)) {
+                error("received invalid utf-8 sequence bytes")
+            }
+            return Utf8Str(str)
+        }
 
         /**
-         * Converts given string to utf8 bytes.
+         * Allocates new [Utf8Str] out of given [String].
          */
         fun allocateFromString(str: String): Utf8Str = Utf8Str(str.allocateStr(Charset.Utf8))
 
         /**
-         * Validates given byte slice against utf8 and wraps into Utf8Str.
-         * No allocations are performed, input bytes are only validated.
+         * Creates Utf8Str out of given ByteSlice, without validation.
+         * The caller is responsible for ensuring that given bytes window represent valid UTF-8 encoded character sequence.
+         * Useful for performance-critical paths where it is guaranteed that UTF-8 encoding was already validated somewhere else.
          */
-        fun fromTainted(bytes: ByteSlice): Utf8Str {
-            if (!bytes.bytes.array.validateUtf8(offset = bytes.offset, len = bytes.len)) {
-                error("received invalid utf-8 sequence bytes")
-            }
-            return Utf8Str(Str(bytes))
-        }
+        fun unsafeWrapBytes(bytes: ByteSlice): Utf8Str = Utf8Str(bytes)
     }
 
+    /**
+     * Allocates new [String] out of bytes slice.
+     */
     fun allocateString(): String = Charset.Utf8.allocateString(
         bytes = bytes.bytes.array,
         offset = bytes.offset,
