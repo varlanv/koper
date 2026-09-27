@@ -92,7 +92,9 @@ use the same input bytes and one fork, three 1-second warmups, and five 1-second
 handwritten reads check trailing EOF; DSL-JSON reads use its existing entrypoint. Payload sizes are 281, 233, 289, and
 41,033 bytes in the order shown below. All results used Adoptium JDK 26.
 
-Report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/2026-09-27T22.40.25.323110355/jvm.json`.
+| Commit SHA | CPU | RAM | OS |
+|---|---|---|---|
+| `0227108a38b8bd5f55a57c1bd1b46f8fc613440b` | Ryzen 9 9950X | 96 GB | Bazzite |
 
 | UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
 |---|---:|---:|---:|---:|---:|
