@@ -7,14 +7,6 @@ import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
 
-sealed interface JsonValueSize<in T> {
-    data class Static(val maximumBytes: Long) : JsonValueSize<Any?>
-
-    class FromValue<T>(val maximumBytes: (T) -> Long) : JsonValueSize<T>
-
-    data object Dynamic : JsonValueSize<Any?>
-}
-
 object JsonCodec {
     class Hints<T>(val size: JsonValueSize<T> = JsonValueSize.Dynamic)
 
@@ -29,6 +21,14 @@ object JsonCodec {
 
         fun write(writer: JsonWriteProtocol, value: T)
     }
+}
+
+sealed interface JsonValueSize<in T> {
+    data class Static(val maximumBytes: Long) : JsonValueSize<Any?>
+
+    class FromValue<T>(val maximumBytes: (T) -> Long) : JsonValueSize<T>
+
+    data object Dynamic : JsonValueSize<Any?>
 }
 
 object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
