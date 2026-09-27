@@ -46,7 +46,7 @@ benchmark {
             iterations = 5
             iterationTime = 1
             iterationTimeUnit = "s"
-            advanced("jvmForks", 3)
+            advanced("jvmForks", 1)
         }
     }
 }

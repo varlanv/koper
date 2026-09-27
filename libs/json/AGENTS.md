@@ -88,30 +88,30 @@ The handwritten codecs in `benchmarks/benchmarks-json` are the performance refer
 ## JSON benchmark baseline
 
 JMH results from 2026-09-27 in ns/op (lower is better). Generated and handwritten codecs use vectorized mode. All cases
-use the same input bytes and three forks, three 1-second warmups, and five 1-second measurements per fork. Generated and
+use the same input bytes and one fork, three 1-second warmups, and five 1-second measurements per fork. Generated and
 handwritten reads check trailing EOF; DSL-JSON reads use its existing entrypoint. Payload sizes are 281, 233, 289, and
 41,033 bytes in the order shown below. All results used Adoptium JDK 26.
 
-Report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/2026-09-27T22.05.52.781444081/jvm.json`.
+Report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/2026-09-27T22.40.25.323110355/jvm.json`.
 
 | UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
 |---|---:|---:|---:|---:|---:|
-| ASCII_SMALL | Read | 99.7 | 194.3 | 192.1 | 122.2 |
-| ASCII_SMALL | Write | 53.3 | 125.2 | 125.2 | 60.5 |
-| UTF8_SMALL | Read | 103.2 | 178.1 | 175.9 | 125.3 |
-| UTF8_SMALL | Write | 57.8 | 105.1 | 105.0 | 64.6 |
-| ESCAPED_SMALL | Read | 229.1 | 407.8 | 376.1 | 250.0 |
-| ESCAPED_SMALL | Write | 144.5 | 208.2 | 204.7 | 144.3 |
-| UTF8_LARGE | Read | 4,649.1 | 63,239.0 | 63,458.7 | 4,788.5 |
-| UTF8_LARGE | Write | 2,164.6 | 16,380.3 | 16,382.7 | 1,765.4 |
+| ASCII_SMALL | Read | 97.8 | 190.7 | 192.0 | 120.2 |
+| ASCII_SMALL | Write | 53.8 | 125.3 | 125.0 | 61.9 |
+| UTF8_SMALL | Read | 101.9 | 182.2 | 181.1 | 124.5 |
+| UTF8_SMALL | Write | 57.8 | 105.8 | 104.9 | 62.1 |
+| ESCAPED_SMALL | Read | 228.0 | 408.0 | 410.2 | 248.0 |
+| ESCAPED_SMALL | Write | 146.9 | 206.9 | 207.5 | 150.6 |
+| UTF8_LARGE | Read | 4,625.1 | 62,911.1 | 62,686.7 | 4,846.1 |
+| UTF8_LARGE | Write | 2,196.2 | 16,317.3 | 16,359.4 | 1,777.7 |
 
 | Mixed sample (String symbol, Utf8Str text) | Operation | Generated | DSL-JSON mixed | Ideal handwritten |
 |---|---:|---:|---:|---:|
-| ASCII_SMALL | Read | 101.1 | 199.7 | 95.2 |
-| ASCII_SMALL | Write | 52.3 | 124.6 | 62.4 |
-| UTF8_SMALL | Read | 102.7 | 179.6 | 102.1 |
-| UTF8_SMALL | Write | 58.3 | 103.1 | 67.1 |
-| ESCAPED_SMALL | Read | 229.4 | 397.8 | 224.5 |
-| ESCAPED_SMALL | Write | 151.5 | 201.9 | 144.8 |
-| UTF8_LARGE | Read | 4,643.1 | 64,843.8 | 4,767.8 |
-| UTF8_LARGE | Write | 2,219.4 | 16,326.6 | 1,603.9 |
+| ASCII_SMALL | Read | 98.9 | 199.3 | 94.9 |
+| ASCII_SMALL | Write | 53.3 | 121.0 | 61.3 |
+| UTF8_SMALL | Read | 100.2 | 177.5 | 97.3 |
+| UTF8_SMALL | Write | 58.1 | 103.4 | 68.1 |
+| ESCAPED_SMALL | Read | 230.1 | 396.1 | 224.8 |
+| ESCAPED_SMALL | Write | 168.2 | 203.6 | 148.8 |
+| UTF8_LARGE | Read | 4,699.7 | 63,238.6 | 4,998.2 |
+| UTF8_LARGE | Write | 2,035.3 | 16,346.3 | 1,614.0 |
