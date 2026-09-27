@@ -155,6 +155,9 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
                 require(result >= minimum + number) { "Integer overflow" }
                 result -= number
                 index += 8
+                if (index < reader.limit && (input[index].toInt() and 255) !in 48..57) {
+                    break
+                }
             }
             while (index < reader.limit) {
                 val next = input[index].toInt() and 255
@@ -223,6 +226,25 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
     }
 
     fun readPrimitive(reader: JsonReadProtocol): Boolean {
+        val index = reader.position
+        val available = reader.limit - index
+        if (reader.token == 116 && available >= 4) {
+            val word = PackedJsonBytes.getInt(bytes = reader.buffer, offset = index)
+            if (word and 0x00ffffff == 0x00657572) {
+                reader.requireDelimiter(word ushr 24)
+                reader.position = index + 3
+                return true
+            }
+            throw IllegalArgumentException("Invalid JSON literal")
+        }
+        if (reader.token == 102 && available >= 5) {
+            if (PackedJsonBytes.getInt(bytes = reader.buffer, offset = index) == 0x65736c61) {
+                reader.requireDelimiter(reader.buffer[index + 4].toInt() and 255)
+                reader.position = index + 4
+                return false
+            }
+            throw IllegalArgumentException("Invalid JSON literal")
+        }
         val value = when (reader.token) {
             116 -> {
                 readTail(reader = reader, tail = "rue")

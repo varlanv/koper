@@ -278,6 +278,8 @@ private fun generateSource(
                 packedWordMatch(field.nameBytes + byteArrayOf(34, 58))
             } else if (nameLength == 7) {
                 "${packedWordMatch(field.nameBytes + byteArrayOf(34))} && reader.consumeFieldColon($nameLength)"
+            } else if (nameLength == 8) {
+                "${packedWordMatch(field.nameBytes)} && reader.consumeFieldColon($nameLength)"
             } else {
                 "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && " +
                     "reader.fieldMatches(_fieldName$index) && reader.consumeFieldColon($nameLength)"
@@ -293,6 +295,8 @@ private fun generateSource(
             val nameLength = field.nameBytes.size
             val nameMatch = if (nameLength <= 7) {
                 packedWordMatch(field.nameBytes + byteArrayOf(34))
+            } else if (nameLength == 8) {
+                packedWordMatch(field.nameBytes)
             } else {
                 "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && reader.fieldMatches(_fieldName$index)"
             }

@@ -67,6 +67,58 @@ class JsonValueCodecSpec : BaseSpec({
         )
     }
 
+    should("read integer boundaries and reject malformed integers") {
+        val validInts = mapOf("0" to 0, "-0" to 0, "2147483647" to Int.MAX_VALUE, "-2147483648" to Int.MIN_VALUE)
+        val validLongs = mapOf(
+            "0" to 0L,
+            "-0" to 0L,
+            "9223372036854775807" to Long.MAX_VALUE,
+            "-9223372036854775808" to Long.MIN_VALUE,
+        )
+        for (bufferSize in listOf(1, 2, 8, 16, 32768)) {
+            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            for ((document, expected) in validInts) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                IntJsonCodec.readPrimitive(reader) shouldBe expected
+                reader.nextToken() shouldBe -1
+            }
+            for ((document, expected) in validLongs) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                LongJsonCodec.readPrimitive(reader) shouldBe expected
+                reader.nextToken() shouldBe -1
+            }
+            for (document in listOf("2147483648", "-2147483649", "01", "1x", "-")) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                shouldThrow<IllegalArgumentException> { IntJsonCodec.readPrimitive(reader) }
+            }
+            for (document in listOf("9223372036854775808", "-9223372036854775809", "01", "1x", "-")) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                shouldThrow<IllegalArgumentException> { LongJsonCodec.readPrimitive(reader) }
+            }
+        }
+    }
+
+    should("read boolean literals across buffer boundaries and reject invalid suffixes") {
+        for (bufferSize in listOf(1, 2, 4, 5, 32768)) {
+            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            for ((document, expected) in mapOf("true " to true, "false " to false)) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                BooleanJsonCodec.readPrimitive(reader) shouldBe expected
+                reader.nextToken() shouldBe -1
+            }
+            for (document in listOf("tru", "trux", "truex", "fals", "falsx", "falsex")) {
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                shouldThrow<IllegalArgumentException> { BooleanJsonCodec.readPrimitive(reader) }
+            }
+        }
+    }
+
     should("write and read a reserved object with built-in field codecs") {
         val text = "é\n" + "x".repeat(600)
         val value = HandwrittenJsonSample(id = Int.MIN_VALUE, text = text)
