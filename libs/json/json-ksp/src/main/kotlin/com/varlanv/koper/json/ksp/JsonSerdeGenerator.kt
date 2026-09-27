@@ -9,12 +9,16 @@ import com.google.devtools.ksp.symbol.Visibility
 import com.varlanv.koper.serde.ksp.model.SerdeClassShape
 import com.varlanv.koper.serde.ksp.model.SerdeGenerator
 
-private enum class FieldType(val codec: String, val fixedMaximum: Int) {
-    INT("IntJsonCodec", 11),
-    LONG("LongJsonCodec", 20),
-    BOOLEAN("BooleanJsonCodec", 5),
-    STRING("StringJsonCodec", 2),
-    UTF8("Utf8StrJsonCodec", 2),
+private enum class FieldType(
+    val codec: String,
+    val fixedMaximum: Int,
+    val boxedByGeneric: Boolean,
+) {
+    INT("IntJsonCodec", 11, true),
+    LONG("LongJsonCodec", 20, true),
+    BOOLEAN("BooleanJsonCodec", 5, true),
+    STRING("StringJsonCodec", 2, false),
+    UTF8("Utf8StrJsonCodec", 2, true),
 }
 
 private val knownFieldTypes = mapOf(
@@ -165,6 +169,17 @@ private fun generateSource(
     val variableFields = fields.filter { it.type == FieldType.STRING || it.type == FieldType.UTF8 }
     val fastFields = fields.withIndex().filter { it.value.fastMatchable }
 
+    fun appendFieldRead(index: Int, indent: String) {
+        val field = fields[index]
+        val method = if (field.type.boxedByGeneric) {
+            "readPrimitive"
+        } else {
+            "read"
+        }
+        appendLine("${indent}_field$index = $jsonType.${field.type.codec}.$method(reader)")
+        appendLine("${indent}_seen${index / 64} = _seen${index / 64} or (1L shl ${index % 64})")
+    }
+
     if (packageName.isNotEmpty()) {
         appendLine("package $packageName")
         appendLine()
@@ -211,7 +226,12 @@ private fun generateSource(
         }
         for (field in fields) {
             appendPackedWrites(bytes = field.prefix, indent = "        ")
-            appendLine("        $jsonType.${field.type.codec}.write(writer, value.${identifier(field.name)})")
+            val method = if (field.type.boxedByGeneric) {
+                "writePrimitive"
+            } else {
+                "write"
+            }
+            appendLine("        $jsonType.${field.type.codec}.$method(writer, value.${identifier(field.name)})")
         }
         appendLine("        writer.writeByte(125)")
         appendLine("    }")
@@ -251,7 +271,7 @@ private fun generateSource(
         if (fastFields.isNotEmpty()) {
             appendLine("                val _word = reader.peekFieldWord()")
         }
-        appendLine("                val _fieldIndex = when {")
+        appendLine("                when {")
         fastFields.forEach { (index, field) ->
             val nameLength = field.nameBytes.size
             val compactMatch = if (nameLength <= 6) {
@@ -266,7 +286,7 @@ private fun generateSource(
             if (nameLength <= 6) {
                 appendLine("                        reader.consumeMatchedFieldColon($nameLength)")
             }
-            appendLine("                        $index")
+            appendFieldRead(index = index, indent = "                        ")
             appendLine("                    }")
         }
         fastFields.forEach { (index, field) ->
@@ -278,29 +298,24 @@ private fun generateSource(
             }
             appendLine("                    $nameMatch && reader.consumeField($nameLength) -> {")
             appendLine("                        reader.nextFieldValue()")
-            appendLine("                        $index")
+            appendFieldRead(index = index, indent = "                        ")
             appendLine("                    }")
         }
         appendLine("                    else -> {")
         appendLine("                        val _hash = reader.readField()")
-        appendLine("                        val _fallbackIndex = when (_hash) {")
+        appendLine("                        when (_hash) {")
         fields.forEachIndexed { index, field ->
-            appendLine("                            ${field.hash} if reader.fieldEquals(_fieldName$index) -> $index")
+            appendLine("                            ${field.hash} if reader.fieldEquals(_fieldName$index) -> {")
+            appendLine("                                reader.nextFieldValue()")
+            appendFieldRead(index = index, indent = "                                ")
+            appendLine("                            }")
         }
-        appendLine("                            else -> -1")
+        appendLine("                            else -> {")
+        appendLine("                                reader.nextFieldValue()")
+        appendLine("                                reader.skipValue()")
+        appendLine("                            }")
         appendLine("                        }")
-        appendLine("                        reader.nextFieldValue()")
-        appendLine("                        _fallbackIndex")
         appendLine("                    }")
-        appendLine("                }")
-        appendLine("                when (_fieldIndex) {")
-        fields.forEachIndexed { index, field ->
-            appendLine("                    $index -> {")
-            appendLine("                        _field$index = $jsonType.${field.type.codec}.read(reader)")
-            appendLine("                        _seen${index / 64} = _seen${index / 64} or (1L shl ${index % 64})")
-            appendLine("                    }")
-        }
-        appendLine("                    else -> reader.skipValue()")
         appendLine("                }")
         appendLine("                _token = reader.nextFieldOrEnd()")
         appendLine("                if (_token == 125) break")

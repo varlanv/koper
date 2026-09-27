@@ -60,7 +60,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
     override fun read(reader: JsonReadProtocol): Int = readPrimitive(reader)
 
     fun readPrimitive(reader: JsonReadProtocol): Int {
-        val value = LongJsonCodec.read(reader)
+        val value = LongJsonCodec.readPrimitive(reader)
         require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
         return value.toInt()
     }
