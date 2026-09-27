@@ -3,11 +3,13 @@ import org.gradle.jvm.tasks.Jar
 plugins {
     alias(libs.plugins.internalBenchmark)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 dependencies {
     add("kspJvm", projects.libs.serde.serdeKsp)
     add("kspJvm", projects.libs.json.jsonKsp)
+    add("kapt", libs.dslJson)
 }
 
 ksp {
@@ -22,10 +24,15 @@ tasks.withType<Jar>().configureEach {
 }
 
 kotlin {
+    jvm {
+        compilerOptions.freeCompilerArgs.add("-Xadd-modules=jdk.incubator.vector")
+    }
+
     sourceSets {
         jvmMain {
             dependencies {
                 implementation(projects.libs.json.jsonCore)
+                implementation(libs.dslJson)
             }
         }
     }
@@ -35,8 +42,8 @@ benchmark {
     configurations {
         register("jsonComparison") {
             include(".*JsonStreamBenchmark.*")
-            warmups = 2
-            iterations = 3
+            warmups = 3
+            iterations = 5
             iterationTime = 1
             iterationTimeUnit = "s"
             advanced("jvmForks", 1)
