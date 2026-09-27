@@ -12,7 +12,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
     private val textName = "text".encodeToByteArray()
 
     override val hints = JsonCodec.Hints(
-        JsonValueSize.FromValue<HandwrittenJsonSample> { value -> maximumBytes(value) },
+        size = JsonValueSize.FromValue<HandwrittenJsonSample> { value -> maximumBytes(value) },
     )
 
     override fun write(writer: JsonWriteProtocol, value: HandwrittenJsonSample) {

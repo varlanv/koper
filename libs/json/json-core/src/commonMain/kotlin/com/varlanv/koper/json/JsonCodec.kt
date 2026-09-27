@@ -8,7 +8,24 @@ import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
 
 object JsonCodec {
-    class Hints<T>(val size: JsonValueSize<T> = JsonValueSize.Dynamic)
+    class Hints<T>(
+        /**
+         * Hint for what is the size of the value.
+         * Used to optimize assumptions on when to grow/bound check internal buffers during serialization.
+         */
+        val size: JsonValueSize<T> = JsonValueSize.Dynamic,
+        /**
+         * Whether value is serialized to JSON primitive - string, number, boolean
+         */
+        val isJsonPrimitive: Boolean = false,
+        /**
+         * Whether value can be boxed by JVM when used inside generic, e.g. `JsonCodec.Read<Int>` or `JsonCodec.Write<Int>`,
+         * or `value class` like `JsonCodec.Read<Utf8Str>` or `JsonCodec.Write<Utf8Str>`
+         * When value may be boxed, it is more efficient to write separate, not override version of `read` and `write`
+         * methods and let generated call those directly. For example - [com.varlanv.koper.json.IntJsonCodec.readPrimitive]
+         */
+        val isBoxedByGeneric: Boolean = false,
+    )
 
     interface Read<T> {
         val hints: Hints<T>
@@ -32,9 +49,23 @@ sealed interface JsonValueSize<in T> {
 }
 
 object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
-    override val hints: JsonCodec.Hints<Int> = JsonCodec.Hints(JsonValueSize.Static(11))
+    override val hints: JsonCodec.Hints<Int> = JsonCodec.Hints(
+        size = JsonValueSize.Static(11),
+        isJsonPrimitive = true,
+        isBoxedByGeneric = true,
+    )
 
-    override fun write(writer: JsonWriteProtocol, value: Int) {
+    override fun write(writer: JsonWriteProtocol, value: Int) = writePrimitive(writer = writer, value = value)
+
+    override fun read(reader: JsonReadProtocol): Int = readPrimitive(reader)
+
+    fun readPrimitive(reader: JsonReadProtocol): Int {
+        val value = LongJsonCodec.read(reader)
+        require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
+        return value.toInt()
+    }
+
+    fun writePrimitive(writer: JsonWriteProtocol, value: Int) {
         val output = writer.buffer
         val end = writer.position + JsonDecimalDigits.decimalSize(value.toLong())
         var index = end
@@ -57,18 +88,20 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
         }
         writer.position = end
     }
-
-    override fun read(reader: JsonReadProtocol): Int {
-        val value = LongJsonCodec.read(reader)
-        require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
-        return value.toInt()
-    }
 }
 
 object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
-    override val hints: JsonCodec.Hints<Long> = JsonCodec.Hints(JsonValueSize.Static(20))
+    override val hints: JsonCodec.Hints<Long> = JsonCodec.Hints(
+        size = JsonValueSize.Static(20),
+        isJsonPrimitive = true,
+        isBoxedByGeneric = true,
+    )
 
-    override fun write(writer: JsonWriteProtocol, value: Long) {
+    override fun write(writer: JsonWriteProtocol, value: Long) = writePrimitive(writer = writer, value = value)
+
+    override fun read(reader: JsonReadProtocol): Long = readPrimitive(reader)
+
+    fun writePrimitive(writer: JsonWriteProtocol, value: Long) {
         val output = writer.buffer
         val end = writer.position + JsonDecimalDigits.decimalSize(value)
         var index = end
@@ -92,7 +125,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         writer.position = end
     }
 
-    override fun read(reader: JsonReadProtocol): Long {
+    fun readPrimitive(reader: JsonReadProtocol): Long {
         val negative = reader.token == 45
         val digit = if (negative) {
             reader.take()
@@ -167,11 +200,19 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
 }
 
 object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
-    override val hints: JsonCodec.Hints<Boolean> = JsonCodec.Hints(JsonValueSize.Static(5))
+    override val hints: JsonCodec.Hints<Boolean> = JsonCodec.Hints(
+        size = JsonValueSize.Static(5),
+        isJsonPrimitive = true,
+        isBoxedByGeneric = true,
+    )
     private val trueBytes = "true".encodeToByteArray()
     private val falseBytes = "false".encodeToByteArray()
 
-    override fun write(writer: JsonWriteProtocol, value: Boolean) {
+    override fun write(writer: JsonWriteProtocol, value: Boolean) = writePrimitive(writer = writer, value = value)
+
+    override fun read(reader: JsonReadProtocol): Boolean = readPrimitive(reader)
+
+    fun writePrimitive(writer: JsonWriteProtocol, value: Boolean) {
         writer.writeRaw(
             bytes = if (value) {
                 trueBytes
@@ -181,16 +222,18 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         )
     }
 
-    override fun read(reader: JsonReadProtocol): Boolean {
+    fun readPrimitive(reader: JsonReadProtocol): Boolean {
         val value = when (reader.token) {
             116 -> {
                 readTail(reader = reader, tail = "rue")
                 true
             }
+
             102 -> {
                 readTail(reader = reader, tail = "alse")
                 false
             }
+
             else -> {
                 throw IllegalArgumentException("Expected JSON boolean")
             }
@@ -208,7 +251,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
 
 object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     override val hints: JsonCodec.Hints<String> = JsonCodec.Hints(
-        JsonValueSize.FromValue { value -> 2L + value.length.toLong() * 6L },
+        size = JsonValueSize.FromValue { value -> 2L + value.length.toLong() * 6L },
+        isJsonPrimitive = true,
     )
 
     override fun write(writer: JsonWriteProtocol, value: String) {
@@ -237,9 +281,8 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 index++
             } else {
                 val next = index + 1
-                val codepoint = if (char in 0xD800..0xDBFF &&
-                    next < value.length &&
-                    value[next].code in 0xDC00..0xDFFF) {
+                val codepoint = if (char in 0xD800..0xDBFF && next < value.length && value[next].code in 0xDC00..0xDFFF
+                ) {
                     0x10000 + ((char - 0xD800) shl 10) + value[next].code - 0xDC00
                 } else {
                     char
@@ -265,10 +308,16 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
 
 object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
     override val hints: JsonCodec.Hints<Utf8Str> = JsonCodec.Hints(
-        JsonValueSize.FromValue { value -> 2L + value.bytes.len.toLong() * 6L },
+        size = JsonValueSize.FromValue { value -> 2L + value.bytes.len.toLong() * 6L },
+        isJsonPrimitive = true,
+        isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Utf8Str) {
+    override fun write(writer: JsonWriteProtocol, value: Utf8Str) = writePrimitive(writer = writer, value = value)
+
+    override fun read(reader: JsonReadProtocol): Utf8Str = readPrimitive(reader)
+
+    fun writePrimitive(writer: JsonWriteProtocol, value: Utf8Str) {
         val slice = value.bytes
         val input = slice.unsafeBorrowArray()
         val end = slice.offset + slice.len
@@ -292,7 +341,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         writer.position = position
     }
 
-    override fun read(reader: JsonReadProtocol): Utf8Str {
+    fun readPrimitive(reader: JsonReadProtocol): Utf8Str {
         val scanner = reader.stringScanner
         scanner.read(reader)
         if (scanner.length == 0) {
