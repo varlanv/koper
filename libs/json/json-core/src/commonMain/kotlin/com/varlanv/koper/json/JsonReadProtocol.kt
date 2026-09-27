@@ -63,6 +63,19 @@ class JsonReadProtocol(
         return true
     }
 
+    fun fieldMatches(expected: ByteArray): Boolean {
+        val start = position
+        if (limit - start <= expected.size) {
+            return false
+        }
+        for (index in expected.indices) {
+            if (buffer[start + index] != expected[index]) {
+                return false
+            }
+        }
+        return buffer[start + expected.size].toInt() == 34
+    }
+
     fun consumeMatchedFieldColon(length: Int) {
         nextValue(position + length + 2)
     }

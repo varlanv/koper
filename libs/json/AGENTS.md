@@ -92,24 +92,26 @@ the same input bytes and one fork, three 1-second warmups, and five 1-second mea
 and handwritten reads check trailing EOF; DSL-JSON reads use its existing entrypoint. Payload sizes are 281, 233, 289,
 and 41,033 bytes in the order shown below.
 
+Current report: `benchmarks/benchmarks-json/build/reports/benchmarks/jsonComparison/packed-field-read-2026-09-27/jvm.json`.
+
 | UTF-8 sample | Operation | Generated | DSL-JSON UTF-8 | DSL-JSON direct | Ideal handwritten |
 |---|---:|---:|---:|---:|---:|
-| ASCII_SMALL | Read | 142.8 | 202.9 | 201.6 | 120.3 |
-| ASCII_SMALL | Write | 54.0 | 125.0 | 126.6 | 61.1 |
-| UTF8_SMALL | Read | 144.0 | 178.6 | 179.3 | 124.6 |
-| UTF8_SMALL | Write | 57.1 | 106.2 | 104.9 | 64.5 |
-| ESCAPED_SMALL | Read | 275.5 | 409.7 | 410.4 | 247.8 |
-| ESCAPED_SMALL | Write | 150.4 | 210.4 | 205.0 | 149.1 |
-| UTF8_LARGE | Read | 4,940.7 | 63,084.6 | 63,309.8 | 4,752.8 |
-| UTF8_LARGE | Write | 2,196.6 | 16,393.9 | 16,309.5 | 1,737.5 |
+| ASCII_SMALL | Read | 107.0 | 193.5 | 204.7 | 120.5 |
+| ASCII_SMALL | Write | 53.2 | 125.2 | 126.8 | 60.6 |
+| UTF8_SMALL | Read | 112.3 | 183.0 | 173.9 | 126.3 |
+| UTF8_SMALL | Write | 56.6 | 107.1 | 107.9 | 64.0 |
+| ESCAPED_SMALL | Read | 242.9 | 413.1 | 409.4 | 246.2 |
+| ESCAPED_SMALL | Write | 141.5 | 211.1 | 212.0 | 144.1 |
+| UTF8_LARGE | Read | 4,794.7 | 63,024.7 | 63,228.0 | 4,786.8 |
+| UTF8_LARGE | Write | 2,178.5 | 16,465.4 | 16,328.6 | 1,772.6 |
 
 | Native sample (String symbol, Utf8Str text) | Operation | Generated | Ideal handwritten |
 |---|---:|---:|---:|
-| ASCII_SMALL | Read | 174.9 | 96.4 |
-| ASCII_SMALL | Write | 53.6 | 60.0 |
-| UTF8_SMALL | Read | 140.2 | 99.5 |
-| UTF8_SMALL | Write | 59.4 | 66.2 |
-| ESCAPED_SMALL | Read | 282.7 | 205.5 |
-| ESCAPED_SMALL | Write | 141.3 | 138.1 |
-| UTF8_LARGE | Read | 4,687.1 | 5,044.5 |
-| UTF8_LARGE | Write | 2,077.5 | 1,615.6 |
+| ASCII_SMALL | Read | 110.3 | 94.7 |
+| ASCII_SMALL | Write | 53.1 | 61.5 |
+| UTF8_SMALL | Read | 110.3 | 101.5 |
+| UTF8_SMALL | Write | 57.8 | 66.5 |
+| ESCAPED_SMALL | Read | 243.2 | 223.8 |
+| ESCAPED_SMALL | Write | 152.4 | 146.2 |
+| UTF8_LARGE | Read | 4,651.7 | 4,858.0 |
+| UTF8_LARGE | Write | 1,997.2 | 1,593.4 |

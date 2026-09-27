@@ -30,3 +30,12 @@ internal data class GeneratedJsonNames(
     val bYx: Int,
     val aaaaé: Int,
 )
+
+@Ser
+@De
+internal data class GeneratedLongFieldNames(
+    val seven77: Int,
+    val eight888: Int,
+    val sequenceAlpha: Int,
+    val sequenceBeta: Int,
+)

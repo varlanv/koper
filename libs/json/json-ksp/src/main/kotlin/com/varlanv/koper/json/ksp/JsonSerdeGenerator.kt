@@ -31,7 +31,9 @@ private data class JsonField(
     val nameBytes: ByteArray,
     val prefix: ByteArray,
     val hash: Int,
-)
+) {
+    val fastMatchable: Boolean = nameBytes.none { it.toInt() == 34 || it.toInt() == 92 || it.toInt() in 0..31 }
+}
 
 class JsonSerdeGenerator : SerdeGenerator {
     override fun generate(shape: SerdeClassShape, environment: SymbolProcessorEnvironment) {
@@ -161,6 +163,7 @@ private fun generateSource(
         0L
     }
     val variableFields = fields.filter { it.type == FieldType.STRING || it.type == FieldType.UTF8 }
+    val fastFields = fields.withIndex().filter { it.value.fastMatchable }
 
     if (packageName.isNotEmpty()) {
         appendLine("package $packageName")
@@ -245,14 +248,51 @@ private fun generateSource(
         appendLine("        if (_token != 125) {")
         appendLine("            while (true) {")
         appendLine("                require(_token == 34) { \"Expected JSON field name\" }")
-        appendLine("                val _hash = reader.readField()")
-        appendLine("                val _fieldIndex = when (_hash) {")
-        fields.forEachIndexed { index, field ->
-            appendLine("                    ${field.hash} if reader.fieldEquals(_fieldName$index) -> $index")
+        if (fastFields.isNotEmpty()) {
+            appendLine("                val _word = reader.peekFieldWord()")
         }
-        appendLine("                    else -> -1")
+        appendLine("                val _fieldIndex = when {")
+        fastFields.forEach { (index, field) ->
+            val nameLength = field.nameBytes.size
+            val compactMatch = if (nameLength <= 6) {
+                packedWordMatch(field.nameBytes + byteArrayOf(34, 58))
+            } else if (nameLength == 7) {
+                "${packedWordMatch(field.nameBytes + byteArrayOf(34))} && reader.consumeFieldColon($nameLength)"
+            } else {
+                "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && " +
+                    "reader.fieldMatches(_fieldName$index) && reader.consumeFieldColon($nameLength)"
+            }
+            appendLine("                    $compactMatch -> {")
+            if (nameLength <= 6) {
+                appendLine("                        reader.consumeMatchedFieldColon($nameLength)")
+            }
+            appendLine("                        $index")
+            appendLine("                    }")
+        }
+        fastFields.forEach { (index, field) ->
+            val nameLength = field.nameBytes.size
+            val nameMatch = if (nameLength <= 7) {
+                packedWordMatch(field.nameBytes + byteArrayOf(34))
+            } else {
+                "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && reader.fieldMatches(_fieldName$index)"
+            }
+            appendLine("                    $nameMatch && reader.consumeField($nameLength) -> {")
+            appendLine("                        reader.nextFieldValue()")
+            appendLine("                        $index")
+            appendLine("                    }")
+        }
+        appendLine("                    else -> {")
+        appendLine("                        val _hash = reader.readField()")
+        appendLine("                        val _fallbackIndex = when (_hash) {")
+        fields.forEachIndexed { index, field ->
+            appendLine("                            ${field.hash} if reader.fieldEquals(_fieldName$index) -> $index")
+        }
+        appendLine("                            else -> -1")
+        appendLine("                        }")
+        appendLine("                        reader.nextFieldValue()")
+        appendLine("                        _fallbackIndex")
+        appendLine("                    }")
         appendLine("                }")
-        appendLine("                reader.nextFieldValue()")
         appendLine("                when (_fieldIndex) {")
         fields.forEachIndexed { index, field ->
             appendLine("                    $index -> {")
@@ -358,6 +398,16 @@ private fun packedInt(bytes: ByteArray, start: Int): String =
 
 private fun packedLong(bytes: ByteArray, start: Int): String =
     "0x${packed(bytes = bytes, start = start, count = 8).toULong().toString(16)}uL.toLong()"
+
+private fun packedWordMatch(bytes: ByteArray): String {
+    val value = packed(bytes = bytes, start = 0, count = bytes.size)
+    return if (bytes.size == 8) {
+        "_word == 0x${value.toULong().toString(16)}uL.toLong()"
+    } else {
+        val mask = (1L shl (bytes.size * 8)) - 1L
+        "(_word and 0x${mask.toString(16)}L) == 0x${value.toString(16)}L"
+    }
+}
 
 private fun packed(
     bytes: ByteArray,

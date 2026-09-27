@@ -92,8 +92,10 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             writeOnly.contains("JsonCodec.Read<") shouldBe false
             readOnly.contains("JsonCodec.Read<") shouldBe true
             readOnly.contains("JsonCodec.Write<") shouldBe false
-            output.resolve("kotlin/EscapedNameJsonCodec.kt").readText().contains("byteArrayOf(97, 34, 98)") shouldBe
-                true
+            val escapedNameSource = output.resolve("kotlin/EscapedNameJsonCodec.kt").readText()
+            escapedNameSource.contains("byteArrayOf(97, 34, 98)") shouldBe true
+            escapedNameSource.contains("reader.consumeMatchedFieldColon") shouldBe false
+            escapedNameSource.contains("reader.fieldMatches") shouldBe false
         } finally {
             root.deleteRecursively()
         }

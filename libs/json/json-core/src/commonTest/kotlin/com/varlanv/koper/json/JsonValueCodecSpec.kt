@@ -3,6 +3,7 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.testing.BaseSpec
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 
 class JsonValueCodecSpec : BaseSpec({
@@ -143,6 +144,39 @@ class JsonValueCodecSpec : BaseSpec({
         reader.nextToken()
         GeneratedJsonNamesJsonCodec.read(reader) shouldBe value
         reader.nextToken() shouldBe -1
+    }
+
+    should("read compact, spaced, escaped, and split long field names") {
+        val value = GeneratedLongFieldNames(seven77 = 3, eight888 = 4, sequenceAlpha = 1, sequenceBeta = 2)
+        val documents = listOf(
+            "{\"seven77\":3,\"eight888\":4,\"sequenceAlpha\":1,\"sequenceBeta\":2}",
+            "{ \"sequenceBeta\" : 2 , \"eight888\" : 4, \"sequenceAlpha\"\n:\t1, \"seven77\" : 3 }",
+            "{\"sequenceGamma\":0,\"sequenceAlpha\":1,\"seven77\":3,\"sequenceBeta\":2,\"eight888\":4}",
+            "{\"sequence\\u0041lpha\":1,\"sequenceBeta\":2,\"seven77\":3,\"eight888\":4}",
+        )
+        for (document in documents) {
+            for (bufferSize in listOf(1, 8, 16, 32768)) {
+                val reader = JsonReadProtocol(bufferSize = bufferSize)
+                reader.reset(document.encodeToByteArray().asByteSource())
+                reader.nextToken()
+                GeneratedLongFieldNamesJsonCodec.read(reader) shouldBe value
+                reader.nextToken() shouldBe -1
+            }
+        }
+    }
+
+    should("reject malformed generated fields after packed-name matching") {
+        val documents = listOf(
+            "{\"seven77\":3,\"eight888\":4,\"sequenceAlpha\" 1,\"sequenceBeta\":2}",
+            "{\"seven77\":3,\"eight888\":4,\"sequenceAlpha\"::1,\"sequenceBeta\":2}",
+            "{\"seven77\":3,\"eight888\":4,\"sequenceAlpha\":1,\"sequenceBet\":2}",
+        )
+        for (document in documents) {
+            val reader = JsonReadProtocol()
+            reader.reset(document.encodeToByteArray().asByteSource())
+            reader.nextToken()
+            shouldThrow<IllegalArgumentException> { GeneratedLongFieldNamesJsonCodec.read(reader) }
+        }
     }
 
     should("read through a companion factory") {
