@@ -77,7 +77,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[quotient * 1000 - number]
             index -= 3
-            // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
+            output.setPackedShort(index, digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -113,8 +113,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[(quotient * 1000 - number).toInt()]
             index -= 3
-            // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
-//            PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
+            output.setPackedShort(index, digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -289,7 +288,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 if (pair.toInt() == 0) {
                     output[position++] = char.toByte()
                 } else {
-                    // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = position, value = pair)
+                    output.setPackedShort(position, pair)
                     position += 2
                     if (pair == JsonStringEscapes.unicodePair) {
                         output.setPackedInt(position, JsonStringEscapes.unicodeTails[char])
@@ -336,29 +335,27 @@ object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
     override fun read(reader: JsonReadProtocol): Str = readPrimitive(reader)
 
     fun writePrimitive(writer: JsonWriteProtocol, value: Str) {
-        // todo need to explore this - why `input` is passed to `writeUtf8Escaped` that overwrites it ?
-        TODO()
-//        val slice = value.slice
-//        val input = slice.bytes
-//        val end = slice.offset + slice.len
-//        val special = writer.scan.firstSpecial(bytes = input, start = slice.offset, end = end)
-//        val output = writer.buffer
-//        var position = writer.position
-//        output[position++] = '"'.code.toByte()
-//        input.copyInto(output, position, slice.offset, special)
-//        position += special - slice.offset
-//        if (special < end) {
-//            position =
-//                JsonStringEscapes.writeUtf8Escaped(
-//                    writer = writer,
-//                    bytes = input,
-//                    start = special,
-//                    end = end,
-//                    targetStart = position,
-//                )
-//        }
-//        output[position++] = '"'.code.toByte()
-//        writer.position = position
+        val slice = value.slice
+        val input = slice.bytes
+        val end = slice.offset + slice.len
+        val special = writer.scan.firstSpecial(bytes = input, start = slice.offset, end = end)
+        val output = writer.buffer
+        var position = writer.position
+        output[position++] = '"'.code.toByte()
+        input.copyInto(output, position, slice.offset, special)
+        position += special - slice.offset
+        if (special < end) {
+            position =
+                JsonStringEscapes.writeUtf8Escaped(
+                    writer = writer,
+                    bytes = input,
+                    start = special,
+                    end = end,
+                    targetStart = position,
+                )
+        }
+        output[position++] = '"'.code.toByte()
+        writer.position = position
     }
 
     fun readPrimitive(reader: JsonReadProtocol): Str {

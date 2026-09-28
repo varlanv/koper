@@ -1,43 +1,10 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.setPackedInt
-import com.varlanv.koper.lang.bin.setPackedLong
 
-internal object PackedJsonBytes {
-    fun setShort(
-        bytes: ByteArray,
-        offset: Int,
-        value: Short,
-    ) {
-        bytes[offset] = value.toByte()
-        bytes[offset + 1] = (value.toInt() ushr 8).toByte()
-    }
+internal expect fun Bytes.getPackedJsonLong(offset: Int): Long
 
-    fun setInt(
-        bytes: ByteArray,
-        offset: Int,
-        value: Int,
-    ) = bytes.setPackedInt(idx = offset, i = value)
-
-    fun setLong(
-        bytes: ByteArray,
-        offset: Int,
-        value: Long,
-    ) = bytes.setPackedLong(idx = offset, l = value)
-
-    fun getInt(bytes: ByteArray, offset: Int): Int =
-        (bytes[offset].toInt() and 255) or
-            ((bytes[offset + 1].toInt() and 255) shl 8) or
-            ((bytes[offset + 2].toInt() and 255) shl 16) or
-            (bytes[offset + 3].toInt() shl 24)
-
-    fun getLong(bytes: ByteArray, offset: Int): Long = bytes.getPackedJsonLong(offset)
-}
-
-internal expect fun ByteArray.getPackedJsonLong(offset: Int): Long
-
-interface JsonSpecialScan  {
+interface JsonSpecialScan {
     val laneCount: Int
 
     fun firstSpecial(

@@ -50,8 +50,7 @@ class JsonReadProtocol(
 
     fun peekFieldWord(): Long {
         return if (limit - position >= 8) {
-            TODO("rewrite to 2 ints")
-//            PackedJsonBytes.getLong(bytes = buffer, offset = position)
+            buffer.getPackedLong(position)
         } else {
             0L
         }
@@ -164,15 +163,19 @@ class JsonReadProtocol(
             34 -> {
                 stringScanner.readToScratch(this)
             }
+
             116 -> {
                 readLiteral("rue")
             }
+
             102 -> {
                 readLiteral("alse")
             }
+
             110 -> {
                 readLiteral("ull")
             }
+
             123 -> {
                 if (nextToken() == 125) {
                     return
@@ -190,6 +193,7 @@ class JsonReadProtocol(
                     }
                 }
             }
+
             91 -> {
                 if (nextToken() == 93) {
                     return
@@ -203,9 +207,11 @@ class JsonReadProtocol(
                     }
                 }
             }
+
             45, in 48..57 -> {
                 skipNumber()
             }
+
             else -> {
                 throw IllegalArgumentException("Expected JSON value")
             }
@@ -260,13 +266,13 @@ class JsonReadProtocol(
     internal fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
-                value == 32 ||
-                value == 9 ||
-                value == 10 ||
-                value == 13 ||
-                value == 44 ||
-                value == 93 ||
-                value == 125,
+                    value == 32 ||
+                    value == 9 ||
+                    value == 10 ||
+                    value == 13 ||
+                    value == 44 ||
+                    value == 93 ||
+                    value == 125,
         ) { "Invalid JSON value suffix" }
     }
 

@@ -1,5 +1,7 @@
 package com.varlanv.koper.test
 
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -34,7 +36,7 @@ class SerdeSamplesSpec : BaseSpec({
             ),
         )
 
-        SerdeSamples.buildSerdeSample(shape).allocateString() shouldBe """
+        SerdeSamples.buildSerdeSample(shape).allocateString(Charset.Utf8) shouldBe """
             @com.varlanv.koper.serde.Ser
             @com.varlanv.koper.serde.De
             data class Sample private constructor(val first: kotlin.Int, val second: kotlin.Long) {
@@ -50,7 +52,7 @@ class SerdeSamplesSpec : BaseSpec({
     should("vary only requested matrix options and reuse the byte buffer") {
         val shapes = mutableListOf<SerdeSamples.Shape>()
         val sources = mutableListOf<String>()
-        val buffers = mutableSetOf<ByteArray>()
+        val buffers = mutableSetOf<Bytes>()
 
         SerdeSamples.buildSerdeSamplesMatrix(
             types = setOf(
@@ -74,8 +76,8 @@ class SerdeSamplesSpec : BaseSpec({
             matrixSettings = SerdeSamples.MatrixSettings(includeMixOfArgumentsPosition = true),
         ) { shape, source ->
             shapes += shape
-            sources += source.allocateString()
-            buffers += source.bytes.unsafeBorrowArray()
+            sources += source.allocateString(Charset.Utf8)
+            buffers += source.slice.bytes
         }
 
         shapes.size shouldBe 16
@@ -103,7 +105,7 @@ class SerdeSamplesSpec : BaseSpec({
 
         SerdeSamples
             .buildSerdeSample(SerdeSamples.Shape(name = "Small", kind = SerdeSamples.Kind.OBJECT))
-            .allocateString() shouldBe "@com.varlanv.koper.serde.Ser\n@com.varlanv.koper.serde.De\nobject Small\n"
+            .allocateString(Charset.Utf8) shouldBe "@com.varlanv.koper.serde.Ser\n@com.varlanv.koper.serde.De\nobject Small\n"
 
         SerdeSamples
             .buildSerdeSample(
@@ -116,6 +118,6 @@ class SerdeSamplesSpec : BaseSpec({
                     ),
                 ),
             )
-            .allocateString() shouldBe "object Éclair\n"
+            .allocateString(Charset.Utf8) shouldBe "object Éclair\n"
     }
 })

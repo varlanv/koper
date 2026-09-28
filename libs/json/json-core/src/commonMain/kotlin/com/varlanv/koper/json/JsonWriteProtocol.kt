@@ -53,7 +53,7 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
 
     fun writeRaw(first: Int, second: Short) {
         buffer.setPackedInt(position, first)
-        // TODO - rewrite to two byte writes        PackedJsonBytes.setShort(bytes = buffer, offset = position + 4, value = second)
+        buffer.setPackedShort(position+4, second)
         position += 6
     }
 
@@ -64,7 +64,7 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
 
     fun writeRaw(first: Long, second: Short) {
         buffer.setPackedLong(position, first)
-        // TODO - rewrite to two byte writes        PackedJsonBytes.setShort(bytes = buffer, offset = position + 8, value = second)
+        buffer.setPackedShort(position+8, second)
         position += 10
     }
 

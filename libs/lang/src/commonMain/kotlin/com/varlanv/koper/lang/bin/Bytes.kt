@@ -22,6 +22,9 @@ expect value class MutBytes @PublishedApi internal constructor(@PublishedApi int
 
     fun setPackedInt(idx: Int, value: Int)
 
+    fun getPackedShort(idx: Int): Short
+    fun setPackedShort(idx: Int, value: Short)
+
     operator fun get(idx: Int): Byte
 
     operator fun set(idx: Int, value: Byte)
@@ -48,10 +51,10 @@ expect value class MutBytes @PublishedApi internal constructor(@PublishedApi int
 }
 
 
-expect fun MutBytes.mismatch(
+expect fun Bytes.mismatch(
     aFromIndex: Int,
     aToIndex: Int,
-    b: MutBytes,
+    b: Bytes,
     bFromIndex: Int,
     bToIndex: Int,
 ): Int
@@ -71,26 +74,16 @@ expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
     }
 }
 
+fun Bytes.isEmpty(): Boolean = size == 0
+
 @JvmInline
 value class MutBytesSlice @PublishedApi internal constructor(@PublishedApi internal val delegate: BytesSlice) {
 
-    fun getPackedInt(idx: Int): Int {
-        return delegate.getPackedInt(idx)
-    }
-
     fun setPackedInt(idx: Int, value: Int) = delegate.bytes.bytes.setPackedInt(idx = idx, value = value)
-
-    operator fun get(idx: Int): Byte {
-        return delegate[idx]
-    }
 
     operator fun set(idx: Int, value: Byte) {
         delegate.bytes.bytes[idx] = value
     }
-
-    inline fun forEach(block: (Byte) -> Unit) = delegate.bytes.bytes.forEach(block)
-
-    inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) = delegate.bytes.bytes.forEachIndexed(block)
 }
 
 class BytesSlice(
@@ -104,10 +97,10 @@ class BytesSlice(
 
     override fun equals(other: Any?): Boolean =
         other is BytesSlice &&
-                bytes.bytes.mismatch(
+                bytes.mismatch(
                     aFromIndex = offset,
                     aToIndex = len + offset,
-                    b = other.bytes.bytes,
+                    b = other.bytes,
                     bFromIndex = other.offset,
                     bToIndex = other.offset + other.len,
                 ) == -1
@@ -119,22 +112,10 @@ class BytesSlice(
     }
 }
 
-expect fun ByteArray.mismatch(
+fun Bytes.equals(
     aFromIndex: Int,
     aToIndex: Int,
-    b: ByteArray,
-    bFromIndex: Int,
-    bToIndex: Int,
-): Int
-
-expect fun ByteArray.setPackedInt(idx: Int, i: Int)
-
-expect fun ByteArray.setPackedLong(idx: Int, l: Long)
-
-fun ByteArray.equals(
-    aFromIndex: Int,
-    aToIndex: Int,
-    b: ByteArray,
+    b: Bytes,
     bFromIndex: Int,
     bToIndex: Int,
 ): Boolean = mismatch(
@@ -145,12 +126,12 @@ fun ByteArray.equals(
     bToIndex = bToIndex,
 ) < 0
 
-fun ByteArray.containsNeedle(
-    needle: ByteArray,
+fun Bytes.containsNeedle(
+    needle: Bytes,
     fromIndex: Int = 0,
 ): Boolean = indexOfNeedle(needle = needle, fromIndex = fromIndex) != -1
 
-fun ByteArray.indexOfNeedle(needle: ByteArray, fromIndex: Int): Int {
+fun Bytes.indexOfNeedle(needle: Bytes, fromIndex: Int): Int {
     if (needle.isEmpty()) {
         return fromIndex.coerceIn(0, size)
     }
@@ -177,8 +158,8 @@ fun ByteArray.indexOfNeedle(needle: ByteArray, fromIndex: Int): Int {
     return -1
 }
 
-fun ByteArray.startsWith(
-    prefix: ByteArray,
+fun Bytes.startsWith(
+    prefix: Bytes,
     offset: Int = 0,
 ): Boolean = offset >= 0 &&
         prefix.size <= size - offset &&
@@ -190,7 +171,7 @@ fun ByteArray.startsWith(
             bToIndex = prefix.size,
         ) == -1
 
-fun ByteArray.validateUtf8(
+fun Bytes.validateUtf8(
     offset: Int = 0,
     len: Int = size - offset,
     //    onError: (errorMessage: String) -> Unit,
@@ -353,7 +334,7 @@ fun ByteArray.validateUtf8(
 }
 
 /** Returns the first non-ASCII byte, or [end] if the range is all ASCII. */
-internal expect fun ByteArray.skipAscii(start: Int, end: Int): Int
+internal expect fun Bytes.skipAscii(start: Int, end: Int): Int
 
 /** Reads bytes into a caller-provided array. */
 interface ByteSource {

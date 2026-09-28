@@ -19,13 +19,17 @@ actual value class MutBytes @PublishedApi internal actual constructor(
     actual val readonly: Bytes get() = Bytes(this)
 
     actual constructor(dataSize: DataSize) : this(DataView(buffer = ArrayBuffer(dataSize.bytes)))
+    constructor(arrayBuffer: ArrayBuffer) : this(DataView(arrayBuffer))
 
     actual fun getPackedLong(idx: Int): Long {
-        TODO()
+        val low = impl.getInt32(idx).toLong() and 0xffffffffL
+        val high = impl.getInt32(idx + 4).toLong()
+        return low or (high shl 32)
     }
 
     actual fun setPackedLong(idx: Int, value: Long) {
-        TODO()
+        impl.setInt32(idx, value.toInt())
+        impl.setInt32(idx + 4, (value ushr 32).toInt())
     }
 
     actual fun getPackedInt(idx: Int): Int = impl.getInt32(byteOffset = idx)
@@ -34,12 +38,36 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         impl.setInt32(byteOffset = idx, value = value)
     }
 
+    actual fun setPackedShort(idx: Int, value: Short) {
+        impl.setInt16(idx, value)
+    }
+
+    actual fun getPackedShort(idx: Int): Short = impl.getInt16(idx)
+
     actual operator fun get(idx: Int): Byte = impl.getInt8(idx)
 
     actual operator fun set(idx: Int, value: Byte) = impl.setInt8(byteOffset = idx, value = value)
 
     actual fun hash(offset: Int, length: Int): Int {
-        TODO("Implement SWAR hash via `impl.getUint32()`, respecting buffer size")
+        if (offset < 0 || length < 0 || offset > size - length) {
+            throw IndexOutOfBoundsException()
+        }
+
+        var result = 1
+        var i = 0
+        while (i <= length - 4) {
+            val word = impl.getUint32(offset + i)
+            result = 31 * result + (word shr 24)
+            result = 31 * result + ((word shl 8) shr 24)
+            result = 31 * result + ((word shl 16) shr 24)
+            result = 31 * result + ((word shl 24) shr 24)
+            i += 4
+        }
+        while (i < length) {
+            result = 31 * result + impl.getInt8(offset + i)
+            i++
+        }
+        return result
     }
 
     actual inline fun forEach(block: (Byte) -> Unit) {
@@ -58,7 +86,15 @@ actual value class MutBytes @PublishedApi internal actual constructor(
     }
 
     actual fun copyInto(destination: MutBytes, destinationOffset: Int, startIndex: Int, endIndex: Int) {
-        TODO()
+        require(startIndex <= endIndex)
+        val length = endIndex - startIndex
+        if (startIndex < 0 || endIndex > size || destinationOffset < 0 || destinationOffset > destination.size - length) {
+            throw IndexOutOfBoundsException()
+        }
+        Uint8Array(destination.impl.buffer, destination.impl.byteOffset, destination.size).set(
+            Uint8Array(impl.buffer, impl.byteOffset + startIndex, length),
+            destinationOffset,
+        )
     }
 
     actual fun copyOf(newCapacity: Int): MutBytes {
@@ -69,7 +105,11 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
 
     actual fun copyOfRange(from: Int, to: Int): MutBytes {
-        TODO("Not yet implemented")
+        require(from <= to)
+        if (from < 0 || to > size) {
+            throw IndexOutOfBoundsException()
+        }
+        return MutBytes(DataView(impl.buffer.slice(impl.byteOffset + from, impl.byteOffset + to)))
     }
 
     actual companion object {
@@ -88,39 +128,6 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         actual operator fun invoke(array: ByteArray): MutBytes =
             MutBytes(DataView(MutBytes.unsafeCast<Uint8Array>().buffer))
     }
-
-}
-
-actual fun ByteArray.mismatch(
-    aFromIndex: Int,
-    aToIndex: Int,
-    b: ByteArray,
-    bFromIndex: Int,
-    bToIndex: Int,
-): Int {
-    checkMismatchRange(from = aFromIndex, to = aToIndex, size = size)
-    checkMismatchRange(from = bFromIndex, to = bToIndex, size = b.size)
-
-    val aLength = aToIndex - aFromIndex
-    val bLength = bToIndex - bFromIndex
-    val length = minOf(aLength, bLength)
-
-    // Identical starting positions in the same array need no scan.
-    if (this !== b || aFromIndex != bFromIndex) {
-        var i = 0
-        while (i < length) {
-            if (this[aFromIndex + i] != b[bFromIndex + i]) {
-                return i
-            }
-            i++
-        }
-    }
-
-    return if (aLength == bLength) {
-        -1
-    } else {
-        length
-    }
 }
 
 private fun checkMismatchRange(
@@ -136,26 +143,37 @@ private fun checkMismatchRange(
     }
 }
 
-actual fun ByteArray.setPackedInt(idx: Int, i: Int) {
-    this[idx] = i.toByte()
-    this[idx + 1] = (i ushr 8).toByte()
-    this[idx + 2] = (i ushr 16).toByte()
-    this[idx + 3] = (i ushr 24).toByte()
-}
-
-actual fun ByteArray.setPackedLong(idx: Int, l: Long) {
-    setPackedInt(idx, l.toInt())
-    setPackedInt(idx + 4, (l ushr 32).toInt())
-}
-
-actual fun MutBytes.mismatch(
+actual fun Bytes.mismatch(
     aFromIndex: Int,
     aToIndex: Int,
-    b: MutBytes,
+    b: Bytes,
     bFromIndex: Int,
     bToIndex: Int,
 ): Int {
-    TODO("Not yet implemented")
+    checkMismatchRange(from = aFromIndex, to = aToIndex, size = size)
+    checkMismatchRange(from = bFromIndex, to = bToIndex, size = b.size)
+
+    val aLength = aToIndex - aFromIndex
+    val bLength = bToIndex - bFromIndex
+    val length = minOf(aLength, bLength)
+
+    if (bytes.impl !== b.bytes.impl || aFromIndex != bFromIndex) {
+        var i = 0
+        while (i <= length - 4) {
+            if (bytes.impl.getUint32(aFromIndex + i) != b.bytes.impl.getUint32(bFromIndex + i)) {
+                break
+            }
+            i += 4
+        }
+        while (i < length) {
+            if (bytes.impl.getInt8(aFromIndex + i) != b.bytes.impl.getInt8(bFromIndex + i)) {
+                return i
+            }
+            i++
+        }
+    }
+
+    return if (aLength == bLength) -1 else length
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")

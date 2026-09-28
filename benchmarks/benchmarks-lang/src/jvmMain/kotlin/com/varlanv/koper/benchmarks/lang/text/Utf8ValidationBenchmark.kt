@@ -1,5 +1,6 @@
 package com.varlanv.koper.benchmarks.lang.text
 
+import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.validateUtf8
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.Param
@@ -28,9 +29,9 @@ class Utf8ValidationBenchmark {
                 bytes[index + 1] = 0xA9.toByte()
             }
         }
-        check(bytes.validateUtf8())
+        check(MutBytes(bytes).readonly.validateUtf8())
     }
 
     @Benchmark
-    fun validate(): Boolean = bytes.validateUtf8()
+    fun validate(): Boolean = MutBytes(bytes).readonly.validateUtf8()
 }

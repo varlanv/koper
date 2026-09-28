@@ -7,7 +7,7 @@ import jdk.incubator.vector.VectorOperators
 
 private const val HIGH_BITS = 0x8080808080808080UL
 
-internal actual fun ByteArray.skipAscii(start: Int, end: Int): Int {
+internal actual fun Bytes.skipAscii(start: Int, end: Int): Int {
     if (VectorApi.enabled && end - start >= 128) {
         // Short ASCII runs are cheaper with SWAR; only continue with vectors
         // after the first 64 bytes are known to be ASCII.
@@ -23,7 +23,7 @@ internal actual fun ByteArray.skipAscii(start: Int, end: Int): Int {
 
 sealed interface AsciiScan {
     fun skipAscii(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int
@@ -42,21 +42,21 @@ private object VectorAsciiScan : AsciiScan, VectorApi {
     private val species = ByteVector.SPECIES_PREFERRED
 
     override fun smokeTest(): Boolean {
-        val bytes = ByteArray(species.length()) { 65 }
+        val bytes = MutBytes(ByteArray(species.length()) { 65 })
         val special = bytes.size / 2
         bytes[special] = 0x80.toByte()
-        return skipAscii(bytes = bytes, start = 0, end = bytes.size) == special
+        return skipAscii(bytes = bytes.readonly, start = 0, end = bytes.size) == special
     }
 
     override fun skipAscii(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int {
         var index = start
         val lanes = species.length()
         while (index <= end - lanes) {
-            val mask = ByteVector.fromArray(species, bytes, index).compare(VectorOperators.LT, 0.toByte())
+            val mask = ByteVector.fromArray(species, bytes.unsafeInternal, index).compare(VectorOperators.LT, 0.toByte())
             if (mask.anyTrue()) {
                 return index + mask.firstTrue()
             }
@@ -69,13 +69,13 @@ private object VectorAsciiScan : AsciiScan, VectorApi {
 
 private object ScalarAsciiScan : AsciiScan {
     override fun skipAscii(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int = bytes.skipAsciiSwar(start = start, end = end)
 }
 
-private fun ByteArray.skipAsciiSwar(start: Int, end: Int): Int {
+private fun Bytes.skipAsciiSwar(start: Int, end: Int): Int {
     var index = start
     while (index <= end - Long.SIZE_BYTES) {
         val word = longViewHandle.get(this, index) as Long

@@ -1,6 +1,5 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.Bytes
 
 internal object JsonStringEscapes {
@@ -34,7 +33,7 @@ internal object JsonStringEscapes {
 
     fun writeUtf8Escaped(
         writer: JsonWriteProtocol,
-        bytes: MutBytes,
+        bytes: Bytes,
         start: Int,
         end: Int,
         targetStart: Int,
@@ -47,14 +46,14 @@ internal object JsonStringEscapes {
         while (end - index >= width) {
             val blockStart = index
             val blockEnd = blockStart + width
-            var events = scan.specialMask(bytes = Bytes(bytes), start = blockStart)
+            var events = scan.specialMask(bytes = bytes, start = blockStart)
             while (events != 0L) {
                 val special = blockStart + events.countTrailingZeroBits()
                 if (special > index) {
                     val length = special - index
                     if (length <= 8 && index <= bytes.size - 8) {
-                        val word = bytes.getPackedLong(index)
-                        bytes.setPackedLong(offset, value = word)
+                        val word = bytes.getPackedJsonLong(index)
+                        target.setPackedLong(offset, value = word)
                     } else {
                         bytes.copyInto(target, offset, index, special)
                     }
@@ -62,7 +61,7 @@ internal object JsonStringEscapes {
                 }
                 val value = bytes[special].toInt() and 255
                 val escaped = escapePairs[value]
-                // todo - just write two bytes PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
+                target.setPackedShort(offset, escaped)
                 offset += 2
                 if (escaped == unicodePair) {
                     target.setPackedInt(offset, unicodeTails[value])
@@ -81,8 +80,7 @@ internal object JsonStringEscapes {
             val value = bytes[index++].toInt() and 255
             val escaped = escapePairs[value]
             if (escaped.toInt() != 0) {
-                // todo - just write two bytes PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
-//                PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
+                target.setPackedShort(offset, escaped)
                 offset += 2
                 if (escaped == unicodePair) {
                     target.setPackedInt(offset, unicodeTails[value])
