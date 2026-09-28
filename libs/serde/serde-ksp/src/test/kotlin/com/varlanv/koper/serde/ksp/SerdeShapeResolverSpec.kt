@@ -113,7 +113,7 @@ class SerdeShapeResolverSpec : BaseSpec({
                         .encodeToByteArray(),
                 )
                 output.write(
-                    "@com.varlanv.koper.serde.Ser class SupportedTypes(val i: kotlin.Int, val l: kotlin.Long, val b: kotlin.Boolean, val s: kotlin.String, val u: com.varlanv.koper.lang.text.Utf8Str)\n"
+                    "@com.varlanv.koper.serde.Ser class SupportedTypes(val i: kotlin.Int, val l: kotlin.Long, val b: kotlin.Boolean, val s: kotlin.String, val u: com.varlanv.koper.lang.text.Str)\n"
                         .encodeToByteArray(),
                 )
             }
@@ -228,7 +228,7 @@ class SerdeShapeResolverSpec : BaseSpec({
                         ),
                         Triple(
                             "u",
-                            "com.varlanv.koper.lang.text.Utf8Str",
+                            "com.varlanv.koper.lang.text.Str",
                             true,
                         ),
                     ),

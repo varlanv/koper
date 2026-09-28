@@ -115,13 +115,13 @@ class BytesSlice(
     fun getPackedInt(idx: Int): Int = bytes.bytes.getPackedInt(idx)
 
     inline fun forEach(block: (Byte) -> Unit) {
-        for (idx in offset until len) {
+        for (idx in offset until offset + len) {
             block(bytes.bytes.impl[idx])
         }
     }
 
     inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) {
-        for (idx in offset until len) {
+        for (idx in offset until offset + len) {
             block(idx, bytes.bytes.impl[idx])
         }
     }

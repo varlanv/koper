@@ -5,7 +5,6 @@ import org.khronos.webgl.DataView
 import org.khronos.webgl.Uint8Array
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"]) internal actual typealias BytesImpl = DataView
-
 actual fun BytesImpl.size(): Int = byteLength
 
 actual operator fun BytesImpl.get(idx: Int): Byte = getInt8(idx)
@@ -27,27 +26,27 @@ actual value class MutBytes @PublishedApi internal actual constructor(
     constructor(arrayBuffer: ArrayBuffer) : this(DataView(buffer = arrayBuffer))
 
     actual fun getPackedLong(idx: Int): Long {
-        val low = impl.getInt32(byteOffset = idx).toLong() and 0xffffffffL
-        val high = impl.getInt32(byteOffset = idx + 4).toLong()
+        val low = impl.getInt32(byteOffset = idx, littleEndian = true).toLong() and 0xffffffffL
+        val high = impl.getInt32(byteOffset = idx + 4, littleEndian = true).toLong()
         return low or (high shl 32)
     }
 
     actual fun setPackedLong(idx: Int, value: Long) {
-        impl.setInt32(byteOffset = idx, value = value.toInt())
-        impl.setInt32(byteOffset = idx + 4, value = (value ushr 32).toInt())
+        impl.setInt32(byteOffset = idx, value = value.toInt(), littleEndian = true)
+        impl.setInt32(byteOffset = idx + 4, value = (value ushr 32).toInt(), littleEndian = true)
     }
 
-    actual fun getPackedInt(idx: Int): Int = impl.getInt32(byteOffset = idx)
+    actual fun getPackedInt(idx: Int): Int = impl.getInt32(byteOffset = idx, littleEndian = true)
 
     actual fun setPackedInt(idx: Int, value: Int) {
-        impl.setInt32(byteOffset = idx, value = value)
+        impl.setInt32(byteOffset = idx, value = value, littleEndian = true)
     }
 
     actual fun setPackedShort(idx: Int, value: Short) {
-        impl.setInt16(byteOffset = idx, value = value)
+        impl.setInt16(byteOffset = idx, value = value, littleEndian = true)
     }
 
-    actual fun getPackedShort(idx: Int): Short = impl.getInt16(byteOffset = idx)
+    actual fun getPackedShort(idx: Int): Short = impl.getInt16(byteOffset = idx, littleEndian = true)
 
     actual operator fun get(idx: Int): Byte = impl.getInt8(idx)
 
@@ -151,7 +150,7 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
         actual operator fun invoke(
             array: ByteArray,
-        ): MutBytes = MutBytes(DataView(buffer = MutBytes.unsafeCast<Uint8Array>().buffer))
+        ): MutBytes = MutBytes(DataView(buffer = array.unsafeCast<Uint8Array>().buffer))
     }
 }
 

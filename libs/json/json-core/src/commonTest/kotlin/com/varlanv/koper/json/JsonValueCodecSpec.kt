@@ -168,7 +168,7 @@ class JsonValueCodecSpec : BaseSpec({
         val expectedJson =
             "{\"intValue\":-2147483648,\"longValue\":-9223372036854775808," +
                 "\"booleanValue\":true,\"stringValue\":\"é\\n\"," +
-                "\"utf8Value\":\"A\\t${"x".repeat(600)}\"}"
+                "\"strValue\":\"A\\t${"x".repeat(600)}\"}"
         roundTrip(
             writerCodec = GeneratedJsonSampleJsonCodec,
             readerCodec = GeneratedJsonSampleJsonCodec,

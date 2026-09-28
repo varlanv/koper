@@ -78,15 +78,16 @@ private object ScalarAsciiScan : AsciiScan {
 }
 
 private fun Bytes.skipAsciiSwar(start: Int, end: Int): Int {
+    val array = unsafeInternal
     var index = start
     while (index <= end - Long.SIZE_BYTES) {
-        val word = longViewHandle.get(this, index) as Long
+        val word = longViewHandle.get(array, index) as Long
         if (word.toULong() and HIGH_BITS != 0UL) {
             break
         }
         index += Long.SIZE_BYTES
     }
-    while (index < end && this[index] >= 0) {
+    while (index < end && array[index] >= 0) {
         index++
     }
     return index
