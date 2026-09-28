@@ -6,13 +6,15 @@ import kotlin.jvm.JvmInline
 expect class BytesImpl
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
-expect value class Bytes private constructor(private val impl: BytesImpl) {
+expect value class Bytes private constructor(private val impl: BytesImpl) : BytesOperations {
 
     val size: Int
-    fun getInt(idx: Int): Int
-    fun setInt(idx: Int, value: Int)
-    operator fun get(idx: Int): Byte
-    operator fun set(idx: Int, value: Byte)
+    override fun getInt(idx: Int): Int
+    override fun setInt(idx: Int, value: Int)
+    override operator fun get(idx: Int): Byte
+    override operator fun set(idx: Int, value: Byte)
+
+    fun hash(offset: Int, length: Int): Int
 
     companion object {
 
@@ -21,6 +23,58 @@ expect value class Bytes private constructor(private val impl: BytesImpl) {
     }
 }
 
+expect fun Bytes.mismatch(
+    aFromIndex: Int,
+    aToIndex: Int,
+    b: Bytes,
+    bFromIndex: Int,
+    bToIndex: Int,
+): Int
+
+@JvmInline
+value class ReadonlyBytesV2(@PublishedApi internal val bytes: Bytes)
+
+sealed interface BytesSliceV2 {
+
+    val bytes: ReadonlyBytesV2
+    val offset: Int
+    val len: Int
+
+    companion object {
+
+        operator fun invoke(bytes: ReadonlyBytesV2, offset: Int, len: Int): BytesSliceV2 {
+            return BytesSliceImpl(bytes, offset, len)
+        }
+    }
+}
+
+interface BytesOperations {
+    fun getInt(idx: Int): Int
+    fun setInt(idx: Int, value: Int)
+    operator fun get(idx: Int): Byte
+    operator fun set(idx: Int, value: Byte)
+}
+
+sealed interface MutBytesSlice : BytesOperations {
+    val offset: Int
+}
+
+@PublishedApi
+internal class BytesSliceImpl(
+    override val bytes: ReadonlyBytesV2,
+    override val offset: Int,
+    override val len: Int,
+) : BytesSliceV2, MutBytesSlice {
+    override fun getInt(idx: Int): Int = bytes.bytes.getInt(idx)
+
+    override fun setInt(idx: Int, value: Int) = bytes.bytes.setInt(idx, value)
+
+    override fun get(idx: Int): Byte = bytes.bytes[idx]
+
+    override fun set(idx: Int, value: Byte) {
+        bytes.bytes[idx] = value
+    }
+}
 
 expect fun ByteArray.mismatch(
     aFromIndex: Int,

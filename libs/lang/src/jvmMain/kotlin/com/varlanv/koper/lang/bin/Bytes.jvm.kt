@@ -12,17 +12,17 @@ internal actual typealias BytesImpl = ByteArray
 
 @JvmInline
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
-actual value class Bytes private actual constructor(actual val impl: BytesImpl) {
+actual value class Bytes private actual constructor(actual val impl: BytesImpl): BytesOperations {
     actual val size: Int
         get() = impl.size
 
-    actual fun getInt(idx: Int): Int = intViewHandle.get(impl, idx) as Int
-    actual fun setInt(idx: Int, value: Int) {
+    actual override fun getInt(idx: Int): Int = intViewHandle.get(impl, idx) as Int
+    actual override fun setInt(idx: Int, value: Int) {
         intViewHandle.set(impl, idx, value)
     }
 
-    actual operator fun get(idx: Int): Byte = impl[idx]
-    actual operator fun set(idx: Int, value: Byte) {
+    actual override operator fun get(idx: Int): Byte = impl[idx]
+    actual override operator fun set(idx: Int, value: Byte) {
         impl[idx] = value
     }
 
@@ -30,6 +30,10 @@ actual value class Bytes private actual constructor(actual val impl: BytesImpl) 
         actual operator fun invoke(capacity: Int): Bytes = Bytes(ByteArray(capacity))
 
         actual operator fun invoke(dataSize: DataSize): Bytes = invoke(dataSize.bytes)
+    }
+
+    actual fun hash(offset: Int, length: Int): Int {
+        TODO("Implement vectorized(when activated) or SWAR fallback hash")
     }
 }
 
@@ -75,3 +79,11 @@ class OutputStreamByteSink(val outs: OutputStream) : ByteSink {
         outs.write(source, offset, length)
     }
 }
+
+actual fun Bytes.mismatch(
+    aFromIndex: Int,
+    aToIndex: Int,
+    b: Bytes,
+    bFromIndex: Int,
+    bToIndex: Int
+): Int = impl.mismatch(aFromIndex, aToIndex, b.impl, bFromIndex, bToIndex)

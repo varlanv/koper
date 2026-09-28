@@ -1,6 +1,7 @@
 package com.varlanv.koper.lang.text
 
 import com.varlanv.koper.lang.bin.ByteSlice
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 
 actual fun Charset.allocateString(
@@ -21,6 +22,12 @@ actual fun Charset.allocateByteSlice(
         len = array.size,
     )
 }
+
+actual fun Charset.allocateString(
+    bytes: Bytes,
+    offset: Int,
+    len: Int
+): String = allocateString(bytes.impl, offset, len)
 
 fun Charset.jdkEncoding(): java.nio.charset.Charset = when (this) {
     Charset.Utf8 -> Charsets.UTF_8

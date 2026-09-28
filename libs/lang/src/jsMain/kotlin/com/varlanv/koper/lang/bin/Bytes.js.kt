@@ -7,22 +7,26 @@ import org.khronos.webgl.DataView
 internal actual typealias BytesImpl = DataView
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
-actual value class Bytes private actual constructor(actual val impl: BytesImpl) {
+actual value class Bytes private actual constructor(private actual val impl: BytesImpl): BytesOperations {
     actual val size: Int
         get() = impl.byteLength
 
-    actual fun getInt(idx: Int): Int = impl.getInt32(idx)
-    actual fun setInt(idx: Int, value: Int) {
+    actual override fun getInt(idx: Int): Int = impl.getInt32(idx)
+    actual override fun setInt(idx: Int, value: Int) {
         impl.setInt32(idx, value)
     }
 
-    actual operator fun get(idx: Int): Byte = impl.getInt8(idx)
-    actual operator fun set(idx: Int, value: Byte) = impl.setInt8(idx, value)
+    actual override operator fun get(idx: Int): Byte = impl.getInt8(idx)
+    actual override operator fun set(idx: Int, value: Byte) = impl.setInt8(idx, value)
 
     actual companion object {
         actual operator fun invoke(capacity: Int): Bytes = Bytes(DataView(ArrayBuffer(capacity)))
 
         actual operator fun invoke(dataSize: DataSize): Bytes = invoke(dataSize.bytes)
+    }
+
+    actual fun hash(offset: Int, length: Int): Int {
+        TODO("Implement SWAR hash via `impl.getUint32()`, respecting buffer size")
     }
 }
 
@@ -82,4 +86,14 @@ actual fun ByteArray.setPackedInt(idx: Int, i: Int) {
 actual fun ByteArray.setPackedLong(idx: Int, l: Long) {
     setPackedInt(idx, l.toInt())
     setPackedInt(idx + 4, (l ushr 32).toInt())
+}
+
+actual fun Bytes.mismatch(
+    aFromIndex: Int,
+    aToIndex: Int,
+    b: Bytes,
+    bFromIndex: Int,
+    bToIndex: Int
+): Int {
+    TODO("Not yet implemented")
 }

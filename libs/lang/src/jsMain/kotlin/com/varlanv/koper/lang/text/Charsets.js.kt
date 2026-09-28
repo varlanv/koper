@@ -1,6 +1,7 @@
 package com.varlanv.koper.lang.text
 
 import com.varlanv.koper.lang.bin.ByteSlice
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint16Array
@@ -163,6 +164,14 @@ actual fun Charset.allocateString(
             latin1String(bytes = bytes, offset = offset, len = len)
         }
     }
+}
+
+actual fun Charset.allocateString(
+    bytes: Bytes,
+    offset: Int,
+    len: Int
+): String {
+    TODO("Not yet implemented")
 }
 
 private fun allAscii(
