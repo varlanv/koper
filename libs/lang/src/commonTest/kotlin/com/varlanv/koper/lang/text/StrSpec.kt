@@ -7,7 +7,7 @@ import com.varlanv.koper.lang.bin.validateUtf8
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
 
-class StringsSpec : BaseSpec({
+class StrSpec : BaseSpec({
     should("allocate strings using the selected encoding") {
         for ((charset, input, bytes) in listOf(
             Triple(
