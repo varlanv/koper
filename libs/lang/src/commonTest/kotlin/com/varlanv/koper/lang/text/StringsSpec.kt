@@ -104,7 +104,7 @@ class StringsSpec : BaseSpec({
             offset = 0,
             len = 1,
         )
-        (Utf8Str.Companion(Str(slice)).bytes === slice) shouldBe true
+        (Utf8Str.unsafeWrapBytes(slice).bytes === slice) shouldBe true
     }
 
     should("validate and retain the original UTF-8 slice") {
@@ -115,18 +115,18 @@ class StringsSpec : BaseSpec({
             offset = 2,
             len = payload.size,
         )
-        val str = Utf8Str.unsafeWrapBytes(slice)
+        val str = Utf8Str(Str(slice))
         (str.bytes === slice) shouldBe true
         str.allocateString() shouldBe "é中🙂"
-        Utf8Str
-            .unsafeWrapBytes(
+        Utf8Str(
+            Str(
                 ByteSlice(
                     bytes = ReadonlyBytes(bytes),
                     offset = bytes.size,
                     len = 0,
                 ),
-            )
-            .allocateString() shouldBe ""
+            ),
+        ).allocateString() shouldBe ""
     }
 
     should("reject malformed UTF-8 and invalid slice bounds") {
@@ -147,25 +147,23 @@ class StringsSpec : BaseSpec({
                 0x80.toByte(),
             ),
         )) {
+            val slice = ByteSlice(
+                bytes = ReadonlyBytes(bytes),
+                offset = 0,
+                len = bytes.size,
+            )
             shouldThrow<IllegalStateException> {
-                Utf8Str.unsafeWrapBytes(
-                    ByteSlice(
-                        bytes = ReadonlyBytes(bytes),
-                        offset = 0,
-                        len = bytes.size,
-                    ),
-                )
+                Utf8Str(Str(slice))
             }
         }
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 1 to 2)) {
+            val slice = ByteSlice(
+                bytes = ReadonlyBytes(byteArrayOf(65)),
+                offset = offset,
+                len = length,
+            )
             shouldThrow<IllegalStateException> {
-                Utf8Str.unsafeWrapBytes(
-                    ByteSlice(
-                        bytes = ReadonlyBytes(byteArrayOf(65)),
-                        offset = offset,
-                        len = length,
-                    ),
-                )
+                Utf8Str(Str(slice))
             }
         }
     }

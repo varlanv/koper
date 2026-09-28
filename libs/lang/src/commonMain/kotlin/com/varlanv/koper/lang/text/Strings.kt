@@ -100,7 +100,7 @@ value class Utf8Str private constructor(val bytes: ByteSlice) {
             if (!str.bytes.bytes.array.validateUtf8(offset = str.bytes.offset, len = str.bytes.len)) {
                 error("received invalid utf-8 sequence bytes")
             }
-            return Utf8Str(str)
+            return Utf8Str(str.bytes)
         }
 
         /**

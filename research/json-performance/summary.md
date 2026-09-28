@@ -1,6 +1,6 @@
 # JSON codec performance findings
 
-Target: generated `JsonMixedSampleJsonCodec.kt` and the runtime/generator paths it uses. Production source remains unchanged. The extended sweep contains **637 measured cases** and **15 matched repeated-fork comparisons**. Prototypes, correctness checks, raw JMH output and reproduction scripts are under [round2](round2/). CPU: Ryzen 9 7950X; JVM: Corretto 26.0.1. These are measured opportunities on this JVM, not a proof of a theoretical minimum across all hardware.
+Target: generated `JsonMixedSampleJsonCodec.kt` and the runtime/generator paths it uses. Production source remains unchanged. The extended sweep contains **637 measured cases** and **15 matched repeated-fork comparisons**. CPU: Ryzen 9 7950X; JVM: Corretto 26.0.1. These are measured opportunities on this JVM, not a proof of a theoretical minimum across all hardware.
 
 ## Strongest measured opportunities
 
@@ -13,8 +13,6 @@ Target: generated `JsonMixedSampleJsonCodec.kt` and the runtime/generator paths 
 | **Validate skipped strings without decoding them.** When discarding an unknown field's value, check string boundaries and JSON escapes without unescaping its contents into scratch storage. Process all special-character positions from each vector mask before loading another block, avoiding both decoded-byte writes and repeated scans around escapes. | Large escaped unknown value **72,513→33,034 ns**; plain 2,212→1,745 ns | Shared runtime skip helper; preserve escape and nested-value validation |
 | **Prove unknown names before hashing.** Use schema-derived prefix checks or a length proof to establish that a field name cannot match any known field, then skip its remaining bytes without computing a hash while still validating its JSON syntax. For this schema, nine literal bytes before any quote, escape or control prove a mismatch because the longest known name is eight bytes; possible matches retain full name checking. | 16 unknown 1024-byte names **11,508→828 ns** when prefix proves mismatch; extended length proof also cuts known-looking long names 11,512→903 ns | Schema-derived conservative proof, with full matching fallback |
 | **Cheaper SIMD control-byte predicate.** Replace the vector test `(byte >= 0) AND (byte < 32)` with `(byte & 0xe0) == 0` when identifying JSON control bytes. The replacement recognizes the same byte values 0–31 with fewer vector operations in source; quote and backslash checks remain unchanged. | Preferred-width large write 2,037→1,910 ns in screening | `(byte & 0xe0) == 0`; checked for every byte/lane on preferred 512 and 256 widths |
-
-The bold figures in the first five table rows use two fresh JVM forks, six 1-second warmups and five 700-ms measurements per fork. Unknown-name, scanner, mixed-corpus and prepared-value figures are screening results. [Confirmation intervals and individual fork means](round2/confirmations.md) separate robust gains from noise. Mixed-corpus and other screening figures are explicitly separate experiments, not additive estimates.
 
 Read figures above preserve the current permissive UTF-8 behavior. Future read validation remains a separate cost. Writes trust Utf8Str as requested; no validation was added to write candidates.
 

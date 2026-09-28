@@ -3,7 +3,6 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
 
@@ -370,13 +369,11 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
             return Utf8Str.empty
         }
         val bytes = scanner.bytes.copyOfRange(scanner.offset, scanner.offset + scanner.length)
-        return Utf8Str(
-            Str(
-                ByteSlice(
-                    bytes = ReadonlyBytes(bytes),
-                    offset = 0,
-                    len = bytes.size,
-                ),
+        return Utf8Str.unsafeWrapBytes(
+            ByteSlice(
+                bytes = ReadonlyBytes(bytes),
+                offset = 0,
+                len = bytes.size,
             ),
         )
     }

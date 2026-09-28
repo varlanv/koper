@@ -106,13 +106,11 @@ object Utf8StrConverter {
                 return if (size == 0) {
                     Utf8Str.empty
                 } else {
-                    Utf8Str(
-                        Str(
-                            ByteSlice(
-                                bytes = ReadonlyBytes(buffer.copyOf(size)),
-                                offset = 0,
-                                len = size,
-                            ),
+                    Utf8Str.unsafeWrapBytes(
+                        ByteSlice(
+                            bytes = ReadonlyBytes(buffer.copyOf(size)),
+                            offset = 0,
+                            len = size,
                         ),
                     )
                 }
@@ -236,21 +234,27 @@ object Utf8StrConverter {
                     '"'.code, '\\'.code -> {
                         b.toByte()
                     }
+
                     0x08 -> {
                         'b'.code.toByte()
                     }
+
                     0x0C -> {
                         'f'.code.toByte()
                     }
+
                     0x0A -> {
                         'n'.code.toByte()
                     }
+
                     0x0D -> {
                         'r'.code.toByte()
                     }
+
                     0x09 -> {
                         't'.code.toByte()
                     }
+
                     else -> {
                         buffer[size++] = 'u'.code.toByte()
                         buffer[size++] = '0'.code.toByte()

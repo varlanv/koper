@@ -3,7 +3,6 @@ package com.varlanv.koper.benchmarks.json
 import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.lang.invoke.MethodHandles
@@ -69,13 +68,11 @@ class IdealJsonReader(
                     return Utf8Str.empty
                 }
                 val bytes = buffer.copyOfRange(start, index)
-                return Utf8Str(
-                    Str(
-                        ByteSlice(
-                            bytes = ReadonlyBytes(bytes),
-                            offset = 0,
-                            len = bytes.size,
-                        ),
+                return Utf8Str.unsafeWrapBytes(
+                    ByteSlice(
+                        bytes = ReadonlyBytes(bytes),
+                        offset = 0,
+                        len = bytes.size,
                     ),
                 )
             }
@@ -92,13 +89,11 @@ class IdealJsonReader(
             readStringToScratch(false)
         }
         val bytes = scratch.copyOf(scratchSize)
-        return Utf8Str(
-            Str(
-                ByteSlice(
-                    bytes = ReadonlyBytes(bytes),
-                    offset = 0,
-                    len = bytes.size,
-                ),
+        return Utf8Str.unsafeWrapBytes(
+            ByteSlice(
+                bytes = ReadonlyBytes(bytes),
+                offset = 0,
+                len = bytes.size,
             ),
         )
     }
@@ -466,10 +461,12 @@ class IdealJsonReader(
                 readLiteral("rue")
                 true
             }
+
             102 -> {
                 readLiteral("alse")
                 false
             }
+
             else -> {
                 throw IllegalArgumentException("Expected JSON boolean")
             }
@@ -483,7 +480,8 @@ class IdealJsonReader(
             } else {
                 5
             },
-        )) {
+        )
+        ) {
             return readBoolean()
         }
         return when (last) {
@@ -493,12 +491,14 @@ class IdealJsonReader(
                 requireDelimiter(buffer[position].toInt() and 255)
                 true
             }
+
             102 -> {
                 require(intView.get(buffer, position) as Int == 0x65736c61) { "Invalid JSON literal" }
                 position += 4
                 requireDelimiter(buffer[position].toInt() and 255)
                 false
             }
+
             else -> {
                 throw IllegalArgumentException("Expected JSON boolean")
             }
@@ -515,12 +515,15 @@ class IdealJsonReader(
             34 -> {
                 readStringToScratch()
             }
+
             116, 102 -> {
                 readBoolean()
             }
+
             110 -> {
                 readLiteral("ull")
             }
+
             123 -> {
                 if (nextToken() == 125) {
                     return
@@ -538,6 +541,7 @@ class IdealJsonReader(
                     }
                 }
             }
+
             91 -> {
                 if (nextToken() == 93) {
                     return
@@ -551,9 +555,11 @@ class IdealJsonReader(
                     }
                 }
             }
+
             45, in 48..57 -> {
                 skipNumber()
             }
+
             else -> {
                 throw IllegalArgumentException("Expected JSON value")
             }
@@ -820,21 +826,27 @@ class IdealJsonReader(
             34, 92, 47 -> {
                 append(value.toByte())
             }
+
             98 -> {
                 append(8)
             }
+
             102 -> {
                 append(12)
             }
+
             110 -> {
                 append(10)
             }
+
             114 -> {
                 append(13)
             }
+
             116 -> {
                 append(9)
             }
+
             117 -> {
                 var codepoint = readHex()
                 if (codepoint in 0xD800..0xDBFF) {
@@ -848,6 +860,7 @@ class IdealJsonReader(
                 ensureScratch(scratchSize + 4)
                 Charset.encodeUtf8Inline(codepoint) { scratch[scratchSize++] = it }
             }
+
             else -> {
                 throw IllegalArgumentException("Invalid JSON escape")
             }

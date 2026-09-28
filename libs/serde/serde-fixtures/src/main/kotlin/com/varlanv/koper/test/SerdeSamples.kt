@@ -4,7 +4,6 @@ import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.ReadonlyBytes
 import com.varlanv.koper.lang.bin.kilobytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.Utf8Str
 import kotlin.reflect.KClass
 
@@ -20,13 +19,11 @@ private object SampleBuffer {
         Charset.Utf8.encodeInline(value) { put(it.toInt()) }
     }
 
-    fun result(): Utf8Str = Utf8Str(
-        Str(
-            ByteSlice(
-                bytes = ReadonlyBytes(bytes),
-                offset = 0,
-                len = size,
-            ),
+    fun result(): Utf8Str = Utf8Str.unsafeWrapBytes(
+        ByteSlice(
+            bytes = ReadonlyBytes(bytes),
+            offset = 0,
+            len = size,
         ),
     )
 
