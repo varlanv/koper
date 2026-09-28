@@ -8,7 +8,7 @@ class ByteSourceSpec : BaseSpec({
     should("read only the slice into the requested sink range") {
         val source = ByteArraySource(
             BytesSlice(
-                bytes = MutBytes(byteArrayOf(9, 1, 2, 3, 8)).readonly,
+                bytes = MutBytes(byteArrayOf(9, 1, 2, 3, 8)).asReadonly(),
                 offset = 1,
                 len = 3,
             ),
@@ -24,7 +24,7 @@ class ByteSourceSpec : BaseSpec({
     }
 
     should("allow empty slices and zero-length reads") {
-        val source = ByteArraySource(BytesSlice(bytes = MutBytes(byteArrayOf(1, 2)).readonly, offset = 2, len = 0))
+        val source = ByteArraySource(BytesSlice(bytes = MutBytes(byteArrayOf(1, 2)).asReadonly(), offset = 2, len = 0))
         source.readAtMostTo(
             sink = MutBytes(ByteArray(0)),
             offset = 0,
@@ -38,7 +38,7 @@ class ByteSourceSpec : BaseSpec({
     }
 
     should("reject invalid read ranges without consuming bytes") {
-        val source = ByteArraySource(BytesSlice(bytes = MutBytes(byteArrayOf(1, 2)).readonly, offset = 0, len = 2))
+        val source = ByteArraySource(BytesSlice(bytes = MutBytes(byteArrayOf(1, 2)).asReadonly(), offset = 0, len = 2))
         val sink = MutBytes(ByteArray(2))
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 2 to 1, Int.MAX_VALUE to Int.MAX_VALUE)) {
             shouldThrow<IndexOutOfBoundsException> {

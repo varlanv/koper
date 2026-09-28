@@ -45,7 +45,7 @@ private object VectorAsciiScan : AsciiScan, VectorApi {
         val bytes = MutBytes(ByteArray(species.length()) { 65 })
         val special = bytes.size / 2
         bytes[special] = 0x80.toByte()
-        return skipAscii(bytes = bytes.readonly, start = 0, end = bytes.size) == special
+        return skipAscii(bytes = bytes.asReadonly(), start = 0, end = bytes.size) == special
     }
 
     override fun skipAscii(

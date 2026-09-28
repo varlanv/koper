@@ -49,8 +49,8 @@ internal object VectorBytesHash : BytesHash, VectorApi {
 
     override fun smokeTest(): Boolean {
         val bytes = MutBytes(ByteArray(blockBytes * 2 + 5) { (it * 73 - 128).toByte() })
-        return hash(bytes = bytes.readonly, start = 1, end = bytes.size) ==
-            hashSwar(bytes = bytes.readonly, start = 1, end = bytes.size, initial = 1)
+        return hash(bytes = bytes.asReadonly(), start = 1, end = bytes.size) ==
+            hashSwar(bytes = bytes.asReadonly(), start = 1, end = bytes.size, initial = 1)
     }
 
     override fun hash(

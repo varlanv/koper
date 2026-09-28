@@ -15,8 +15,6 @@ actual value class MutBytes @PublishedApi internal actual constructor(
     actual val size: Int
         get() = impl.byteLength
 
-    actual val readonly: Bytes get() = Bytes(this)
-
     actual constructor(dataSize: DataSize) : this(DataView(buffer = ArrayBuffer(dataSize.bytes)))
     constructor(arrayBuffer: ArrayBuffer) : this(DataView(buffer = arrayBuffer))
 

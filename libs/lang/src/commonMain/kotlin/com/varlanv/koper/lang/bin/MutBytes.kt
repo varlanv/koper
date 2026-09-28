@@ -12,7 +12,6 @@ expect fun BytesImpl.size(): Int
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
 expect value class MutBytes @PublishedApi internal constructor(@PublishedApi internal val impl: BytesImpl) {
     val size: Int
-    val readonly: Bytes
 
     constructor(dataSize: DataSize)
 
@@ -58,4 +57,6 @@ expect value class MutBytes @PublishedApi internal constructor(@PublishedApi int
     }
 }
 
-fun MutBytes.asList(): List<Byte> = this.readonly.asList()
+fun MutBytes.asReadonly(): Bytes = Bytes(this)
+
+fun MutBytes.asList(): List<Byte> = this.asReadonly().asList()

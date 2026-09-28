@@ -5,21 +5,43 @@ class BytesSlice(
     val offset: Int,
     val len: Int,
 ) {
-    fun getPackedInt(idx: Int): Int = bytes.bytes.getPackedInt(idx)
+    init {
+        require(offset >= 0 && len >= 0 && offset <= bytes.size - len)
+    }
+
+    fun getPackedInt(idx: Int): Int {
+        require(idx >= offset && idx <= offset + len - Int.SIZE_BYTES)
+        return bytes.bytes.getPackedInt(idx)
+    }
+
+    fun getPackedLong(idx: Int): Long {
+        require(idx >= offset && idx <= offset + len - Long.SIZE_BYTES)
+        return bytes.bytes.getPackedLong(idx)
+    }
+
+    fun getPackedShort(idx: Int): Short {
+        require(idx >= offset && idx <= offset + len - Short.SIZE_BYTES)
+        return bytes.bytes.getPackedShort(idx)
+    }
 
     inline fun forEach(block: (Byte) -> Unit) {
-        for (idx in offset until offset + len) {
+        val limit = offset + len
+        for (idx in offset until limit) {
             block(bytes.bytes.impl[idx])
         }
     }
 
     inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) {
-        for (idx in offset until offset + len) {
+        val limit = offset + len
+        for (idx in offset until limit) {
             block(idx, bytes.bytes.impl[idx])
         }
     }
 
-    operator fun get(idx: Int): Byte = bytes.bytes[idx]
+    operator fun get(idx: Int): Byte {
+        require(idx >= offset && idx < offset + len)
+        return bytes.bytes[idx]
+    }
 
     override fun equals(other: Any?): Boolean =
         other is BytesSlice &&

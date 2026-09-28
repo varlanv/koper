@@ -20,8 +20,6 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 ) {
     actual val size: Int
         get() = impl.size
-    actual val readonly: Bytes
-        get() = Bytes(this)
 
     actual constructor(dataSize: DataSize) : this(ByteArray(dataSize.bytes))
 
@@ -55,9 +53,9 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         }
         val end = offset + length
         return if (VectorApi.enabled && length >= 128) {
-            BytesHash.target.hash(bytes = this.readonly, start = offset, end = end)
+            BytesHash.target.hash(bytes = this.asReadonly(), start = offset, end = end)
         } else {
-            hashSwar(bytes = this.readonly, start = offset, end = end, initial = 1)
+            hashSwar(bytes = this.asReadonly(), start = offset, end = end, initial = 1)
         }
     }
 

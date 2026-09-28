@@ -25,7 +25,7 @@ class ReusableByteArraySink(initialCapacity: DataSize) : ByteSink {
 
     /** Peek into readonly view of backing array without copying. */
     inline fun <R> useBytes(block: (bytes: Bytes, len: Int) -> R): R {
-        return block(bytes.readonly, position)
+        return block(bytes.asReadonly(), position)
     }
 
     override fun writeTo(

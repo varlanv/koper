@@ -30,7 +30,7 @@ expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
 
 fun Bytes.isEmpty(): Boolean = size == 0
 
-fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).readonly
+fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).asReadonly()
 
 fun ByteArray.asReadonly(): Bytes = Bytes(MutBytes(this))
 

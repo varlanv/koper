@@ -1,6 +1,7 @@
 package com.varlanv.koper.lang.math
 
 import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -126,7 +127,7 @@ class Dec64BehaviorSpec : BaseSpec({
                             }
                             bytes.decodeToString(2, end) shouldBe normalized
                             value.toString() shouldBe normalized
-                            Dec64.parseBytes(bytes = MutBytes(bytes).readonly, from = 2, to = end) shouldBe value
+                            Dec64.parseBytes(bytes = MutBytes(bytes).asReadonly(), from = 2, to = end) shouldBe value
                         }
                     }
                 }
@@ -137,10 +138,10 @@ class Dec64BehaviorSpec : BaseSpec({
             for (text in listOf("١", "１２", "1\u0000", "1\n", "1e++2", "+-1", "1e2e3")) {
                 shouldThrow<NumberFormatException> { dec(text) }
                 shouldThrow<NumberFormatException> {
-                    Dec64.parseBytes(bytes = MutBytes(text.encodeToByteArray()).readonly)
+                    Dec64.parseBytes(bytes = MutBytes(text.encodeToByteArray()).asReadonly())
                 }
             }
-            shouldThrow<NumberFormatException> { Dec64.parseBytes(bytes = MutBytes(byteArrayOf(-1)).readonly) }
+            shouldThrow<NumberFormatException> { Dec64.parseBytes(bytes = MutBytes(byteArrayOf(-1)).asReadonly()) }
         }
 
         should("format boundary values within MAX_CHARS") {
