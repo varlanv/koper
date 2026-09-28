@@ -59,11 +59,7 @@ actual fun Charset.allocateByteSlice(
 
 private fun encodeUtf8Native(selected: String): BytesSlice {
     val unsigned = utf8Encoder.encode(selected).unsafeCast<Uint8Array>()
-    val signed = Int8Array(
-        buffer = unsigned.buffer,
-        byteOffset = unsigned.byteOffset,
-        length = unsigned.byteLength,
-    )
+    val signed = Int8Array(buffer = unsigned.buffer, byteOffset = unsigned.byteOffset, length = unsigned.byteLength)
     return BytesSlice(
         bytes = Bytes(MutBytes(signed.buffer)),
         offset = 0,
@@ -125,11 +121,7 @@ private fun encodeUtf8(
         Charset.encodeUtf8Inline(cp) { result[position++] = it }
     }
 
-    return BytesSlice(
-        bytes = MutBytes(result).readonly,
-        offset = 0,
-        len = result.size,
-    )
+    return BytesSlice(bytes = MutBytes(result).readonly, offset = 0, len = result.size)
 }
 
 actual fun Charset.allocateString(

@@ -1,5 +1,7 @@
 package com.varlanv.koper.lang.text
 
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.validateUtf8
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
@@ -14,13 +16,13 @@ class Utf8ValidationSpec : BaseSpec({
             "\uD800\uDC00\uDBFF\uDFFF",
         )
         for (input in inputs) {
-            input.encodeToByteArray().validateUtf8() shouldBe true
+            input.encodeToByteArray().asBytes().validateUtf8() shouldBe true
         }
     }
 
     should("accept only ASCII as a single byte") {
         for (value in 0..255) {
-            byteArrayOf(value.toByte()).validateUtf8() shouldBe (value < 128)
+            byteArrayOf(value.toByte()).asBytes().validateUtf8() shouldBe (value < 128)
         }
     }
 
@@ -92,7 +94,7 @@ class Utf8ValidationSpec : BaseSpec({
             ),
         )
         for (input in inputs) {
-            input.map { it.toByte() }.toByteArray().validateUtf8() shouldBe false
+            input.map { it.toByte() }.toByteArray().asBytes().validateUtf8() shouldBe false
         }
     }
 
@@ -155,16 +157,16 @@ class Utf8ValidationSpec : BaseSpec({
         )
         for (sequence in sequences) {
             val valid = sequence.map { it.toByte() }.toByteArray()
-            valid.validateUtf8() shouldBe true
+            valid.asBytes().validateUtf8() shouldBe true
             for (length in 1 until valid.size) {
-                valid.copyOf(length).validateUtf8() shouldBe false
-                valid.validateUtf8(len = length) shouldBe false
+                valid.copyOf(length).asBytes().validateUtf8() shouldBe false
+                valid.asBytes().validateUtf8(len = length) shouldBe false
             }
             for (index in 1 until valid.size) {
                 for (replacement in listOf(0x00, 0x7F, 0xC0, 0xFF)) {
                     val invalid = valid.copyOf()
                     invalid[index] = replacement.toByte()
-                    invalid.validateUtf8() shouldBe false
+                    invalid.asBytes().validateUtf8() shouldBe false
                 }
             }
         }
@@ -173,12 +175,12 @@ class Utf8ValidationSpec : BaseSpec({
     should("validate only the requested slice") {
         val text = "é中🙂".encodeToByteArray()
         val bytes = byteArrayOf(0xFF.toByte()) + text + byteArrayOf(0xFF.toByte())
-        bytes.validateUtf8(offset = 1, len = text.size) shouldBe true
-        bytes.validateUtf8() shouldBe false
-        bytes.validateUtf8(offset = 2, len = text.size - 1) shouldBe false
-        bytes.validateUtf8(offset = bytes.size, len = 0) shouldBe true
-        bytes.validateUtf8(offset = 0, len = 0) shouldBe true
-        (byteArrayOf(0xFF.toByte()) + text).validateUtf8(offset = 1) shouldBe true
+        bytes.asBytes().validateUtf8(offset = 1, len = text.size) shouldBe true
+        bytes.asBytes().validateUtf8() shouldBe false
+        bytes.asBytes().validateUtf8(offset = 2, len = text.size - 1) shouldBe false
+        bytes.asBytes().validateUtf8(offset = bytes.size, len = 0) shouldBe true
+        bytes.asBytes().validateUtf8(offset = 0, len = 0) shouldBe true
+        (byteArrayOf(0xFF.toByte()) + text).asBytes().validateUtf8(offset = 1) shouldBe true
     }
 
     should("reject invalid ranges without overflow or exceptions") {
@@ -193,7 +195,9 @@ class Utf8ValidationSpec : BaseSpec({
             1 to Int.MAX_VALUE,
             Int.MAX_VALUE to Int.MAX_VALUE,
         )) {
-            bytes.validateUtf8(offset = offset, len = length) shouldBe false
+            bytes.asBytes().validateUtf8(offset = offset, len = length) shouldBe false
         }
     }
 })
+
+private fun ByteArray.asBytes(): Bytes = MutBytes(this).readonly

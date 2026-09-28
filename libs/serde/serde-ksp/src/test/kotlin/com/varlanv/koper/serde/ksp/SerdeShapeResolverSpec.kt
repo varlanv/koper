@@ -6,7 +6,8 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.serde.Ser
 import com.varlanv.koper.test.SerdeSamples
 import com.varlanv.koper.testing.BaseSpec
@@ -22,8 +23,8 @@ class SerdeShapeResolverSpec : BaseSpec({
             input.parentFile.mkdirs()
             input.outputStream().use { output ->
                 fun write(shape: SerdeSamples.Shape) {
-                    val source = SerdeSamples.buildSerdeSample(shape).bytes
-                    output.write(source.unsafeBorrowArray(), source.offset, source.len)
+                    val source = SerdeSamples.buildSerdeSample(shape).slice
+                    Bytes.unsafe { useInternal(source.bytes) { output.write(it, source.offset, source.len) } }
                 }
 
                 fun privateClass(
@@ -123,7 +124,7 @@ class SerdeShapeResolverSpec : BaseSpec({
             val version = "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}"
             val classpath = listOf(
                 Ser::class.java,
-                Utf8Str::class.java,
+                Str::class.java,
                 Unit::class.java,
             ).map { File(it.protectionDomain.codeSource.location.toURI()) }.distinct()
             val config = KSPJvmConfig

@@ -5,9 +5,9 @@ import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Str
-import org.openjdk.jmh.annotations.*
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
+import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])
@@ -105,8 +105,8 @@ class JsonStreamBenchmark {
         writer.reset(expectedOutput)
         JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
         writer.flush()
-        val bytes = expectedOutput.unsafeUseBytes { data, length -> data.copyOf(length) }
-        val arr = Bytes.unsafe { useInternal(Bytes(bytes)) {it} }
+        val bytes = expectedOutput.useBytes { data, length -> data.copyOf(length) }
+        val arr = Bytes.unsafe { useInternal(bytes) { it } }
         input = ByteArrayInputStream(arr)
         streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)

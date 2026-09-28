@@ -56,7 +56,9 @@ private object VectorAsciiScan : AsciiScan, VectorApi {
         var index = start
         val lanes = species.length()
         while (index <= end - lanes) {
-            val mask = ByteVector.fromArray(species, bytes.unsafeInternal, index).compare(VectorOperators.LT, 0.toByte())
+            val mask = ByteVector
+                .fromArray(species, bytes.unsafeInternal, index)
+                .compare(VectorOperators.LT, 0.toByte())
             if (mask.anyTrue()) {
                 return index + mask.firstTrue()
             }

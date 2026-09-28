@@ -202,7 +202,6 @@ object StrConverter {
         }
         if (slice.len > 0) {
             Bytes.unsafe { useInternal(bytes) { writer.writeRaw(it, slice.offset, slice.len) } }
-
         }
         writer.writeByte('"'.code.toByte())
     }

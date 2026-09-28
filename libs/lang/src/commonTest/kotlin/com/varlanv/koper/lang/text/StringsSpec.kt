@@ -1,9 +1,10 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.BytesSlice
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.validateUtf8
 import com.varlanv.koper.testing.BaseSpec
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 
 class StringsSpec : BaseSpec({
@@ -33,10 +34,10 @@ class StringsSpec : BaseSpec({
                 ),
             ),
         )) {
-            val str = input.allocateStr(charset)
-            str.bytes.offset shouldBe 0
-            str.bytes.len shouldBe bytes.size
-            str.bytes.allocateArray().toList() shouldBe bytes.toList()
+            val encoded = charset.allocateByteSlice(string = input)
+            val str = Str.wrapBytes(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len)
+            str.slice.len shouldBe bytes.size
+            str.slice.copyToArray().toList() shouldBe bytes.toList()
             str.allocateString(charset) shouldBe input
         }
     }
@@ -44,22 +45,20 @@ class StringsSpec : BaseSpec({
     should("decode exactly the selected slice with each charset") {
         for ((charset, input) in listOf(Charset.Utf8 to "é中🙂", Charset.Ascii to "hello", Charset.Latin1 to "éÿ")) {
             val payload = charset.allocateByteSlice(string = input)
-            val bytes = byteArrayOf(65, 66, 67) + payload.allocateArray() + byteArrayOf(68, 69, 70)
-            val slice = ByteSlice(
-                bytes = Bytes(bytes),
-                offset = 3,
-                len = payload.len,
-            )
-            charset.allocateString(bytes = slice.bytes.array, offset = slice.offset, len = slice.len) shouldBe input
-            Str(slice).allocateString(charset) shouldBe input
-            charset.allocateString(bytes = bytes, offset = bytes.size, len = 0) shouldBe ""
+            val bytes = byteArrayOf(65, 66, 67) + payload.copyToArray() + byteArrayOf(68, 69, 70)
+            val slice = BytesSlice(bytes = bytes.asBytes(), offset = 3, len = payload.len)
+            charset.allocateString(bytes = slice.bytes, offset = slice.offset, len = slice.len) shouldBe input
+            Str.wrapBytes(bytes = slice.bytes, offset = slice.offset, len = slice.len).allocateString(charset) shouldBe
+                input
+            charset.allocateString(bytes = bytes.asBytes(), offset = bytes.size, len = 0) shouldBe ""
         }
     }
 
     should("allocate empty strings in every charset") {
         for (charset in Charset.entries) {
-            val str = "".allocateStr(charset)
-            str.bytes.len shouldBe 0
+            val encoded = charset.allocateByteSlice(string = "")
+            val str = Str.wrapBytes(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len)
+            str.slice.len shouldBe 0
             str.allocateString(charset) shouldBe ""
         }
     }
@@ -68,7 +67,7 @@ class StringsSpec : BaseSpec({
         val payload = ByteArray(8193) { it.toByte() }
         val bytes = byteArrayOf(1, 2) + payload + byteArrayOf(3, 4)
         val expected = CharArray(payload.size) { (payload[it].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes = bytes, offset = 2, len = payload.size) shouldBe expected
+        Charset.Latin1.allocateString(bytes = bytes.asBytes(), offset = 2, len = payload.size) shouldBe expected
     }
 
     should("encode character ranges before converting them to bytes") {
@@ -78,10 +77,8 @@ class StringsSpec : BaseSpec({
                 for (end in start..input.length) {
                     val expected = mutableListOf<Byte>()
                     charset.encodeInline(input.substring(start, end)) { expected.add(it) }
-                    charset
-                        .allocateByteSlice(string = input, start = start, end = end)
-                        .allocateArray()
-                        .toList() shouldBe expected
+                    charset.allocateByteSlice(string = input, start = start, end = end).copyToArray().toList() shouldBe
+                        expected
                 }
             }
         }
@@ -89,44 +86,31 @@ class StringsSpec : BaseSpec({
 
     should("allocate UTF-8 strings from empty ASCII and multibyte input") {
         for (input in listOf("", "plain ASCII /", "é中🙂", "\u0000\u007F\u0080\u07FF\u0800\uFFFF")) {
-            val str = Utf8Str.allocateFromString(input)
-            str.bytes.allocateArray().toList() shouldBe input.encodeToByteArray().toList()
-            str.allocateString() shouldBe input
-            str.toString() shouldBe input
+            val str = Str.allocateFromString(input)
+            str.slice.copyToArray().toList() shouldBe input.encodeToByteArray().toList()
+            str.allocateString(Charset.Utf8) shouldBe input
         }
-        Utf8Str.empty.bytes.len shouldBe 0
-        Utf8Str.empty.allocateString() shouldBe ""
+        Str.empty.slice.len shouldBe 0
+        Str.empty.allocateString(Charset.Utf8) shouldBe ""
     }
 
     should("wrap an existing unvalidated slice without copying") {
-        val slice = ByteSlice(
-            bytes = Bytes(byteArrayOf(0xFF.toByte())),
-            offset = 0,
-            len = 1,
-        )
-        (Utf8Str.unsafeWrapBytes(slice).bytes === slice) shouldBe true
+        val slice = BytesSlice(bytes = byteArrayOf(0xFF.toByte()).asBytes(), offset = 0, len = 1)
+        val str = Str.wrapBytes(bytes = slice.bytes, offset = slice.offset, len = slice.len)
+        (str.slice.bytes == slice.bytes) shouldBe true
+        str.slice.offset shouldBe slice.offset
+        str.slice.len shouldBe slice.len
     }
 
     should("validate and retain the original UTF-8 slice") {
         val payload = "é中🙂".encodeToByteArray()
         val bytes = byteArrayOf(0xFF.toByte(), 0xFF.toByte()) + payload + byteArrayOf(0xFF.toByte())
-        val slice = ByteSlice(
-            bytes = Bytes(bytes),
-            offset = 2,
-            len = payload.size,
-        )
-        val str = Utf8Str(Str(slice))
-        (str.bytes === slice) shouldBe true
-        str.allocateString() shouldBe "é中🙂"
-        Utf8Str(
-            Str(
-                ByteSlice(
-                    bytes = Bytes(bytes),
-                    offset = bytes.size,
-                    len = 0,
-                ),
-            ),
-        ).allocateString() shouldBe ""
+        val slice = BytesSlice(bytes = bytes.asBytes(), offset = 2, len = payload.size)
+        slice.bytes.validateUtf8(offset = slice.offset, len = slice.len) shouldBe true
+        val str = Str.wrapBytes(bytes = slice.bytes, offset = slice.offset, len = slice.len)
+        (str.slice.bytes == slice.bytes) shouldBe true
+        str.allocateString(Charset.Utf8) shouldBe "é中🙂"
+        Str.wrapBytes(bytes = bytes.asBytes(), offset = bytes.size, len = 0).allocateString(Charset.Utf8) shouldBe ""
     }
 
     should("reject malformed UTF-8 and invalid slice bounds") {
@@ -147,24 +131,14 @@ class StringsSpec : BaseSpec({
                 0x80.toByte(),
             ),
         )) {
-            val slice = ByteSlice(
-                bytes = Bytes(bytes),
-                offset = 0,
-                len = bytes.size,
-            )
-            shouldThrow<IllegalStateException> {
-                Utf8Str(Str(slice))
-            }
+            bytes.asBytes().validateUtf8() shouldBe false
         }
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 1 to 2)) {
-            val slice = ByteSlice(
-                bytes = Bytes(byteArrayOf(65)),
-                offset = offset,
-                len = length,
-            )
-            shouldThrow<IllegalStateException> {
-                Utf8Str(Str(slice))
-            }
+            byteArrayOf(65).asBytes().validateUtf8(offset = offset, len = length) shouldBe false
         }
     }
 })
+
+private fun ByteArray.asBytes(): Bytes = MutBytes(this).readonly
+
+private fun BytesSlice.copyToArray(): ByteArray = ByteArray(len) { bytes[offset + it] }

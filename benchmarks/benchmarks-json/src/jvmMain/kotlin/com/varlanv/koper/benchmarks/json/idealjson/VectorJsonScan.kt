@@ -10,7 +10,7 @@ object VectorJsonScan {
     val laneCount: Int = species.length()
 
     fun specialMask(bytes: Bytes, start: Int): Long {
-        val vector = initVector(bytes, start)
+        val vector = initVector(bytes = bytes, start = start)
         return vector
             .compare(VectorOperators.EQ, 34.toByte())
             .or(vector.compare(VectorOperators.EQ, 92.toByte()))
@@ -26,7 +26,7 @@ object VectorJsonScan {
         var index = start
         val vectorEnd = end - laneCount
         while (index <= vectorEnd) {
-            val vector = initVector(bytes, index)
+            val vector = initVector(bytes = bytes, start = index)
             val special = vector
                 .compare(VectorOperators.EQ, 34.toByte())
                 .or(vector.compare(VectorOperators.EQ, 92.toByte()))
@@ -37,8 +37,9 @@ object VectorJsonScan {
             index += laneCount
         }
         if (swarEnabled) {
-            val vector =
-                Bytes.unsafe { useInternal(bytes) { SwarJsonScan.firstSpecial(bytes = it, start = index, end = end) } }
+            val vector = Bytes.unsafe {
+                useInternal(bytes) { SwarJsonScan.firstSpecial(bytes = it, start = index, end = end) }
+            }
         }
         while (index < end) {
             val byte = bytes[index].toInt() and 255
@@ -50,6 +51,8 @@ object VectorJsonScan {
         return end
     }
 
-    private fun initVector(bytes: Bytes, start: Int): ByteVector =
-        Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
+    private fun initVector(
+        bytes: Bytes,
+        start: Int,
+    ): ByteVector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
 }

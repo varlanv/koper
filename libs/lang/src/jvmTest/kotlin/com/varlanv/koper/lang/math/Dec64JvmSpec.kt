@@ -1,5 +1,6 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -75,7 +76,7 @@ class Dec64JvmSpec : BaseSpec({
                     }
                     withClue("form '$normalizedText' of ${bd.toPlainString()}") {
                         Dec64.parseString(string = normalizedText) shouldBe expected
-                        Dec64.parseBytes(bytes = normalizedText.encodeToByteArray()) shouldBe expected
+                        Dec64.parseBytes(bytes = normalizedText.encodeToByteArray().asReadonly()) shouldBe expected
                     }
                 }
             }
@@ -91,7 +92,10 @@ class Dec64JvmSpec : BaseSpec({
                     bd.toString()
                 }
                 expectOracle(expected = bd, clue = text) { Dec64.parseString(string = text) }
-                expectOracle(expected = bd, clue = text) { Dec64.parseBytes(bytes = text.encodeToByteArray()) }
+                expectOracle(
+                    expected = bd,
+                    clue = text,
+                ) { Dec64.parseBytes(bytes = text.encodeToByteArray().asReadonly()) }
             }
         }
     }

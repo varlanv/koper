@@ -28,7 +28,10 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
         val bytes = MutBytes((laneCount + 1).bytes()) { 65 }
         val special = laneCount / 2
         bytes[special + 1] = 34
-        return specialMask(bytes = Bytes(bytes), start = 1) == (1L shl special)
+        return specialMask(
+            bytes = Bytes(bytes),
+            start = 1,
+        ) == (1L shl special)
     }
 
     override fun specialMask(bytes: Bytes, start: Int): Long {

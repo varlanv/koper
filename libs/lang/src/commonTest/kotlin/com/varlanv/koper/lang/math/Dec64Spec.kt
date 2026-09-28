@@ -1,5 +1,6 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -126,7 +127,9 @@ class Dec64Spec : BaseSpec({
             )) {
                 withClue(bad) {
                     shouldThrow<NumberFormatException> { Dec64.parseString(string = bad) }
-                    shouldThrow<NumberFormatException> { Dec64.parseBytes(bytes = bad.encodeToByteArray()) }
+                    shouldThrow<NumberFormatException> {
+                        Dec64.parseBytes(bytes = bad.encodeToByteArray().asReadonly())
+                    }
                 }
             }
         }
@@ -145,7 +148,7 @@ class Dec64Spec : BaseSpec({
             )) {
                 withClue(bad) {
                     shouldThrow<ArithmeticException> { Dec64.parseString(string = bad) }
-                    shouldThrow<ArithmeticException> { Dec64.parseBytes(bytes = bad.encodeToByteArray()) }
+                    shouldThrow<ArithmeticException> { Dec64.parseBytes(bytes = bad.encodeToByteArray().asReadonly()) }
                 }
             }
         }
@@ -153,7 +156,8 @@ class Dec64Spec : BaseSpec({
         should("parse sub-ranges of strings and byte arrays") {
             val text = "xx-12.50yy"
             Dec64.parseString(string = text, from = 2, to = 8).toString() shouldBe "-12.5"
-            Dec64.parseBytes(bytes = text.encodeToByteArray(), from = 2, to = 8).toString() shouldBe "-12.5"
+            Dec64.parseBytes(bytes = text.encodeToByteArray().asReadonly(), from = 2, to = 8).toString() shouldBe
+                "-12.5"
             shouldThrow<NumberFormatException> { Dec64.parseString(string = text, from = 2, to = 9) }
             shouldThrow<NumberFormatException> { Dec64.parseString(string = text, from = 2, to = 2) }
             Dec64.parseString(string = "1.5", from = 0, to = 3) shouldBe dec("1.5")

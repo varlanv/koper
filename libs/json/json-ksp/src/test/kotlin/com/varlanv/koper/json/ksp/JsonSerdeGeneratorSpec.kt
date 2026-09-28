@@ -5,7 +5,7 @@ import com.google.devtools.ksp.processing.KSPJvmConfig
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.serde.Ser
 import com.varlanv.koper.serde.ksp.SerdeKspProcessorProvider
 import com.varlanv.koper.serde.ksp.serdeGeneratorsOption
@@ -43,7 +43,7 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             val version = "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}"
             val classpath = listOf(
                 Ser::class.java,
-                Utf8Str::class.java,
+                Str::class.java,
                 Unit::class.java,
             ).map { File(it.protectionDomain.codeSource.location.toURI()) }.distinct()
             val config = KSPJvmConfig

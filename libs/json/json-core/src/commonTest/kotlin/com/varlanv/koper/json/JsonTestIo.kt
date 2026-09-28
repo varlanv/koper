@@ -1,16 +1,15 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.ByteArraySource
-import com.varlanv.koper.lang.bin.ByteSlice
-import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.ReusableByteArraySink
+import com.varlanv.koper.lang.bin.*
 
 internal fun ByteArray.asByteSource(): ByteArraySource = ByteArraySource(
-    ByteSlice(
-        bytes = Bytes(this),
+    BytesSlice(
+        bytes = Bytes(MutBytes(this)),
         offset = 0,
         len = size,
     ),
 )
 
-internal fun ReusableByteArraySink.toByteArray(): ByteArray = unsafeUseBytes { bytes, length -> bytes.copyOf(length) }
+internal fun ReusableByteArraySink.toByteArray(): ByteArray = useBytes { bytes, length ->
+    ByteArray(length) { bytes[it] }
+}

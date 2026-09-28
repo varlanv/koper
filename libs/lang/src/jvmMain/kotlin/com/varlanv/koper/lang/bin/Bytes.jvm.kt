@@ -4,17 +4,20 @@ import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.intViewHandle
 import com.varlanv.koper.lang.longViewHandle
 import com.varlanv.koper.lang.shortViewHandle
-import jdk.incubator.vector.ByteVector
-import jdk.incubator.vector.IntVector
-import jdk.incubator.vector.VectorOperators
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
+import jdk.incubator.vector.ByteVector
+import jdk.incubator.vector.IntVector
+import jdk.incubator.vector.VectorOperators
 
-@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
-internal actual typealias BytesImpl = ByteArray
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"]) internal actual typealias BytesImpl = ByteArray
 
 actual fun BytesImpl.size(): Int = size
+
+actual operator fun BytesImpl.get(idx: Int): Byte = get(idx)
+
+actual operator fun BytesImpl.set(idx: Int, value: Byte) = set(idx, value)
 
 @JvmInline
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
@@ -58,9 +61,9 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         }
         val end = offset + length
         return if (VectorApi.enabled && length >= 128) {
-            BytesHash.target.hash(this.readonly, offset, end)
+            BytesHash.target.hash(bytes = this.readonly, start = offset, end = end)
         } else {
-            hashSwar(this.readonly, offset, end, 1)
+            hashSwar(bytes = this.readonly, start = offset, end = end, initial = 1)
         }
     }
 
@@ -68,7 +71,12 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
     actual inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) = impl.forEachIndexed(block)
 
-    actual fun copyInto(destination: MutBytes, destinationOffset: Int, startIndex: Int, endIndex: Int) {
+    actual fun copyInto(
+        destination: MutBytes,
+        destinationOffset: Int,
+        startIndex: Int,
+        endIndex: Int,
+    ) {
         require(startIndex <= endIndex)
         System.arraycopy(impl, startIndex, destination.impl, destinationOffset, endIndex - startIndex)
     }
@@ -78,7 +86,6 @@ actual value class MutBytes @PublishedApi internal actual constructor(
     actual fun copyOfRange(from: Int, to: Int): MutBytes = MutBytes(impl.copyOfRange(from, to))
 
     actual companion object {
-
         actual val empty: MutBytes = MutBytes(ByteArray(0))
 
         actual inline operator fun invoke(dataSize: DataSize, init: (idx: Int) -> Byte): MutBytes {
@@ -95,7 +102,11 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 }
 
 private sealed interface BytesHash {
-    fun hash(bytes: Bytes, start: Int, end: Int): Int
+    fun hash(
+        bytes: Bytes,
+        start: Int,
+        end: Int,
+    ): Int
 
     companion object {
         val target: BytesHash = VectorApi.tryLoad { VectorBytesHash } ?: ScalarBytesHash
@@ -133,10 +144,15 @@ private object VectorBytesHash : BytesHash, VectorApi {
 
     override fun smokeTest(): Boolean {
         val bytes = MutBytes(ByteArray(blockBytes * 2 + 5) { (it * 73 - 128).toByte() })
-        return hash(bytes.readonly, 1, bytes.size) == hashSwar(bytes.readonly, 1, bytes.size, 1)
+        return hash(bytes = bytes.readonly, start = 1, end = bytes.size) ==
+            hashSwar(bytes = bytes.readonly, start = 1, end = bytes.size, initial = 1)
     }
 
-    override fun hash(bytes: Bytes, start: Int, end: Int): Int {
+    override fun hash(
+        bytes: Bytes,
+        start: Int,
+        end: Int,
+    ): Int {
         var result = 1
         var index = start
         while (index <= end - blockBytes) {
@@ -146,21 +162,30 @@ private object VectorBytesHash : BytesHash, VectorApi {
             val part2 = vector.convert(VectorOperators.B2I, 2) as IntVector
             val part3 = vector.convert(VectorOperators.B2I, 3) as IntVector
             val weighted = part0.mul(weights0).reduceLanes(VectorOperators.ADD) +
-                    part1.mul(weights1).reduceLanes(VectorOperators.ADD) +
-                    part2.mul(weights2).reduceLanes(VectorOperators.ADD) +
-                    part3.mul(weights3).reduceLanes(VectorOperators.ADD)
+                part1.mul(weights1).reduceLanes(VectorOperators.ADD) +
+                part2.mul(weights2).reduceLanes(VectorOperators.ADD) +
+                part3.mul(weights3).reduceLanes(VectorOperators.ADD)
             result = blockMultiplier * result + weighted
             index += blockBytes
         }
-        return hashSwar(bytes, index, end, result)
+        return hashSwar(bytes = bytes, start = index, end = end, initial = result)
     }
 }
 
 private object ScalarBytesHash : BytesHash {
-    override fun hash(bytes: Bytes, start: Int, end: Int): Int = hashSwar(bytes, start, end, 1)
+    override fun hash(
+        bytes: Bytes,
+        start: Int,
+        end: Int,
+    ): Int = hashSwar(bytes = bytes, start = start, end = end, initial = 1)
 }
 
-private fun hashSwar(bytes: Bytes, start: Int, end: Int, initial: Int): Int {
+private fun hashSwar(
+    bytes: Bytes,
+    start: Int,
+    end: Int,
+    initial: Int,
+): Int {
     var result = initial
     var index = start
     while (index <= end - Long.SIZE_BYTES) {
@@ -190,7 +215,6 @@ actual fun Bytes.mismatch(
     bToIndex: Int,
 ): Int = Arrays.mismatch(this.bytes.impl, aFromIndex, aToIndex, b.bytes.impl, bFromIndex, bToIndex)
 
-
 /** Adapts [ins] to a [ByteSource]. */
 class InputStreamByteSource(val ins: InputStream) : ByteSource {
     override fun readAtMostTo(
@@ -216,7 +240,6 @@ class OutputStreamByteSink(val outs: OutputStream) : ByteSink {
 @JvmInline
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual value class Bytes actual constructor(@PublishedApi internal actual val bytes: MutBytes) {
-
     actual val size: Int
         get() = bytes.size
 
@@ -228,8 +251,13 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         destination: MutBytes,
         destinationOffset: Int,
         startIndex: Int,
-        endIndex: Int
-    ) = bytes.copyInto(destination, destinationOffset, startIndex, endIndex)
+        endIndex: Int,
+    ) = bytes.copyInto(
+        destination = destination,
+        destinationOffset = destinationOffset,
+        startIndex = startIndex,
+        endIndex = endIndex,
+    )
 
     inline fun forEachIndex(block: (idx: Int) -> Unit) {
         for (idx in 0 until bytes.impl.size) {
@@ -237,8 +265,9 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         }
     }
 
-    class Unsafe internal constructor() {
+    actual fun asList(): List<Byte> = bytes.impl.asList()
 
+    class Unsafe internal constructor() {
         inline fun <R> useInternal(bytes: Bytes, block: (ByteArray) -> R): R {
             return block(bytes.bytes.impl)
         }
@@ -248,13 +277,17 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         }
     }
 
-
     actual companion object {
         @PublishedApi
         internal val unsafe: Unsafe = Unsafe()
 
         actual val empty: Bytes = Bytes(MutBytes.empty)
 
+        /**
+         * Provides unsafe [Bytes] operations.
+         * The caller is responsible for ensuring invariants are preserved and guaranteeing thread safety.
+         * Turning [Bytes] into invalid state via usage of [unsafe] results in undefined behavior.
+         */
         inline fun <R> unsafe(block: Unsafe.() -> R): R {
             return block(unsafe)
         }

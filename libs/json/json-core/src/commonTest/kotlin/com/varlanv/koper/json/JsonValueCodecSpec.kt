@@ -1,7 +1,8 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -14,7 +15,7 @@ class JsonValueCodecSpec : BaseSpec({
         expectedJson: String,
         reserveFromHints: Boolean = true,
     ) {
-        val output = ReusableByteArraySink(512)
+        val output = ReusableByteArraySink(512.bytes())
         val writer = JsonWriteProtocol()
         writer.reset(output)
         if (reserveFromHints) {
@@ -62,7 +63,7 @@ class JsonValueCodecSpec : BaseSpec({
         roundTrip(
             writerCodec = StrJsonCodec,
             readerCodec = StrJsonCodec,
-            value = Utf8Str.allocateFromString("é\n"),
+            value = Str.allocateFromString("é\n"),
             expectedJson = "\"é\\n\"",
         )
     }
@@ -162,7 +163,7 @@ class JsonValueCodecSpec : BaseSpec({
             longValue = Long.MIN_VALUE,
             booleanValue = true,
             stringValue = "é\n",
-            strValue = Utf8Str.allocateFromString(longUtf8),
+            strValue = Str.allocateFromString(longUtf8),
         )
         val expectedJson =
             "{\"intValue\":-2147483648,\"longValue\":-9223372036854775808," +

@@ -62,7 +62,12 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                 return
             }
         }
-        bytes.copyInto(buffer, position, offset, offset + length)
+        bytes.copyInto(
+            destination = buffer,
+            destinationOffset = position,
+            startIndex = offset,
+            endIndex = offset + length,
+        )
         position += length
     }
 
@@ -293,7 +298,12 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         while (index < end) {
             val b = bytes[index].toInt() and 0xFF
             if (b == '"'.code || b == '\\'.code || b < 0x20) {
-                bytes.copyInto(buffer, position, slice.offset, index)
+                bytes.copyInto(
+                    destination = buffer,
+                    destinationOffset = position,
+                    startIndex = slice.offset,
+                    endIndex = index,
+                )
                 position += index - slice.offset
                 position = writeEscapedRange(bytes = bytes, start = index, end = end, targetStart = position)
                 buffer[position++] = '"'.code.toByte()
@@ -301,7 +311,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             }
             index++
         }
-        bytes.copyInto(buffer, position, slice.offset, end)
+        bytes.copyInto(destination = buffer, destinationOffset = position, startIndex = slice.offset, endIndex = end)
         position += slice.len
         buffer[position++] = '"'.code.toByte()
     }
@@ -430,7 +440,12 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                             val word = longView.get(bytes, index) as Long
                             longView.set(target, offset, word)
                         } else {
-                            bytes.copyInto(target, offset, index, special)
+                            bytes.copyInto(
+                                destination = target,
+                                destinationOffset = offset,
+                                startIndex = index,
+                                endIndex = special,
+                            )
                         }
                         offset += length
                     }
@@ -446,7 +461,12 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                     events = events and (events - 1)
                 }
                 if (index < blockEnd) {
-                    bytes.copyInto(target, offset, index, blockEnd)
+                    bytes.copyInto(
+                        destination = target,
+                        destinationOffset = offset,
+                        startIndex = index,
+                        endIndex = blockEnd,
+                    )
                     offset += blockEnd - index
                 }
                 index = blockEnd

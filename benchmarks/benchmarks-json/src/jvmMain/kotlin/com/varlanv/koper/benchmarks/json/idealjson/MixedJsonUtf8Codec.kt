@@ -6,7 +6,6 @@ import com.varlanv.koper.lang.text.Str
 import java.io.InputStream
 import java.io.OutputStream
 
-
 object MixedJsonUtf8Codec {
     private val readers = ThreadLocal.withInitial { IdealJsonReader() }
     private val writers = ThreadLocal.withInitial { IdealJsonWriter() }

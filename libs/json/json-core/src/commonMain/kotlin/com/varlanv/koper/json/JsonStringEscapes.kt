@@ -53,25 +53,35 @@ internal object JsonStringEscapes {
                     val length = special - index
                     if (length <= 8 && index <= bytes.size - 8) {
                         val word = bytes.getPackedJsonLong(index)
-                        target.setPackedLong(offset, value = word)
+                        target.setPackedLong(idx = offset, value = word)
                     } else {
-                        bytes.copyInto(target, offset, index, special)
+                        bytes.copyInto(
+                            destination = target,
+                            destinationOffset = offset,
+                            startIndex = index,
+                            endIndex = special,
+                        )
                     }
                     offset += length
                 }
                 val value = bytes[special].toInt() and 255
                 val escaped = escapePairs[value]
-                target.setPackedShort(offset, escaped)
+                target.setPackedShort(idx = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    target.setPackedInt(offset, unicodeTails[value])
+                    target.setPackedInt(idx = offset, value = unicodeTails[value])
                     offset += 4
                 }
                 index = special + 1
                 events = events and (events - 1)
             }
             if (index < blockEnd) {
-                bytes.copyInto(target, offset, index, blockEnd)
+                bytes.copyInto(
+                    destination = target,
+                    destinationOffset = offset,
+                    startIndex = index,
+                    endIndex = blockEnd,
+                )
                 offset += blockEnd - index
             }
             index = blockEnd
@@ -80,10 +90,10 @@ internal object JsonStringEscapes {
             val value = bytes[index++].toInt() and 255
             val escaped = escapePairs[value]
             if (escaped.toInt() != 0) {
-                target.setPackedShort(offset, escaped)
+                target.setPackedShort(idx = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    target.setPackedInt(offset, unicodeTails[value])
+                    target.setPackedInt(idx = offset, value = unicodeTails[value])
                     offset += 4
                 }
             } else {

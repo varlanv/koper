@@ -1,7 +1,7 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Charset
 
@@ -20,7 +20,11 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         require(reader.token == 34) { "Expected JSON string" }
         val start = reader.position
         var index = if (vectorized) {
-            scan.firstSpecial(bytes = Bytes(reader.buffer), start = start, end = reader.limit)
+            scan.firstSpecial(
+                bytes = Bytes(reader.buffer),
+                start = start,
+                end = reader.limit,
+            )
         } else {
             start
         }
@@ -40,7 +44,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         }
         scratchSize = index - start
         ensureScratch(scratchSize)
-        reader.buffer.copyInto(scratch, 0, start, index)
+        reader.buffer.copyInto(destination = scratch, destinationOffset = 0, startIndex = start, endIndex = index)
         reader.position = index
         if (index == reader.limit || !readBufferedEscapes(reader)) {
             readStringToScratch(reader = reader, clear = false)
@@ -74,7 +78,10 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         scan@ while (reader.limit - index >= width) {
             val start = index
             val end = start + width
-            var events = scan.specialMask(bytes = Bytes(reader.buffer), start = start)
+            var events = scan.specialMask(
+                bytes = Bytes(reader.buffer),
+                start = start,
+            )
             while (events != 0L) {
                 val special = start + events.countTrailingZeroBits()
                 if (special > index) {
@@ -153,9 +160,9 @@ internal class JsonStringScanner(val vectorized: Boolean) {
     ) {
         if (end - start <= 8 && start <= reader.buffer.size - 8 && offset <= output.size - 8) {
             val word = reader.buffer.getPackedLong(start)
-            output.setPackedLong(offset, word)
+            output.setPackedLong(idx = offset, value = word)
         } else {
-            reader.buffer.copyInto(output, offset, start, end)
+            reader.buffer.copyInto(destination = output, destinationOffset = offset, startIndex = start, endIndex = end)
         }
     }
 
@@ -230,7 +237,11 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         while (true) {
             val start = reader.position
             var end = if (vectorized) {
-                scan.firstSpecial(bytes = Bytes(reader.buffer), start = start, end = reader.limit)
+                scan.firstSpecial(
+                    bytes = Bytes(reader.buffer),
+                    start = start,
+                    end = reader.limit,
+                )
             } else {
                 start
             }
@@ -244,7 +255,12 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             if (end > start) {
                 val size = end - start
                 ensureScratch(scratchSize + size)
-                reader.buffer.copyInto(scratch, scratchSize, start, end)
+                reader.buffer.copyInto(
+                    destination = scratch,
+                    destinationOffset = scratchSize,
+                    startIndex = start,
+                    endIndex = end,
+                )
                 scratchSize += size
                 reader.position = end
             }
@@ -306,9 +322,9 @@ internal class JsonStringScanner(val vectorized: Boolean) {
 
     private fun readHexAt(reader: JsonReadProtocol, index: Int): Int {
         return (hexDigit(reader.buffer[index].toInt() and 255) shl 12) or
-                (hexDigit(reader.buffer[index + 1].toInt() and 255) shl 8) or
-                (hexDigit(reader.buffer[index + 2].toInt() and 255) shl 4) or
-                hexDigit(reader.buffer[index + 3].toInt() and 255)
+            (hexDigit(reader.buffer[index + 1].toInt() and 255) shl 8) or
+            (hexDigit(reader.buffer[index + 2].toInt() and 255) shl 4) or
+            hexDigit(reader.buffer[index + 3].toInt() and 255)
     }
 
     private fun hexDigit(value: Int): Int {

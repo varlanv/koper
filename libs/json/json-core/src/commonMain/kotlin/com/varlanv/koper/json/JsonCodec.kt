@@ -1,7 +1,7 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.allocateString
@@ -77,7 +77,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[quotient * 1000 - number]
             index -= 3
-            output.setPackedShort(index, digits.toShort())
+            output.setPackedShort(idx = index, value = digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -113,7 +113,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[(quotient * 1000 - number).toInt()]
             index -= 3
-            output.setPackedShort(index, digits.toShort())
+            output.setPackedShort(idx = index, value = digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -288,10 +288,10 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 if (pair.toInt() == 0) {
                     output[position++] = char.toByte()
                 } else {
-                    output.setPackedShort(position, pair)
+                    output.setPackedShort(idx = position, value = pair)
                     position += 2
                     if (pair == JsonStringEscapes.unicodePair) {
-                        output.setPackedInt(position, JsonStringEscapes.unicodeTails[char])
+                        output.setPackedInt(idx = position, value = JsonStringEscapes.unicodeTails[char])
                         position += 4
                     }
                 }
@@ -319,7 +319,11 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     override fun read(reader: JsonReadProtocol): String {
         val scanner = reader.stringScanner
         scanner.read(reader)
-        return Charset.Utf8.allocateString(bytes = Bytes(scanner.bytes), offset = scanner.offset, len = scanner.length)
+        return Charset.Utf8.allocateString(
+            bytes = Bytes(scanner.bytes),
+            offset = scanner.offset,
+            len = scanner.length,
+        )
     }
 }
 
@@ -342,7 +346,12 @@ object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
         val output = writer.buffer
         var position = writer.position
         output[position++] = '"'.code.toByte()
-        input.copyInto(output, position, slice.offset, special)
+        input.copyInto(
+            destination = output,
+            destinationOffset = position,
+            startIndex = slice.offset,
+            endIndex = special,
+        )
         position += special - slice.offset
         if (special < end) {
             position =
@@ -364,11 +373,11 @@ object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
         if (scanner.length == 0) {
             return Str.empty
         }
-        val bytes = scanner.bytes.copyOfRange(scanner.offset, scanner.offset + scanner.length)
+        val bytes = scanner.bytes.copyOfRange(from = scanner.offset, to = scanner.offset + scanner.length)
         return Str.wrapBytes(
-                 Bytes(bytes),
-                 0,
-                 bytes.size,
+            bytes = Bytes(bytes),
+            offset = 0,
+            len = bytes.size,
         )
     }
 }

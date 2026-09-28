@@ -48,11 +48,11 @@ object SerdeSamples {
         val property: Property = Property.VAL,
     ) {
         constructor(name: String, type: KClass<*>, property: Property = Property.VAL) :
-                this(
-                    name,
-                    requireNotNull(type.qualifiedName) { "Fixture type must have a qualified name" },
-                    property,
-                )
+        this(
+            name,
+            requireNotNull(type.qualifiedName) { "Fixture type must have a qualified name" },
+            property,
+        )
     }
 
     data class CompanionInvoke(
@@ -233,8 +233,8 @@ object SerdeSamples {
         if (shape.kind == Kind.OBJECT || shape.kind == Kind.DATA_OBJECT) {
             require(
                 shape.parameters.isEmpty() &&
-                        shape.constructorVisibility == Visibility.PUBLIC &&
-                        shape.companionInvoke == null,
+                    shape.constructorVisibility == Visibility.PUBLIC &&
+                    shape.companionInvoke == null,
             ) {
                 "Object fixtures cannot have constructor parameters, constructor visibility, or a companion invoke"
             }
@@ -256,7 +256,7 @@ object SerdeSamples {
             }
             require(
                 invoke.parameters == null ||
-                        invoke.parameters.map { it.name }.distinct().size == invoke.parameters.size,
+                    invoke.parameters.map { it.name }.distinct().size == invoke.parameters.size,
             ) {
                 "Companion invoke parameter names must be unique"
             }
@@ -320,9 +320,9 @@ object SerdeSamples {
         SampleBuffer.append(invoke.returnType ?: shape.name)
         SampleBuffer.append(" = ")
         val matchingParameters = invokeParameters.size == shape.parameters.size &&
-                shape.parameters.all { constructorParameter ->
-                    invokeParameters.any { it.name == constructorParameter.name && it.type == constructorParameter.type }
-                }
+            shape.parameters.all { constructorParameter ->
+                invokeParameters.any { it.name == constructorParameter.name && it.type == constructorParameter.type }
+            }
         if ((invoke.returnType == null || invoke.returnType == shape.name) && matchingParameters) {
             SampleBuffer.append(shape.name)
             SampleBuffer.append("(")

@@ -52,7 +52,7 @@ class SerdeSamplesSpec : BaseSpec({
     should("vary only requested matrix options and reuse the byte buffer") {
         val shapes = mutableListOf<SerdeSamples.Shape>()
         val sources = mutableListOf<String>()
-        val buffers = mutableSetOf<Bytes>()
+        val buffers = mutableSetOf<ByteArray>()
 
         SerdeSamples.buildSerdeSamplesMatrix(
             types = setOf(
@@ -77,7 +77,7 @@ class SerdeSamplesSpec : BaseSpec({
         ) { shape, source ->
             shapes += shape
             sources += source.allocateString(Charset.Utf8)
-            buffers += source.slice.bytes
+            buffers += Bytes.unsafe { useInternal(source.slice.bytes) { it } }
         }
 
         shapes.size shouldBe 16
@@ -105,7 +105,8 @@ class SerdeSamplesSpec : BaseSpec({
 
         SerdeSamples
             .buildSerdeSample(SerdeSamples.Shape(name = "Small", kind = SerdeSamples.Kind.OBJECT))
-            .allocateString(Charset.Utf8) shouldBe "@com.varlanv.koper.serde.Ser\n@com.varlanv.koper.serde.De\nobject Small\n"
+            .allocateString(Charset.Utf8) shouldBe
+            "@com.varlanv.koper.serde.Ser\n@com.varlanv.koper.serde.De\nobject Small\n"
 
         SerdeSamples
             .buildSerdeSample(

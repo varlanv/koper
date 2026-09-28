@@ -1,8 +1,8 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.BytesSlice
+import com.varlanv.koper.lang.bin.MutBytes
 
 actual fun Charset.allocateString(
     bytes: Bytes,

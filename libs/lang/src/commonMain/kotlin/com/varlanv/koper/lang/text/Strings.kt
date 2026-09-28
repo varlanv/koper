@@ -11,7 +11,6 @@ import kotlin.jvm.JvmInline
  */
 @JvmInline
 value class Str private constructor(val slice: BytesSlice) {
-
     val len: Int get() = slice.len
 
     fun asCharSequence(
@@ -25,7 +24,9 @@ value class Str private constructor(val slice: BytesSlice) {
     )
     override fun toString(): String = super.toString()
 
-    fun allocateString(charset: Charset): String = charset.allocateString(slice.bytes)
+    fun allocateString(
+        charset: Charset,
+    ): String = charset.allocateString(bytes = slice.bytes, offset = slice.offset, len = slice.len)
 
     // Todo - implement efficient view on parent that will not allocate and don't do extra iteration
     private class CharSeq(
@@ -33,7 +34,6 @@ value class Str private constructor(val slice: BytesSlice) {
         private val offset: Int,
         private val size: Int,
     ) : CharSequence {
-
         override val length: Int
             get() {
                 // todo implement it; maybe cache result?
@@ -72,7 +72,7 @@ value class Str private constructor(val slice: BytesSlice) {
         /**
          * Provides unsafe [Str] operations.
          * The caller is responsible for ensuring invariants are preserved and guaranteeing thread safety.
-         * Turning [Str] into invalid state via usage os [unsafe] results in undefined behavior.
+         * Turning [Str] into invalid state via usage of [unsafe] results in undefined behavior.
          */
         inline fun unsafe(block: Unsafe.() -> Unit) {
             block(unsafeInstance)
@@ -89,7 +89,13 @@ value class Str private constructor(val slice: BytesSlice) {
                 return empty
             }
             val arr = string.encodeToByteArray()
-            return Str(BytesSlice(bytes = Bytes(MutBytes(arr)), offset = 0, len = arr.size))
+            return Str(
+                BytesSlice(
+                    bytes = Bytes(MutBytes(arr)),
+                    offset = 0,
+                    len = arr.size,
+                ),
+            )
         }
     }
 

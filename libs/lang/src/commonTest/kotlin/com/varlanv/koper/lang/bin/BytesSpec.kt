@@ -6,19 +6,19 @@ import io.kotest.matchers.equals.shouldEqual
 class BytesSpec : BaseSpec({
 
     should("create empty bytes with empty size") {
-        val subject = MutBytes(0)
+        val subject = MutBytes(0.bytes())
 
         subject.size shouldEqual 0
     }
 
     should("create non-empty bytes with correct size") {
-        val subject = MutBytes(10)
+        val subject = MutBytes(10.bytes())
 
         subject.size shouldEqual 10
     }
 
     should("set and get value") {
-        val subject = MutBytes(10)
+        val subject = MutBytes(10.bytes())
 
         subject[0] = 20
 
@@ -29,7 +29,7 @@ class BytesSpec : BaseSpec({
     }
 
     should("set and get int value") {
-        val subject = MutBytes(10)
+        val subject = MutBytes(10.bytes())
 
         subject.setPackedInt(idx = 0, value = 1_000_000)
 

@@ -55,7 +55,11 @@ class IdealJsonReader(
         require(last == 34) { "Expected JSON string" }
         val start = position
         var index = if (vectorized) {
-            VectorJsonScan.firstSpecial(bytes = Bytes(buffer), start = start, end = limit)
+            VectorJsonScan.firstSpecial(
+                bytes = Bytes(buffer),
+                start = start,
+                end = limit,
+            )
         } else {
             start
         }
@@ -66,7 +70,7 @@ class IdealJsonReader(
                 if (index == start) {
                     return Str.empty
                 }
-                val bytes = buffer.copyOfRange(start, index)
+                val bytes = buffer.copyOfRange(from = start, to = index)
                 return Str.wrapBytes(
                     bytes = Bytes(bytes),
                     offset = 0,
@@ -80,7 +84,7 @@ class IdealJsonReader(
         }
         scratchSize = index - start
         ensureScratch(scratchSize)
-        buffer.copyInto(scratch, 0, start, index)
+        buffer.copyInto(destination = scratch, destinationOffset = 0, startIndex = start, endIndex = index)
         position = index
         if (index == limit || !readBufferedEscapes()) {
             readStringToScratch(false)
@@ -107,12 +111,7 @@ class IdealJsonReader(
                 position = index + 1
                 return Bytes.unsafe {
                     useInternal(buffer.readonly) {
-                        String(
-                            it,
-                            start,
-                            index - start,
-                            Charsets.UTF_8
-                        )
+                        String(it, start, index - start, Charsets.UTF_8)
                     }
                 }
             }
@@ -123,7 +122,7 @@ class IdealJsonReader(
         }
         scratchSize = index - start
         ensureScratch(scratchSize)
-        buffer.copyInto(scratch, 0, start, index)
+        buffer.copyInto(destination = scratch, destinationOffset = 0, startIndex = start, endIndex = index)
         position = index
         if (index == limit || !readBufferedEscapes()) {
             readStringToScratch(false)
@@ -481,12 +480,12 @@ class IdealJsonReader(
 
     fun readBooleanReserved(): Boolean {
         if (!ensureAvailable(
-                if (last == 116) {
-                    4
-                } else {
-                    5
-                },
-            )
+            if (last == 116) {
+                4
+            } else {
+                5
+            },
+        )
         ) {
             return readBoolean()
         }
@@ -620,13 +619,13 @@ class IdealJsonReader(
     private fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
-                    value == 32 ||
-                    value == 9 ||
-                    value == 10 ||
-                    value == 13 ||
-                    value == 44 ||
-                    value == 93 ||
-                    value == 125,
+                value == 32 ||
+                value == 9 ||
+                value == 10 ||
+                value == 13 ||
+                value == 44 ||
+                value == 93 ||
+                value == 125,
         ) { "Invalid JSON value suffix" }
     }
 
@@ -727,7 +726,7 @@ class IdealJsonReader(
             val word = longView.get(buffer, start) as Long
             longView.set(output, offset, word)
         } else {
-            buffer.copyInto(output, offset, start, end)
+            buffer.copyInto(destination = output, destinationOffset = offset, startIndex = start, endIndex = end)
         }
     }
 
@@ -813,7 +812,12 @@ class IdealJsonReader(
             if (end > start) {
                 val size = end - start
                 ensureScratch(scratchSize + size)
-                buffer.copyInto(scratch, scratchSize, start, end)
+                buffer.copyInto(
+                    destination = scratch,
+                    destinationOffset = scratchSize,
+                    startIndex = start,
+                    endIndex = end,
+                )
                 scratchSize += size
                 position = end
             }
@@ -875,9 +879,9 @@ class IdealJsonReader(
 
     private fun readHexAt(index: Int): Int {
         return (hexDigit(buffer[index].toInt() and 255) shl 12) or
-                (hexDigit(buffer[index + 1].toInt() and 255) shl 8) or
-                (hexDigit(buffer[index + 2].toInt() and 255) shl 4) or
-                hexDigit(buffer[index + 3].toInt() and 255)
+            (hexDigit(buffer[index + 1].toInt() and 255) shl 8) or
+            (hexDigit(buffer[index + 2].toInt() and 255) shl 4) or
+            hexDigit(buffer[index + 3].toInt() and 255)
     }
 
     private fun hexDigit(value: Int): Int {
@@ -931,7 +935,7 @@ class IdealJsonReader(
         }
         val remaining = limit - position
         if (remaining != 0) {
-            buffer.copyInto(buffer, 0, position, limit)
+            buffer.copyInto(destination = buffer, destinationOffset = 0, startIndex = position, endIndex = limit)
         }
         position = 0
         limit = remaining

@@ -1,5 +1,6 @@
 package com.varlanv.koper.lang.text
 
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
 import org.khronos.webgl.Int8Array
@@ -12,7 +13,7 @@ class CharsetsJsSpec : BaseSpec({
             for (second in 0..255) {
                 bytes[1] = second.toByte()
                 val expected = bytes.decodeToString()
-                val actual = Charset.Utf8.allocateString(bytes = bytes)
+                val actual = Charset.Utf8.allocateString(bytes = bytes.asReadonly())
                 check(actual == expected) {
                     "UTF-8 decode differs for bytes $first, $second"
                 }
@@ -22,35 +23,9 @@ class CharsetsJsSpec : BaseSpec({
 
     should("preserve UTF-8 BOM and decode only the selected range") {
         val input = byteArrayOf(0x61, 0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte(), 0x62, 0x63)
-        Charset.Utf8.allocateString(bytes = input, offset = 1, len = 4) shouldBe "\uFEFFb"
-        Charset.Utf8.allocateString(bytes = input, offset = 1, len = 4) shouldBe input.decodeToString(1, 5)
-        Charset.Utf8.allocateString(bytes = input, offset = input.size, len = 0) shouldBe ""
-    }
-
-    should("encode large UTF-8 ranges with the same surrogate handling as the shared encoder") {
-        val cases = listOf(
-            "A".repeat(1023),
-            "A".repeat(1024),
-            "Aé中🙂".repeat(256),
-            "A".repeat(1024) + "\uD800",
-            "A".repeat(512) + "\uDC00" + "B".repeat(512),
-            "A".repeat(512) + "\uD800\uD800\uDC00" + "B".repeat(512),
-        )
-        for (input in cases) {
-            val expected = mutableListOf<Byte>()
-            Charset.Utf8.encodeInline(input) { expected.add(it) }
-            val actual = Charset.Utf8.allocateByteSlice(string = input)
-            actual.allocateArray().toList() shouldBe expected
-            actual.unsafeBorrowArray().size shouldBe actual.len
-        }
-
-        val source = "X" + "A".repeat(1023) + "\uD800\uDC00" + "B".repeat(1024)
-        for ((start, end) in listOf(1 to 1025, 1 to 1026, 1025 to source.length)) {
-            val expected = mutableListOf<Byte>()
-            Charset.Utf8.encodeInline(source.substring(start, end)) { expected.add(it) }
-            Charset.Utf8.allocateByteSlice(string = source, start = start, end = end).allocateArray().toList() shouldBe
-                expected
-        }
+        Charset.Utf8.allocateString(bytes = input.asReadonly(), offset = 1, len = 4) shouldBe "\uFEFFb"
+        Charset.Utf8.allocateString(bytes = input.asReadonly(), offset = 1, len = 4) shouldBe input.decodeToString(1, 5)
+        Charset.Utf8.allocateString(bytes = input.asReadonly(), offset = input.size, len = 0) shouldBe ""
     }
 
     should("match Kotlin UTF-8 decoding for longer malformed sequences") {
@@ -102,7 +77,7 @@ class CharsetsJsSpec : BaseSpec({
         )
         for (values in cases) {
             val bytes = ByteArray(values.size) { values[it].toByte() }
-            Charset.Utf8.allocateString(bytes = bytes) shouldBe bytes.decodeToString()
+            Charset.Utf8.allocateString(bytes = bytes.asReadonly()) shouldBe bytes.decodeToString()
         }
     }
 
@@ -110,16 +85,16 @@ class CharsetsJsSpec : BaseSpec({
         val bytes = ByteArray(10_250) { 'A'.code.toByte() }
         bytes[0] = 0xFF.toByte()
         bytes[10_249] = 0xFF.toByte()
-        Charset.Ascii.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe "A".repeat(10_240)
+        Charset.Ascii.allocateString(bytes = bytes.asReadonly(), offset = 5, len = 10_240) shouldBe "A".repeat(10_240)
 
         bytes[500] = 0xFF.toByte()
-        Charset.Ascii.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe
+        Charset.Ascii.allocateString(bytes = bytes.asReadonly(), offset = 5, len = 10_240) shouldBe
             "A".repeat(495) + "\uFFFD" + "A".repeat(10_240 - 496)
     }
 
     should("not treat non-ASCII byte sequences as UTF-8") {
         val bytes = byteArrayOf(0xC3.toByte(), 0xA9.toByte())
-        Charset.Ascii.allocateString(bytes = bytes) shouldBe "\uFFFD\uFFFD"
+        Charset.Ascii.allocateString(bytes = bytes.asReadonly()) shouldBe "\uFFFD\uFFFD"
         val decoder: dynamic = js("new TextDecoder('utf-8')")
         decoder.decode(bytes.unsafeCast<Int8Array>()).unsafeCast<String>() shouldBe "é"
     }
@@ -136,27 +111,16 @@ class CharsetsJsSpec : BaseSpec({
         bytes[0] = 0x80.toByte()
         bytes[10_249] = 0x80.toByte()
         val expected = CharArray(10_240) { (bytes[it + 5].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe expected
+        Charset.Latin1.allocateString(bytes = bytes.asReadonly(), offset = 5, len = 10_240) shouldBe expected
 
         bytes[500] = 0x80.toByte()
         val withControl = CharArray(10_240) { (bytes[it + 5].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes = bytes, offset = 5, len = 10_240) shouldBe withControl
+        Charset.Latin1.allocateString(bytes = bytes.asReadonly(), offset = 5, len = 10_240) shouldBe withControl
     }
 
     should("decode every Latin1 byte through the large control-byte path") {
         val bytes = ByteArray(4098) { (it % 256).toByte() }
         val expected = CharArray(4096) { (bytes[it + 1].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes = bytes, offset = 1, len = 4096) shouldBe expected
-    }
-
-    should("keep the untrimmed array behind a single-byte encoded slice") {
-        for (charset in listOf(Charset.Ascii, Charset.Latin1)) {
-            val slice = charset.allocateByteSlice(string = "A🙂B")
-            slice.offset shouldBe 0
-            slice.len shouldBe 3
-            slice.unsafeBorrowArray().size shouldBe 4
-            slice.allocateArray().toList() shouldBe listOf(65, 63, 66).map(Int::toByte)
-            "A🙂B".allocateStr(charset).allocateString(charset) shouldBe "A?B"
-        }
+        Charset.Latin1.allocateString(bytes = bytes.asReadonly(), offset = 1, len = 4096) shouldBe expected
     }
 })

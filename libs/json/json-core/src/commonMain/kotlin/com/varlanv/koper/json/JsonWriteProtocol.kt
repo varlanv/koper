@@ -47,30 +47,35 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
         offset: Int = 0,
         length: Int = bytes.size - offset,
     ) {
-        bytes.copyInto(buffer, position, offset, offset + length)
+        bytes.copyInto(
+            destination = buffer,
+            destinationOffset = position,
+            startIndex = offset,
+            endIndex = offset + length,
+        )
         position += length
     }
 
     fun writeRaw(first: Int, second: Short) {
-        buffer.setPackedInt(position, first)
-        buffer.setPackedShort(position+4, second)
+        buffer.setPackedInt(idx = position, value = first)
+        buffer.setPackedShort(idx = position+ 4, value = second)
         position += 6
     }
 
     fun writeRaw(value: Long) {
-        buffer.setPackedLong(position, value)
+        buffer.setPackedLong(idx = position, value = value)
         position += 8
     }
 
     fun writeRaw(first: Long, second: Short) {
-        buffer.setPackedLong(position, first)
-        buffer.setPackedShort(position+8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedShort(idx = position+ 8, value = second)
         position += 10
     }
 
     fun writeRaw(first: Long, second: Int) {
-        buffer.setPackedLong(position, first)
-        buffer.setPackedInt(position + 8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedInt(idx = position + 8, value = second)
         position += 12
     }
 }
