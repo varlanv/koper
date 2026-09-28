@@ -1,6 +1,8 @@
 package com.varlanv.koper.benchmarks.json
 
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.text.Str
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -10,28 +12,28 @@ object IdealJsonUtf8Codec {
     private val writers = ThreadLocal.withInitial { IdealJsonWriter() }
     private val vectorReaders = ThreadLocal.withInitial { IdealJsonReader(vectorized = true) }
     private val vectorWriters = ThreadLocal.withInitial { IdealJsonWriter(true) }
-    private val idName = "id".encodeToByteArray()
-    private val symbolName = "symbol".encodeToByteArray()
-    private val textName = "text".encodeToByteArray()
-    private val sequenceName = "sequence".encodeToByteArray()
-    private val activeName = "active".encodeToByteArray()
-    private val idPrefix = "{\"id\":".encodeToByteArray()
-    private val symbolPrefix = ",\"symbol\":".encodeToByteArray()
-    private val textPrefix = ",\"text\":".encodeToByteArray()
-    private val sequencePrefix = ",\"sequence\":".encodeToByteArray()
-    private val activePrefix = ",\"active\":".encodeToByteArray()
+    private val idName = Bytes(MutBytes("id".encodeToByteArray()))
+    private val symbolName = Bytes(MutBytes("symbol".encodeToByteArray()))
+    private val textName = Bytes(MutBytes("text".encodeToByteArray()))
+    private val sequenceName = Bytes(MutBytes("sequence".encodeToByteArray()))
+    private val activeName = Bytes(MutBytes("active".encodeToByteArray()))
+    private val idPrefix = Bytes(MutBytes("{\"id\":".encodeToByteArray()))
+    private val symbolPrefix = Bytes(MutBytes(",\"symbol\":".encodeToByteArray()))
+    private val textPrefix = Bytes(MutBytes(",\"text\":".encodeToByteArray()))
+    private val sequencePrefix = Bytes(MutBytes(",\"sequence\":".encodeToByteArray()))
+    private val activePrefix = Bytes(MutBytes(",\"active\":".encodeToByteArray()))
 
-    fun writeToStream(value: JsonUtf8Sample, output: OutputStream) {
+    fun writeToStream(value: JsonStrSample, output: OutputStream) {
         write(writer = writers.get(), value = value, output = output)
     }
 
-    fun writeVectorToStream(value: JsonUtf8Sample, output: OutputStream) {
+    fun writeVectorToStream(value: JsonStrSample, output: OutputStream) {
         write(writer = vectorWriters.get(), value = value, output = output)
     }
 
     private fun write(
         writer: IdealJsonWriter,
-        value: JsonUtf8Sample,
+        value: JsonStrSample,
         output: OutputStream,
     ) {
         writer.reset(output)
@@ -49,11 +51,11 @@ object IdealJsonUtf8Codec {
         writer.flush()
     }
 
-    fun readFromStream(input: InputStream): JsonUtf8Sample {
+    fun readFromStream(input: InputStream): JsonStrSample {
         return read(reader = readers.get(), input = input)
     }
 
-    fun readVectorFromStream(input: InputStream): JsonUtf8Sample {
+    fun readVectorFromStream(input: InputStream): JsonStrSample {
         return read(reader = vectorReaders.get(), input = input)
     }
 
@@ -79,12 +81,12 @@ object IdealJsonUtf8Codec {
         }
     }
 
-    private fun read(reader: IdealJsonReader, input: InputStream): JsonUtf8Sample {
+    private fun read(reader: IdealJsonReader, input: InputStream): JsonStrSample {
         reader.reset(input)
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L
-        var symbol = Utf8Str.empty
-        var text = Utf8Str.empty
+        var symbol = Str.empty
+        var text = Str.empty
         var sequence = 0
         var active = false
         var seen = 0
@@ -129,6 +131,6 @@ object IdealJsonUtf8Codec {
         }
         require(seen == 31) { "Missing required JSON field" }
         require(reader.nextToken() == -1) { "Unexpected trailing JSON content" }
-        return JsonUtf8Sample(id = id, symbol = symbol, text = text, sequence = sequence, active = active)
+        return JsonStrSample(id = id, symbol = symbol, text = text, sequence = sequence, active = active)
     }
 }

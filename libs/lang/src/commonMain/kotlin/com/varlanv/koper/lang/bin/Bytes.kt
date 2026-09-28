@@ -5,74 +5,117 @@ import kotlin.jvm.JvmInline
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
 expect class BytesImpl
 
-@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
-expect value class Bytes private constructor(private val impl: BytesImpl) : BytesOperations {
+expect fun BytesImpl.size(): Int
 
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+expect value class MutBytes @PublishedApi internal constructor(@PublishedApi internal val impl: BytesImpl) {
     val size: Int
-    override fun getInt(idx: Int): Int
-    override fun setInt(idx: Int, value: Int)
-    override operator fun get(idx: Int): Byte
-    override operator fun set(idx: Int, value: Byte)
+    val readonly: Bytes
+
+    constructor(dataSize: DataSize)
+
+    fun getPackedLong(idx: Int): Long
+
+    fun setPackedLong(idx: Int, value: Long)
+
+    fun getPackedInt(idx: Int): Int
+
+    fun setPackedInt(idx: Int, value: Int)
+
+    operator fun get(idx: Int): Byte
+
+    operator fun set(idx: Int, value: Byte)
+
+    inline fun forEach(block: (Byte) -> Unit)
+
+    inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit)
 
     fun hash(offset: Int, length: Int): Int
 
+    fun copyInto(destination: MutBytes, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size)
+
+    fun copyOf(newCapacity: Int = impl.size()): MutBytes
+    fun copyOfRange(from: Int, to: Int): MutBytes
+
     companion object {
 
-        operator fun invoke(capacity: Int): Bytes
-        operator fun invoke(dataSize: DataSize): Bytes
+        val empty: MutBytes
+
+        inline operator fun invoke(dataSize: DataSize, init: (idx: Int) -> Byte): MutBytes
+
+        operator fun invoke(array: ByteArray): MutBytes
     }
 }
 
-expect fun Bytes.mismatch(
+
+expect fun MutBytes.mismatch(
     aFromIndex: Int,
     aToIndex: Int,
-    b: Bytes,
+    b: MutBytes,
     bFromIndex: Int,
     bToIndex: Int,
 ): Int
 
-@JvmInline
-value class ReadonlyBytesV2(@PublishedApi internal val bytes: Bytes)
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
 
-sealed interface BytesSliceV2 {
+    val size: Int
 
-    val bytes: ReadonlyBytesV2
-    val offset: Int
-    val len: Int
+    operator fun get(idx: Int): Byte
+
+    fun copyInto(destination: MutBytes, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size)
 
     companion object {
 
-        operator fun invoke(bytes: ReadonlyBytesV2, offset: Int, len: Int): BytesSliceV2 {
-            return BytesSliceImpl(bytes, offset, len)
-        }
+        val empty: Bytes
     }
 }
 
-interface BytesOperations {
-    fun getInt(idx: Int): Int
-    fun setInt(idx: Int, value: Int)
-    operator fun get(idx: Int): Byte
-    operator fun set(idx: Int, value: Byte)
+@JvmInline
+value class MutBytesSlice @PublishedApi internal constructor(@PublishedApi internal val delegate: BytesSlice) {
+
+    fun getPackedInt(idx: Int): Int {
+        return delegate.getPackedInt(idx)
+    }
+
+    fun setPackedInt(idx: Int, value: Int) = delegate.bytes.bytes.setPackedInt(idx = idx, value = value)
+
+    operator fun get(idx: Int): Byte {
+        return delegate[idx]
+    }
+
+    operator fun set(idx: Int, value: Byte) {
+        delegate.bytes.bytes[idx] = value
+    }
+
+    inline fun forEach(block: (Byte) -> Unit) = delegate.bytes.bytes.forEach(block)
+
+    inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) = delegate.bytes.bytes.forEachIndexed(block)
 }
 
-sealed interface MutBytesSlice : BytesOperations {
-    val offset: Int
-}
+class BytesSlice(
+    val bytes: Bytes,
+    val offset: Int,
+    val len: Int,
+) {
+    fun getPackedInt(idx: Int): Int = bytes.bytes.getPackedInt(idx)
 
-@PublishedApi
-internal class BytesSliceImpl(
-    override val bytes: ReadonlyBytesV2,
-    override val offset: Int,
-    override val len: Int,
-) : BytesSliceV2, MutBytesSlice {
-    override fun getInt(idx: Int): Int = bytes.bytes.getInt(idx)
+    operator fun get(idx: Int): Byte = bytes.bytes[idx]
 
-    override fun setInt(idx: Int, value: Int) = bytes.bytes.setInt(idx, value)
+    override fun equals(other: Any?): Boolean =
+        other is BytesSlice &&
+                bytes.bytes.mismatch(
+                    aFromIndex = offset,
+                    aToIndex = len + offset,
+                    b = other.bytes.bytes,
+                    bFromIndex = other.offset,
+                    bToIndex = other.offset + other.len,
+                ) == -1
 
-    override fun get(idx: Int): Byte = bytes.bytes[idx]
+    override fun hashCode(): Int = bytes.bytes.hash(offset = offset, length = len)
 
-    override fun set(idx: Int, value: Byte) {
-        bytes.bytes[idx] = value
+    companion object {
+        val empty: BytesSlice = BytesSlice(Bytes.empty, 0, 0)
     }
 }
 
@@ -146,75 +189,6 @@ fun ByteArray.startsWith(
             bFromIndex = 0,
             bToIndex = prefix.size,
         ) == -1
-
-@JvmInline
-value class ReadonlyBytes(@PublishedApi internal val array: ByteArray)
-
-class ByteSlice(
-    @PublishedApi internal val bytes: ReadonlyBytes,
-    val offset: Int,
-    val len: Int,
-) {
-    private var hash: Int = 0
-
-    inline fun forEach(block: (Byte) -> Unit) {
-        for (idx in offset until offset + len) {
-            block(bytes.array[idx])
-        }
-    }
-
-    inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) {
-        for (idx in offset until offset + len) {
-            block(idx, bytes.array[idx])
-        }
-    }
-
-    /**
-     * Returns backing array. The caller is responsible for ensuring "readonly" invariant
-     * Returned array should not be modified in range from [offset] to [offset] + [len].
-     * Useful for cases when array is needed to be passed to trusted source that works only with [ByteArray]s,
-     * and is trusted to not modify the array.
-     */
-    fun unsafeBorrowArray(): ByteArray = bytes.array
-
-    /**
-     * Returns true if this slice covers whole backing array.
-     */
-    fun isFullRange(): Boolean = offset == 0 && len == bytes.array.size
-
-    fun allocateArray(): ByteArray = bytes.array.copyOfRange(offset, offset + len)
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) {
-            return true
-        }
-        if (other !is ByteSlice || len != other.len) {
-            return false
-        }
-        return bytes.array.equals(
-            aFromIndex = offset,
-            aToIndex = offset + len,
-            b = other.bytes.array,
-            bFromIndex = other.offset,
-            bToIndex = other.offset + other.len,
-        )
-    }
-
-    override fun hashCode(): Int {
-        val h = hash
-        if (h != 0) {
-            return h
-        }
-        var result = 1
-        val end = offset + len
-
-        for (i in offset until end) {
-            result = 31 * result + bytes.array[i]
-        }
-        hash = result
-        return result
-    }
-}
 
 fun ByteArray.validateUtf8(
     offset: Int = 0,
@@ -385,7 +359,7 @@ internal expect fun ByteArray.skipAscii(start: Int, end: Int): Int
 interface ByteSource {
     /** Reads up to [length] bytes into [sink] at [offset]; returns -1 at end, or 0 for zero length. */
     fun readAtMostTo(
-        sink: ByteArray,
+        sink: MutBytes,
         offset: Int,
         length: Int,
     ): Int
@@ -395,18 +369,18 @@ interface ByteSource {
 interface ByteSink {
     /** Writes [length] bytes from [source] starting at [offset]. */
     fun writeTo(
-        source: ByteArray,
+        source: MutBytes,
         offset: Int,
         length: Int,
     )
 }
 
 /** Reads the contents of [slice] in order. */
-class ByteArraySource(private val slice: ByteSlice) : ByteSource {
+class ByteArraySource(private val slice: BytesSlice) : ByteSource {
     private var position: Int = 0
 
     override fun readAtMostTo(
-        sink: ByteArray,
+        sink: MutBytes,
         offset: Int,
         length: Int,
     ): Int {
@@ -422,16 +396,16 @@ class ByteArraySource(private val slice: ByteSlice) : ByteSource {
         }
         val count = minOf(length, remaining)
         val start = slice.offset + position
-        slice.bytes.array.copyInto(sink, offset, start, start + count)
+        slice.bytes.bytes.copyInto(sink, offset, start, start + count)
         position += count
         return count
     }
 }
 
 /** Accumulates bytes in a reusable, growing array. */
-class ReusableByteArraySink(initialCapacity: Int) : ByteSink {
+class ReusableByteArraySink(initialCapacity: DataSize) : ByteSink {
     @PublishedApi
-    internal var bytes: ByteArray = ByteArray(initialCapacity)
+    internal var bytes: MutBytes = MutBytes(initialCapacity)
 
     @PublishedApi
     internal var position: Int = 0
@@ -442,12 +416,12 @@ class ReusableByteArraySink(initialCapacity: Int) : ByteSink {
     }
 
     /** Borrows the first `length` bytes without copying; do not mutate or retain the array. */
-    inline fun <R> unsafeUseBytes(block: (bytes: ByteArray, length: Int) -> R): R {
+    inline fun <R> unsafeUseBytes(block: (bytes: MutBytes, length: Int) -> R): R {
         return block(bytes, position)
     }
 
     override fun writeTo(
-        source: ByteArray,
+        source: MutBytes,
         offset: Int,
         length: Int,
     ) {

@@ -3,6 +3,7 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
+import com.varlanv.koper.lang.bin.bytes
 
 class Json(
     private val readProtocol: JsonReadProtocol = JsonReadProtocol(),
@@ -26,7 +27,7 @@ fun main() {
 
     // sample 1 - Codec has both "Read" and "Write" sides implemented
     json.writeTo(
-        sink = ReusableByteArraySink(10),
+        sink = ReusableByteArraySink(10.bytes()),
         write = IntJsonCodec,
         value = 1,
     )

@@ -1,25 +1,19 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.BytesSlice
 
 /** The returned slice may use only part of its backing array. */
 expect fun Charset.allocateByteSlice(
     string: String,
     start: Int = 0,
     end: Int = string.length,
-): ByteSlice
-
-expect fun Charset.allocateString(
-    bytes: ByteArray,
-    offset: Int = 0,
-    len: Int = bytes.size,
-): String
+): BytesSlice
 
 expect fun Charset.allocateString(
     bytes: Bytes,
     offset: Int = 0,
-    len: Int = bytes.size,
+    len: Int = bytes.bytes.size,
 ): String
 
 enum class Charset {

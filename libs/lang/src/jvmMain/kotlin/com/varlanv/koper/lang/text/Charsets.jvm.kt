@@ -1,33 +1,27 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSlice
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.ReadonlyBytes
 
 actual fun Charset.allocateString(
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
-): String = String(bytes, offset, len, jdkEncoding())
+): String = String(bytes.bytes.impl, offset, len, jdkEncoding())
 
 actual fun Charset.allocateByteSlice(
     string: String,
     start: Int,
     end: Int,
-): ByteSlice {
+): BytesSlice {
     val array = string.substring(start, end).toByteArray(jdkEncoding())
-    return ByteSlice(
-        bytes = ReadonlyBytes(array),
+    return BytesSlice(
+        bytes = Bytes(MutBytes(array)),
         offset = 0,
         len = array.size,
     )
 }
-
-actual fun Charset.allocateString(
-    bytes: Bytes,
-    offset: Int,
-    len: Int
-): String = allocateString(bytes.impl, offset, len)
 
 fun Charset.jdkEncoding(): java.nio.charset.Charset = when (this) {
     Charset.Utf8 -> Charsets.UTF_8

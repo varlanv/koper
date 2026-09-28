@@ -1,7 +1,7 @@
 package com.varlanv.koper.lang.text
 
 import com.varlanv.koper.lang.bin.ByteSlice
-import com.varlanv.koper.lang.bin.ReadonlyBytes
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -46,7 +46,7 @@ class StringsSpec : BaseSpec({
             val payload = charset.allocateByteSlice(string = input)
             val bytes = byteArrayOf(65, 66, 67) + payload.allocateArray() + byteArrayOf(68, 69, 70)
             val slice = ByteSlice(
-                bytes = ReadonlyBytes(bytes),
+                bytes = Bytes(bytes),
                 offset = 3,
                 len = payload.len,
             )
@@ -100,7 +100,7 @@ class StringsSpec : BaseSpec({
 
     should("wrap an existing unvalidated slice without copying") {
         val slice = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(0xFF.toByte())),
+            bytes = Bytes(byteArrayOf(0xFF.toByte())),
             offset = 0,
             len = 1,
         )
@@ -111,7 +111,7 @@ class StringsSpec : BaseSpec({
         val payload = "é中🙂".encodeToByteArray()
         val bytes = byteArrayOf(0xFF.toByte(), 0xFF.toByte()) + payload + byteArrayOf(0xFF.toByte())
         val slice = ByteSlice(
-            bytes = ReadonlyBytes(bytes),
+            bytes = Bytes(bytes),
             offset = 2,
             len = payload.size,
         )
@@ -121,7 +121,7 @@ class StringsSpec : BaseSpec({
         Utf8Str(
             Str(
                 ByteSlice(
-                    bytes = ReadonlyBytes(bytes),
+                    bytes = Bytes(bytes),
                     offset = bytes.size,
                     len = 0,
                 ),
@@ -148,7 +148,7 @@ class StringsSpec : BaseSpec({
             ),
         )) {
             val slice = ByteSlice(
-                bytes = ReadonlyBytes(bytes),
+                bytes = Bytes(bytes),
                 offset = 0,
                 len = bytes.size,
             )
@@ -158,7 +158,7 @@ class StringsSpec : BaseSpec({
         }
         for ((offset, length) in listOf(-1 to 1, 0 to -1, 1 to 2)) {
             val slice = ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(65)),
+                bytes = Bytes(byteArrayOf(65)),
                 offset = offset,
                 len = length,
             )

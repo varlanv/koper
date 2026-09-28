@@ -1,19 +1,22 @@
 package com.varlanv.koper.benchmarks.json
 
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.text.Str
 import java.io.InputStream
 import java.io.OutputStream
+
 
 object MixedJsonUtf8Codec {
     private val readers = ThreadLocal.withInitial { IdealJsonReader() }
     private val writers = ThreadLocal.withInitial { IdealJsonWriter() }
     private val vectorReaders = ThreadLocal.withInitial { IdealJsonReader(vectorized = true) }
     private val vectorWriters = ThreadLocal.withInitial { IdealJsonWriter(true) }
-    private val idName = "id".encodeToByteArray()
-    private val symbolName = "symbol".encodeToByteArray()
-    private val textName = "text".encodeToByteArray()
-    private val sequenceName = "sequence".encodeToByteArray()
-    private val activeName = "active".encodeToByteArray()
+    private val idName = Bytes(MutBytes(("id".encodeToByteArray())))
+    private val symbolName = Bytes(MutBytes(("symbol".encodeToByteArray())))
+    private val textName = Bytes(MutBytes(("text".encodeToByteArray())))
+    private val sequenceName = Bytes(MutBytes(("sequence".encodeToByteArray())))
+    private val activeName = Bytes(MutBytes(("active".encodeToByteArray())))
 
     fun writeToStream(value: JsonMixedSample, output: OutputStream) {
         write(writer = writers.get(), value = value, output = output)
@@ -28,7 +31,7 @@ object MixedJsonUtf8Codec {
         value: JsonMixedSample,
         output: OutputStream,
     ) {
-        val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.bytes.len.toLong() * 6L
+        val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.len.toLong() * 6L
         require(maximumSize <= Int.MAX_VALUE) { "JSON object is too large" }
         writer.reset(output)
         if (maximumSize <= reservedObjectLimit) {
@@ -82,7 +85,7 @@ object MixedJsonUtf8Codec {
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L
         var symbol = ""
-        var text = Utf8Str.empty
+        var text = Str.empty
         var sequence = 0
         var active = false
         var seen = 0

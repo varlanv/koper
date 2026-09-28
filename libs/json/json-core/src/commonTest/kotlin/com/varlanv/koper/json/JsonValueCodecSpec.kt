@@ -60,8 +60,8 @@ class JsonValueCodecSpec : BaseSpec({
             expectedJson = "\"A\\n\"",
         )
         roundTrip(
-            writerCodec = Utf8StrJsonCodec,
-            readerCodec = Utf8StrJsonCodec,
+            writerCodec = StrJsonCodec,
+            readerCodec = StrJsonCodec,
             value = Utf8Str.allocateFromString("é\n"),
             expectedJson = "\"é\\n\"",
         )
@@ -162,7 +162,7 @@ class JsonValueCodecSpec : BaseSpec({
             longValue = Long.MIN_VALUE,
             booleanValue = true,
             stringValue = "é\n",
-            utf8Value = Utf8Str.allocateFromString(longUtf8),
+            strValue = Utf8Str.allocateFromString(longUtf8),
         )
         val expectedJson =
             "{\"intValue\":-2147483648,\"longValue\":-9223372036854775808," +

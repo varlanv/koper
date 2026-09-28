@@ -1,13 +1,14 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSource
+import com.varlanv.koper.lang.bin.MutBytes
 
 class JsonReadProtocol(
     bufferSize: Int = 32768,
     vectorized: Boolean = false,
 ) {
     internal val stringScanner = JsonStringScanner(vectorized)
-    internal val buffer = ByteArray(bufferSize.also { require(it > 0) })
+    internal val buffer = MutBytes(ByteArray(bufferSize.also { require(it > 0) }))
     private lateinit var input: ByteSource
     internal var position = 0
     internal var limit = 0
@@ -49,7 +50,8 @@ class JsonReadProtocol(
 
     fun peekFieldWord(): Long {
         return if (limit - position >= 8) {
-            PackedJsonBytes.getLong(bytes = buffer, offset = position)
+            TODO("rewrite to 2 ints")
+//            PackedJsonBytes.getLong(bytes = buffer, offset = position)
         } else {
             0L
         }

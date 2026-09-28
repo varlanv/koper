@@ -1,5 +1,8 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.Bytes
+
 internal object JsonStringEscapes {
     const val unicodePair: Short = 0x755c
     private const val hex = "0123456789abcdef"
@@ -31,7 +34,7 @@ internal object JsonStringEscapes {
 
     fun writeUtf8Escaped(
         writer: JsonWriteProtocol,
-        bytes: ByteArray,
+        bytes: MutBytes,
         start: Int,
         end: Int,
         targetStart: Int,
@@ -44,14 +47,14 @@ internal object JsonStringEscapes {
         while (end - index >= width) {
             val blockStart = index
             val blockEnd = blockStart + width
-            var events = scan.specialMask(bytes = bytes, start = blockStart)
+            var events = scan.specialMask(bytes = Bytes(bytes), start = blockStart)
             while (events != 0L) {
                 val special = blockStart + events.countTrailingZeroBits()
                 if (special > index) {
                     val length = special - index
                     if (length <= 8 && index <= bytes.size - 8) {
-                        val word = PackedJsonBytes.getLong(bytes = bytes, offset = index)
-                        PackedJsonBytes.setLong(bytes = target, offset = offset, value = word)
+                        val word = bytes.getPackedLong(index)
+                        bytes.setPackedLong(offset, value = word)
                     } else {
                         bytes.copyInto(target, offset, index, special)
                     }
@@ -59,10 +62,10 @@ internal object JsonStringEscapes {
                 }
                 val value = bytes[special].toInt() and 255
                 val escaped = escapePairs[value]
-                PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
+                // todo - just write two bytes PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    PackedJsonBytes.setInt(bytes = target, offset = offset, value = unicodeTails[value])
+                    target.setPackedInt(offset, unicodeTails[value])
                     offset += 4
                 }
                 index = special + 1
@@ -78,10 +81,11 @@ internal object JsonStringEscapes {
             val value = bytes[index++].toInt() and 255
             val escaped = escapePairs[value]
             if (escaped.toInt() != 0) {
-                PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
+                // todo - just write two bytes PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
+//                PackedJsonBytes.setShort(bytes = target, offset = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    PackedJsonBytes.setInt(bytes = target, offset = offset, value = unicodeTails[value])
+                    target.setPackedInt(offset, unicodeTails[value])
                     offset += 4
                 }
             } else {

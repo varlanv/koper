@@ -1,6 +1,9 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.VectorApi
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.longViewHandle
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
@@ -22,14 +25,14 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
     override val laneCount: Int = species.length()
 
     override fun smokeTest(): Boolean {
-        val bytes = ByteArray(laneCount + 1) { 65 }
+        val bytes = MutBytes((laneCount + 1).bytes()) { 65 }
         val special = laneCount / 2
         bytes[special + 1] = 34
-        return specialMask(bytes = bytes, start = 1) == (1L shl special)
+        return specialMask(bytes = Bytes(bytes), start = 1) == (1L shl special)
     }
 
-    override fun specialMask(bytes: ByteArray, start: Int): Long {
-        val vector = ByteVector.fromArray(species, bytes, start)
+    override fun specialMask(bytes: Bytes, start: Int): Long {
+        val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
         return vector
             .compare(VectorOperators.EQ, 34.toByte())
             .or(vector.compare(VectorOperators.EQ, 92.toByte()))
@@ -38,7 +41,7 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
     }
 
     override fun firstSpecial(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int {

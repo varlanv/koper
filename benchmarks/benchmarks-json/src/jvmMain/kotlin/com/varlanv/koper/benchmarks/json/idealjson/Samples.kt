@@ -2,16 +2,16 @@ package com.varlanv.koper.benchmarks.json
 
 import com.dslplatform.json.CompiledJson
 import com.dslplatform.json.JsonAttribute
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.serde.De
 import com.varlanv.koper.serde.Ser
 
 @Ser
 @De
-data class JsonUtf8Sample(
+data class JsonStrSample(
     val id: Long,
-    val symbol: Utf8Str,
-    val text: Utf8Str,
+    val symbol: Str,
+    val text: Str,
     val sequence: Int,
     val active: Boolean,
 )
@@ -21,7 +21,7 @@ data class JsonUtf8Sample(
 data class JsonMixedSample(
     val id: Long,
     val symbol: String,
-    val text: Utf8Str,
+    val text: Str,
     val sequence: Int,
     val active: Boolean,
 )
@@ -32,8 +32,8 @@ data class JsonMixedSample(
 data class DslMixedSample(
     val id: Long,
     val symbol: String,
-    @get:JsonAttribute(converter = Utf8StrConverter::class)
-    val text: Utf8Str,
+    @get:JsonAttribute(converter = StrConverter::class)
+    val text: Str,
     val sequence: Int,
     val active: Boolean,
 )
@@ -52,8 +52,8 @@ data class DslStringSample(
 @OptIn(ExperimentalStdlibApi::class)
 data class DslUtf8Sample(
     val id: Long,
-    val symbol: Utf8Str,
-    val text: Utf8Str,
+    val symbol: Str,
+    val text: Str,
     val sequence: Int,
     val active: Boolean,
 )
@@ -63,10 +63,10 @@ data class DslUtf8Sample(
 @OptIn(ExperimentalStdlibApi::class)
 data class DslUtf8DirectSample(
     val id: Long,
-    @get:JsonAttribute(converter = Utf8StrConverter::class)
-    val symbol: Utf8Str,
-    @get:JsonAttribute(converter = Utf8StrConverter::class)
-    val text: Utf8Str,
+    @get:JsonAttribute(converter = StrConverter::class)
+    val symbol: Str,
+    @get:JsonAttribute(converter = StrConverter::class)
+    val text: Str,
     val sequence: Int,
     val active: Boolean,
 )

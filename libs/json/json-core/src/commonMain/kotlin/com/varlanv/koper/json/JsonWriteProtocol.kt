@@ -1,10 +1,13 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSink
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.bytes
 
 class JsonWriteProtocol(vectorized: Boolean = false) {
     internal val scan = jsonSpecialScan(vectorized)
-    internal var buffer = ByteArray(512)
+    internal var buffer = MutBytes(512.bytes())
     internal var position = 0
     private lateinit var output: ByteSink
 
@@ -25,7 +28,7 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
         if (buffer.size - position < size) {
             flush()
             if (buffer.size < size) {
-                buffer = ByteArray(size)
+                buffer = MutBytes(size.bytes())
             }
         }
     }
@@ -40,7 +43,7 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
     }
 
     fun writeRaw(
-        bytes: ByteArray,
+        bytes: Bytes,
         offset: Int = 0,
         length: Int = bytes.size - offset,
     ) {
@@ -49,25 +52,25 @@ class JsonWriteProtocol(vectorized: Boolean = false) {
     }
 
     fun writeRaw(first: Int, second: Short) {
-        PackedJsonBytes.setInt(bytes = buffer, offset = position, value = first)
-        PackedJsonBytes.setShort(bytes = buffer, offset = position + 4, value = second)
+        buffer.setPackedInt(position, first)
+        // TODO - rewrite to two byte writes        PackedJsonBytes.setShort(bytes = buffer, offset = position + 4, value = second)
         position += 6
     }
 
     fun writeRaw(value: Long) {
-        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = value)
+        buffer.setPackedLong(position, value)
         position += 8
     }
 
     fun writeRaw(first: Long, second: Short) {
-        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
-        PackedJsonBytes.setShort(bytes = buffer, offset = position + 8, value = second)
+        buffer.setPackedLong(position, first)
+        // TODO - rewrite to two byte writes        PackedJsonBytes.setShort(bytes = buffer, offset = position + 8, value = second)
         position += 10
     }
 
     fun writeRaw(first: Long, second: Int) {
-        PackedJsonBytes.setLong(bytes = buffer, offset = position, value = first)
-        PackedJsonBytes.setInt(bytes = buffer, offset = position + 8, value = second)
+        buffer.setPackedLong(position, first)
+        buffer.setPackedInt(position + 8, second)
         position += 12
     }
 }

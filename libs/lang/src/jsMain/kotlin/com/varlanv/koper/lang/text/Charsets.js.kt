@@ -1,8 +1,7 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSlice
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.ReadonlyBytes
+import com.varlanv.koper.lang.bin.BytesSlice
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint16Array
 import org.khronos.webgl.Uint8Array
@@ -22,7 +21,7 @@ actual fun Charset.allocateByteSlice(
     string: String,
     start: Int,
     end: Int,
-): ByteSlice {
+): BytesSlice {
     require(start <= end) { "start ($start) > end ($end)" }
     if (start < 0 || end > string.length) {
         throw IndexOutOfBoundsException("range [$start, $end) exceeds string length ${string.length}")
@@ -55,18 +54,19 @@ actual fun Charset.allocateByteSlice(
     }
 }
 
-private fun encodeUtf8Native(selected: String): ByteSlice {
-    val unsigned = utf8Encoder.encode(selected).unsafeCast<Uint8Array>()
-    val signed = Int8Array(
-        buffer = unsigned.buffer,
-        byteOffset = unsigned.byteOffset,
-        length = unsigned.byteLength,
-    ).unsafeCast<ByteArray>()
-    return ByteSlice(
-        bytes = ReadonlyBytes(signed),
-        offset = 0,
-        len = signed.size,
-    )
+private fun encodeUtf8Native(selected: String): BytesSlice {
+    TODO("adapt api")
+//    val unsigned = utf8Encoder.encode(selected).unsafeCast<Uint8Array>()
+//    val signed = Int8Array(
+//        buffer = unsigned.buffer,
+//        byteOffset = unsigned.byteOffset,
+//        length = unsigned.byteLength,
+//    ).unsafeCast<ByteArray>()
+//    return BytesSlice(
+//        bytes = ReadonlyBytes(signed),
+//        offset = 0,
+//        len = signed.size,
+//    )
 }
 
 private fun encodeSingleByte(
@@ -74,64 +74,66 @@ private fun encodeSingleByte(
     start: Int,
     end: Int,
     maxCodePoint: Int,
-): ByteSlice {
-    val result = ByteArray(end - start)
-    var input = start
-    var output = 0
-    while (input < end) {
-        val char = string[input++]
-        if (char.isHighSurrogate() && input < end && string[input].isLowSurrogate()) {
-            input++
-        }
-        result[output++] = if (char.code <= maxCodePoint) {
-            char.code.toByte()
-        } else {
-            0x3F
-        }
-    }
-    return ByteSlice(
-        bytes = ReadonlyBytes(result),
-        offset = 0,
-        len = output,
-    )
+): BytesSlice {
+    TODO("adapt api")
+//    val result = ByteArray(end - start)
+//    var input = start
+//    var output = 0
+//    while (input < end) {
+//        val char = string[input++]
+//        if (char.isHighSurrogate() && input < end && string[input].isLowSurrogate()) {
+//            input++
+//        }
+//        result[output++] = if (char.code <= maxCodePoint) {
+//            char.code.toByte()
+//        } else {
+//            0x3F
+//        }
+//    }
+//    return BytesSlice(
+//        bytes = ReadonlyBytes(result),
+//        offset = 0,
+//        len = output,
+//    )
 }
 
 private fun encodeUtf8(
     string: String,
     start: Int,
     end: Int,
-): ByteSlice {
-    var size = 0
-    string.forEachCodePointInRange(start = start, end = end) { cp ->
-        val width = when {
-            cp <= 0x7F -> 1
-            cp <= 0x7FF -> 2
-            cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
-            cp <= 0xFFFF -> 3
-            else -> 4
-        }
-
-        if (size > Int.MAX_VALUE - width) {
-            throw IllegalArgumentException("Encoded byte array is too large")
-        }
-        size += width
-    }
-
-    val result = ByteArray(size)
-    var position = 0
-    string.forEachCodePointInRange(start = start, end = end) { cp ->
-        Charset.encodeUtf8Inline(cp) { result[position++] = it }
-    }
-
-    return ByteSlice(
-        bytes = ReadonlyBytes(result),
-        offset = 0,
-        len = result.size,
-    )
+): BytesSlice {
+    TODO("adapt api")
+//    var size = 0
+//    string.forEachCodePointInRange(start = start, end = end) { cp ->
+//        val width = when {
+//            cp <= 0x7F -> 1
+//            cp <= 0x7FF -> 2
+//            cp in 0xD800..0xDFFF -> 1 // Unpaired surrogate → '?'
+//            cp <= 0xFFFF -> 3
+//            else -> 4
+//        }
+//
+//        if (size > Int.MAX_VALUE - width) {
+//            throw IllegalArgumentException("Encoded byte array is too large")
+//        }
+//        size += width
+//    }
+//
+//    val result = ByteArray(size)
+//    var position = 0
+//    string.forEachCodePointInRange(start = start, end = end) { cp ->
+//        Charset.encodeUtf8Inline(cp) { result[position++] = it }
+//    }
+//
+//    return BytesSlice(
+//        bytes = ReadonlyBytes(result),
+//        offset = 0,
+//        len = result.size,
+//    )
 }
 
 actual fun Charset.allocateString(
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
 ): String {
@@ -166,16 +168,8 @@ actual fun Charset.allocateString(
     }
 }
 
-actual fun Charset.allocateString(
-    bytes: Bytes,
-    offset: Int,
-    len: Int
-): String {
-    TODO("Not yet implemented")
-}
-
 private fun allAscii(
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
 ): Boolean {
@@ -192,7 +186,7 @@ private fun allAscii(
 
 private fun decodeWithTextDecoder(
     decoder: dynamic,
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
 ): String {
@@ -209,7 +203,7 @@ private fun decodeWithTextDecoder(
 }
 
 private fun latin1String(
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
 ): String {
@@ -248,7 +242,7 @@ private fun latin1String(
 }
 
 private fun latin1Utf16String(
-    bytes: ByteArray,
+    bytes: Bytes,
     offset: Int,
     len: Int,
 ): String {

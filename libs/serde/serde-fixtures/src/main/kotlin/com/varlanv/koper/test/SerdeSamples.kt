@@ -1,10 +1,9 @@
 package com.varlanv.koper.test
 
-import com.varlanv.koper.lang.bin.ByteSlice
-import com.varlanv.koper.lang.bin.ReadonlyBytes
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.kilobytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.Str
 import kotlin.reflect.KClass
 
 private object SampleBuffer {
@@ -19,12 +18,10 @@ private object SampleBuffer {
         Charset.Utf8.encodeInline(value) { put(it.toInt()) }
     }
 
-    fun result(): Utf8Str = Utf8Str.unsafeWrapBytes(
-        ByteSlice(
-            bytes = ReadonlyBytes(bytes),
-            offset = 0,
-            len = size,
-        ),
+    fun result(): Str = Str.wrapBytes(
+        bytes = Bytes(bytes),
+        offset = 0,
+        len = size,
     )
 
     private fun put(value: Int) {
@@ -51,11 +48,11 @@ object SerdeSamples {
         val property: Property = Property.VAL,
     ) {
         constructor(name: String, type: KClass<*>, property: Property = Property.VAL) :
-        this(
-            name,
-            requireNotNull(type.qualifiedName) { "Fixture type must have a qualified name" },
-            property,
-        )
+                this(
+                    name,
+                    requireNotNull(type.qualifiedName) { "Fixture type must have a qualified name" },
+                    property,
+                )
     }
 
     data class CompanionInvoke(
@@ -89,7 +86,7 @@ object SerdeSamples {
         val maxSamples: Int = 100_000,
     )
 
-    fun buildSerdeSample(shape: Shape): Utf8Str {
+    fun buildSerdeSample(shape: Shape): Str {
         validate(shape)
         SampleBuffer.reset()
         if (shape.annotations.includeSer) {
@@ -117,7 +114,7 @@ object SerdeSamples {
         return SampleBuffer.result()
     }
 
-    fun buildSerdeSample(types: List<KClass<*>>, capabilities: Capabilities): Utf8Str {
+    fun buildSerdeSample(types: List<KClass<*>>, capabilities: Capabilities): Str {
         val shape = Shape(
             name = "SerdeFixture",
             kind = capabilities.kinds.single(),
@@ -135,7 +132,7 @@ object SerdeSamples {
         types: Set<KClass<*>>,
         capabilities: Capabilities,
         matrixSettings: MatrixSettings = MatrixSettings(),
-        block: (shape: Shape, source: Utf8Str) -> Unit,
+        block: (shape: Shape, source: Str) -> Unit,
     ) {
         require(types.isNotEmpty()) { "Matrix needs at least one parameter type" }
         require(matrixSettings.parametersRepeating >= 0) { "parametersRepeating must not be negative" }
@@ -236,8 +233,8 @@ object SerdeSamples {
         if (shape.kind == Kind.OBJECT || shape.kind == Kind.DATA_OBJECT) {
             require(
                 shape.parameters.isEmpty() &&
-                    shape.constructorVisibility == Visibility.PUBLIC &&
-                    shape.companionInvoke == null,
+                        shape.constructorVisibility == Visibility.PUBLIC &&
+                        shape.companionInvoke == null,
             ) {
                 "Object fixtures cannot have constructor parameters, constructor visibility, or a companion invoke"
             }
@@ -259,7 +256,7 @@ object SerdeSamples {
             }
             require(
                 invoke.parameters == null ||
-                    invoke.parameters.map { it.name }.distinct().size == invoke.parameters.size,
+                        invoke.parameters.map { it.name }.distinct().size == invoke.parameters.size,
             ) {
                 "Companion invoke parameter names must be unique"
             }
@@ -323,9 +320,9 @@ object SerdeSamples {
         SampleBuffer.append(invoke.returnType ?: shape.name)
         SampleBuffer.append(" = ")
         val matchingParameters = invokeParameters.size == shape.parameters.size &&
-            shape.parameters.all { constructorParameter ->
-                invokeParameters.any { it.name == constructorParameter.name && it.type == constructorParameter.type }
-            }
+                shape.parameters.all { constructorParameter ->
+                    invokeParameters.any { it.name == constructorParameter.name && it.type == constructorParameter.type }
+                }
         if ((invoke.returnType == null || invoke.returnType == shape.name) && matchingParameters) {
             SampleBuffer.append(shape.name)
             SampleBuffer.append("(")

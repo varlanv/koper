@@ -6,7 +6,7 @@ import io.kotest.matchers.shouldBe
 class BytesSliceSpec : BaseSpec({
     should("visit the entire slice when its offset exceeds its length") {
         val slice = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(0, 0, 0, 1, 2, 0)),
+            bytes = Bytes(byteArrayOf(0, 0, 0, 1, 2, 0)),
             offset = 3,
             len = 2,
         )
@@ -21,7 +21,7 @@ class BytesSliceSpec : BaseSpec({
     should("skip iteration for empty slices at either end of an array") {
         for (offset in listOf(0, 3)) {
             val slice = ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(1, 2, 3)),
+                bytes = Bytes(byteArrayOf(1, 2, 3)),
                 offset = offset,
                 len = 0,
             )
@@ -34,7 +34,7 @@ class BytesSliceSpec : BaseSpec({
     should("allocate an independent copy of only the slice contents") {
         val array = byteArrayOf(9, 1, 2, 8)
         val slice = ByteSlice(
-            bytes = ReadonlyBytes(array),
+            bytes = Bytes(array),
             offset = 1,
             len = 2,
         )
@@ -48,12 +48,12 @@ class BytesSliceSpec : BaseSpec({
 
     should("compare contents regardless of backing array and offset") {
         val first = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(9, -128, -1, 127, 8)),
+            bytes = Bytes(byteArrayOf(9, -128, -1, 127, 8)),
             offset = 1,
             len = 3,
         )
         val second = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(-128, -1, 127)),
+            bytes = Bytes(byteArrayOf(-128, -1, 127)),
             offset = 0,
             len = 3,
         )
@@ -68,20 +68,20 @@ class BytesSliceSpec : BaseSpec({
 
     should("reject unequal contents lengths and unrelated values") {
         val first = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(1, 2, 3)),
+            bytes = Bytes(byteArrayOf(1, 2, 3)),
             offset = 0,
             len = 3,
         )
         first.equals(
             ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(1, 2, 4)),
+                bytes = Bytes(byteArrayOf(1, 2, 4)),
                 offset = 0,
                 len = 3,
             ),
         ) shouldBe false
         first.equals(
             ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(1, 2)),
+                bytes = Bytes(byteArrayOf(1, 2)),
                 offset = 0,
                 len = 2,
             ),
@@ -92,12 +92,12 @@ class BytesSliceSpec : BaseSpec({
 
     should("give empty slices equal contents and hash codes") {
         val first = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf()),
+            bytes = Bytes(byteArrayOf()),
             offset = 0,
             len = 0,
         )
         val second = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(1, 2)),
+            bytes = Bytes(byteArrayOf(1, 2)),
             offset = 2,
             len = 0,
         )
@@ -108,7 +108,7 @@ class BytesSliceSpec : BaseSpec({
 
     should("preserve zero hash codes") {
         val slice = ByteSlice(
-            bytes = ReadonlyBytes(byteArrayOf(-31)),
+            bytes = Bytes(byteArrayOf(-31)),
             offset = 0,
             len = 1,
         )

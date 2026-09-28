@@ -8,7 +8,7 @@ class BytesIoSpec : BaseSpec({
     should("read only the slice into the requested sink range") {
         val source = ByteArraySource(
             ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(9, 1, 2, 3, 8)),
+                bytes = Bytes(byteArrayOf(9, 1, 2, 3, 8)),
                 offset = 1,
                 len = 3,
             ),
@@ -26,7 +26,7 @@ class BytesIoSpec : BaseSpec({
     should("allow empty slices and zero-length reads") {
         val source = ByteArraySource(
             ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(1, 2)),
+                bytes = Bytes(byteArrayOf(1, 2)),
                 offset = 2,
                 len = 0,
             ),
@@ -46,7 +46,7 @@ class BytesIoSpec : BaseSpec({
     should("reject invalid read ranges without consuming bytes") {
         val source = ByteArraySource(
             ByteSlice(
-                bytes = ReadonlyBytes(byteArrayOf(1, 2)),
+                bytes = Bytes(byteArrayOf(1, 2)),
                 offset = 0,
                 len = 2,
             ),

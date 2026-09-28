@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.setPackedInt
 import com.varlanv.koper.lang.bin.setPackedLong
 
@@ -40,12 +41,12 @@ interface JsonSpecialScan  {
     val laneCount: Int
 
     fun firstSpecial(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int
 
-    fun specialMask(bytes: ByteArray, start: Int): Long
+    fun specialMask(bytes: Bytes, start: Int): Long
 }
 
 internal expect fun jsonSpecialScan(vectorized: Boolean): JsonSpecialScan
@@ -53,7 +54,7 @@ internal expect fun jsonSpecialScan(vectorized: Boolean): JsonSpecialScan
 internal object ScalarJsonSpecialScan : JsonSpecialScan {
     override val laneCount: Int = 8
 
-    override fun specialMask(bytes: ByteArray, start: Int): Long {
+    override fun specialMask(bytes: Bytes, start: Int): Long {
         var mask = 0L
         for (index in 0 until laneCount) {
             val value = bytes[start + index].toInt() and 255
@@ -65,7 +66,7 @@ internal object ScalarJsonSpecialScan : JsonSpecialScan {
     }
 
     override fun firstSpecial(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ): Int {

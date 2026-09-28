@@ -1,9 +1,9 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.bin.ByteSlice
-import com.varlanv.koper.lang.bin.ReadonlyBytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.Str
 import com.varlanv.koper.lang.text.allocateString
 
 object JsonCodec {
@@ -77,7 +77,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[quotient * 1000 - number]
             index -= 3
-            PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
+            // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -113,7 +113,8 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
             val quotient = number / 1000
             val digits = JsonDecimalDigits.triplets[(quotient * 1000 - number).toInt()]
             index -= 3
-            PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
+            // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
+//            PackedJsonBytes.setShort(bytes = output, offset = index, value = digits.toShort())
             output[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -189,8 +190,8 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         }
     }
 
-    private fun readEightDigits(input: ByteArray, index: Int): Long {
-        val word = PackedJsonBytes.getLong(bytes = input, offset = index)
+    private fun readEightDigits(input: MutBytes, index: Int): Long {
+        val word = input.getPackedLong(index)
         if (((word + 0x4646464646464646L) or (word - 0x3030303030303030L)) and -0x7f7f7f7f7f7f7f80L != 0L) {
             return -1L
         }
@@ -207,8 +208,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )
-    private val trueBytes = "true".encodeToByteArray()
-    private val falseBytes = "false".encodeToByteArray()
+    private val trueBytes = Bytes(MutBytes("true".encodeToByteArray()))
+    private val falseBytes = Bytes(MutBytes("false".encodeToByteArray()))
 
     override fun write(writer: JsonWriteProtocol, value: Boolean) = writePrimitive(writer = writer, value = value)
 
@@ -228,7 +229,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         val index = reader.position
         val available = reader.limit - index
         if (reader.token == 116 && available >= 4) {
-            val word = PackedJsonBytes.getInt(bytes = reader.buffer, offset = index)
+            val word = reader.buffer.getPackedInt(index)
             if (word and 0x00ffffff == 0x00657572) {
                 reader.requireDelimiter(word ushr 24)
                 reader.position = index + 3
@@ -237,7 +238,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
             throw IllegalArgumentException("Invalid JSON literal")
         }
         if (reader.token == 102 && available >= 5) {
-            if (PackedJsonBytes.getInt(bytes = reader.buffer, offset = index) == 0x65736c61) {
+            if (reader.buffer.getPackedInt(index) == 0x65736c61) {
                 reader.requireDelimiter(reader.buffer[index + 4].toInt() and 255)
                 reader.position = index + 4
                 return false
@@ -288,14 +289,10 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 if (pair.toInt() == 0) {
                     output[position++] = char.toByte()
                 } else {
-                    PackedJsonBytes.setShort(bytes = output, offset = position, value = pair)
+                    // todo - just write two bytes PackedJsonBytes.setShort(bytes = output, offset = position, value = pair)
                     position += 2
                     if (pair == JsonStringEscapes.unicodePair) {
-                        PackedJsonBytes.setInt(
-                            bytes = output,
-                            offset = position,
-                            value = JsonStringEscapes.unicodeTails[char],
-                        )
+                        output.setPackedInt(position, JsonStringEscapes.unicodeTails[char])
                         position += 4
                     }
                 }
@@ -323,58 +320,58 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     override fun read(reader: JsonReadProtocol): String {
         val scanner = reader.stringScanner
         scanner.read(reader)
-        return Charset.Utf8.allocateString(bytes = scanner.bytes, offset = scanner.offset, len = scanner.length)
+        return Charset.Utf8.allocateString(bytes = Bytes(scanner.bytes), offset = scanner.offset, len = scanner.length)
     }
 }
 
-object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
-    override val hints: JsonCodec.Hints<Utf8Str> = JsonCodec.Hints(
-        size = JsonValueSize.FromValue { value -> 2L + value.bytes.len.toLong() * 6L },
+object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
+    override val hints: JsonCodec.Hints<Str> = JsonCodec.Hints(
+        size = JsonValueSize.FromValue { value -> 2L + value.len.toLong() * 6L },
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Utf8Str) = writePrimitive(writer = writer, value = value)
+    override fun write(writer: JsonWriteProtocol, value: Str) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Utf8Str = readPrimitive(reader)
+    override fun read(reader: JsonReadProtocol): Str = readPrimitive(reader)
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Utf8Str) {
-        val slice = value.bytes
-        val input = slice.unsafeBorrowArray()
-        val end = slice.offset + slice.len
-        val special = writer.scan.firstSpecial(bytes = input, start = slice.offset, end = end)
-        val output = writer.buffer
-        var position = writer.position
-        output[position++] = '"'.code.toByte()
-        input.copyInto(output, position, slice.offset, special)
-        position += special - slice.offset
-        if (special < end) {
-            position =
-                JsonStringEscapes.writeUtf8Escaped(
-                    writer = writer,
-                    bytes = input,
-                    start = special,
-                    end = end,
-                    targetStart = position,
-                )
-        }
-        output[position++] = '"'.code.toByte()
-        writer.position = position
+    fun writePrimitive(writer: JsonWriteProtocol, value: Str) {
+        // todo need to explore this - why `input` is passed to `writeUtf8Escaped` that overwrites it ?
+        TODO()
+//        val slice = value.slice
+//        val input = slice.bytes
+//        val end = slice.offset + slice.len
+//        val special = writer.scan.firstSpecial(bytes = input, start = slice.offset, end = end)
+//        val output = writer.buffer
+//        var position = writer.position
+//        output[position++] = '"'.code.toByte()
+//        input.copyInto(output, position, slice.offset, special)
+//        position += special - slice.offset
+//        if (special < end) {
+//            position =
+//                JsonStringEscapes.writeUtf8Escaped(
+//                    writer = writer,
+//                    bytes = input,
+//                    start = special,
+//                    end = end,
+//                    targetStart = position,
+//                )
+//        }
+//        output[position++] = '"'.code.toByte()
+//        writer.position = position
     }
 
-    fun readPrimitive(reader: JsonReadProtocol): Utf8Str {
+    fun readPrimitive(reader: JsonReadProtocol): Str {
         val scanner = reader.stringScanner
         scanner.read(reader)
         if (scanner.length == 0) {
-            return Utf8Str.empty
+            return Str.empty
         }
         val bytes = scanner.bytes.copyOfRange(scanner.offset, scanner.offset + scanner.length)
-        return Utf8Str.unsafeWrapBytes(
-            ByteSlice(
-                bytes = ReadonlyBytes(bytes),
-                offset = 0,
-                len = bytes.size,
-            ),
+        return Str.wrapBytes(
+                 Bytes(bytes),
+                 0,
+                 bytes.size,
         )
     }
 }

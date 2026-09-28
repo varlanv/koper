@@ -1,5 +1,6 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.allocateString
 import kotlin.jvm.JvmInline
@@ -478,7 +479,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         }
 
         fun parseBytes(
-            bytes: ByteArray,
+            bytes: Bytes,
             from: Int = 0,
             to: Int = bytes.size,
         ): Dec64 {

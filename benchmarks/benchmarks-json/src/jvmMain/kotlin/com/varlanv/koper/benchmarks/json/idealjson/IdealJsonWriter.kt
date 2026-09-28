@@ -1,13 +1,16 @@
 package com.varlanv.koper.benchmarks.json
 
+import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.text.Str
 import java.io.OutputStream
 import java.lang.invoke.MethodHandles
 import java.nio.ByteOrder
 
 class IdealJsonWriter(private val vectorized: Boolean = false) {
-    private var buffer = ByteArray(512)
+    private var buffer = MutBytes(512.bytes())
     private var position = 0
     private lateinit var output: OutputStream
 
@@ -18,7 +21,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
 
     fun flush() {
         if (position != 0) {
-            output.write(buffer, 0, position)
+            Bytes.unsafe { useInternal(buffer) { output.write(it, 0, position) } }
             position = 0
         }
     }
@@ -34,7 +37,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         if (buffer.size - position < size) {
             flush()
             if (buffer.size < size) {
-                buffer = ByteArray(size)
+                buffer = size.bytes().allocate()
             }
         }
     }
@@ -45,7 +48,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     }
 
     fun writeRaw(
-        bytes: ByteArray,
+        bytes: Bytes,
         offset: Int = 0,
         length: Int = bytes.size,
     ) {
@@ -55,7 +58,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         if (length > buffer.size - position) {
             flush()
             if (length >= buffer.size) {
-                output.write(bytes, offset, length)
+                Bytes.unsafe { useInternal(bytes) { output.write(it, offset, length) } }
                 return
             }
         }
@@ -253,10 +256,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         )
     }
 
-    fun writeUtf8(value: Utf8Str) {
+    fun writeUtf8(value: Str) {
         writeByte('"'.code)
-        val slice = value.bytes
-        val bytes = slice.unsafeBorrowArray()
+        val slice = value.slice
+        val bytes = slice.bytes
         val end = slice.offset + slice.len
         var index = if (vectorized) {
             VectorJsonScan.firstSpecial(bytes = bytes, start = slice.offset, end = end)
@@ -277,10 +280,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         writeByte('"'.code)
     }
 
-    fun writeUtf8Reserved(value: Utf8Str) {
+    fun writeUtf8Reserved(value: Str) {
         buffer[position++] = '"'.code.toByte()
-        val slice = value.bytes
-        val bytes = slice.unsafeBorrowArray()
+        val slice = value.slice
+        val bytes = slice.bytes
         val end = slice.offset + slice.len
         var index = if (vectorized) {
             VectorJsonScan.firstSpecial(bytes = bytes, start = slice.offset, end = end)
@@ -375,7 +378,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     }
 
     private fun writeEscaped(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
     ) {
@@ -405,7 +408,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     }
 
     private fun writeEscapedRange(
-        bytes: ByteArray,
+        bytes: Bytes,
         start: Int,
         end: Int,
         targetStart: Int,
@@ -499,8 +502,8 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             }
         val tens = ByteArray(100) { ('0'.code + it / 10).toByte() }
         val ones = ByteArray(100) { ('0'.code + it % 10).toByte() }
-        val trueBytes = "true".encodeToByteArray()
-        val falseBytes = "false".encodeToByteArray()
+        val trueBytes = Bytes(MutBytes(("true".encodeToByteArray())))
+        val falseBytes = Bytes(MutBytes(("false".encodeToByteArray())))
         const val hex = "0123456789abcdef"
     }
 }

@@ -1,5 +1,7 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.MutBytes
+
 internal object JsonDecimalDigits {
     val triplets = IntArray(1000) {
         ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
@@ -8,7 +10,7 @@ internal object JsonDecimalDigits {
     private val ones = ByteArray(100) { ('0'.code + it % 10).toByte() }
 
     fun writeLeading(
-        buffer: ByteArray,
+        buffer: MutBytes,
         number: Int,
         end: Int,
     ): Int {

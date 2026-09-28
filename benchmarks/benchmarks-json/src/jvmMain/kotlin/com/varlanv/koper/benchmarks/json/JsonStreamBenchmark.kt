@@ -3,13 +3,11 @@ package com.varlanv.koper.benchmarks.json
 import com.varlanv.koper.json.JsonReadProtocol
 import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
-import com.varlanv.koper.lang.bin.InputStreamByteSource
-import com.varlanv.koper.lang.bin.OutputStreamByteSink
-import com.varlanv.koper.lang.bin.ReusableByteArraySink
-import com.varlanv.koper.lang.text.Utf8Str
+import com.varlanv.koper.lang.bin.*
+import com.varlanv.koper.lang.text.Str
+import org.openjdk.jmh.annotations.*
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
-import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])
@@ -22,7 +20,7 @@ class JsonStreamBenchmark {
     @JvmField
     final var vectorized: Boolean = false
 
-    private lateinit var utf8Value: JsonUtf8Sample
+    private lateinit var strValue: JsonStrSample
     private lateinit var mixedValue: JsonMixedSample
     private lateinit var dslMixedValue: DslMixedSample
     private lateinit var dslStringValue: DslStringSample
@@ -49,20 +47,20 @@ class JsonStreamBenchmark {
             "UTF8_LARGE" -> "order=123 Київ café 日本語 🙂 ".repeat(1024)
             else -> error(payload)
         }
-        utf8Value = JsonUtf8Sample(
+        strValue = JsonStrSample(
             id = 123456789L,
-            symbol = Utf8Str.allocateFromString("BTCUSDT"),
-            text = Utf8Str.allocateFromString(text),
+            symbol = Str.allocateFromString("BTCUSDT"),
+            text = Str.allocateFromString(text),
             sequence = 42,
             active = true,
         )
         mixedValue =
             JsonMixedSample(
-                id = utf8Value.id,
+                id = strValue.id,
                 symbol = "BTCUSDT",
-                text = utf8Value.text,
-                sequence = utf8Value.sequence,
-                active = utf8Value.active,
+                text = strValue.text,
+                sequence = strValue.sequence,
+                active = strValue.active,
             )
         dslMixedValue =
             DslMixedSample(
@@ -74,27 +72,27 @@ class JsonStreamBenchmark {
             )
         dslStringValue =
             DslStringSample(
-                id = utf8Value.id,
+                id = strValue.id,
                 symbol = mixedValue.symbol,
                 text = text,
-                sequence = utf8Value.sequence,
-                active = utf8Value.active,
+                sequence = strValue.sequence,
+                active = strValue.active,
             )
         dslUtf8Value =
             DslUtf8Sample(
-                id = utf8Value.id,
-                symbol = utf8Value.symbol,
-                text = utf8Value.text,
-                sequence = utf8Value.sequence,
-                active = utf8Value.active,
+                id = strValue.id,
+                symbol = strValue.symbol,
+                text = strValue.text,
+                sequence = strValue.sequence,
+                active = strValue.active,
             )
         dslUtf8DirectValue =
             DslUtf8DirectSample(
-                id = utf8Value.id,
-                symbol = utf8Value.symbol,
-                text = utf8Value.text,
-                sequence = utf8Value.sequence,
-                active = utf8Value.active,
+                id = strValue.id,
+                symbol = strValue.symbol,
+                text = strValue.text,
+                sequence = strValue.sequence,
+                active = strValue.active,
             )
         dslStringParent = object : DslJsonParent<DslStringSample>(DslStringSample::class) {}
         dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
@@ -103,59 +101,60 @@ class JsonStreamBenchmark {
         reader = JsonReadProtocol(vectorized = vectorized)
         writer = JsonWriteProtocol(vectorized)
 
-        val expectedOutput = ReusableByteArraySink(512)
+        val expectedOutput = ReusableByteArraySink(512.bytes())
         writer.reset(expectedOutput)
-        JsonUtf8SampleJsonCodec.write(writer = writer, value = utf8Value)
+        JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
         writer.flush()
         val bytes = expectedOutput.unsafeUseBytes { data, length -> data.copyOf(length) }
-        input = ByteArrayInputStream(bytes)
+        val arr = Bytes.unsafe { useInternal(Bytes(bytes)) {it} }
+        input = ByteArrayInputStream(arr)
         streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
 
-        check(utf8Read() == utf8Value)
+        check(utf8Read() == strValue)
         check(reader.nextToken() == -1)
         check(mixedRead() == mixedValue)
         check(reader.nextToken() == -1)
         utf8Write()
-        check(output.toByteArray().contentEquals(bytes))
+        check(output.toByteArray().contentEquals(arr))
         mixedWrite()
-        check(output.toByteArray().contentEquals(bytes))
-        check(idealUtf8Read() == utf8Value)
+        check(output.toByteArray().contentEquals(arr))
+        check(idealUtf8Read() == strValue)
         check(mixedIdealRead() == mixedValue)
         idealUtf8Write()
-        check(output.toByteArray().contentEquals(bytes))
+        check(output.toByteArray().contentEquals(arr))
         mixedIdealWrite()
-        check(output.toByteArray().contentEquals(bytes))
+        check(output.toByteArray().contentEquals(arr))
         check(dslStringRead() == dslStringValue)
         check(dslMixedRead() == dslMixedValue)
         check(dslUtf8Read() == dslUtf8Value)
         check(dslUtf8DirectRead() == dslUtf8DirectValue)
         dslStringWrite()
-        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == utf8Value)
+        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
         dslMixedWrite()
         check(MixedJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == mixedValue)
         dslUtf8Write()
-        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == utf8Value)
+        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
         dslUtf8DirectWrite()
-        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == utf8Value)
+        check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
     }
 
     @Benchmark
     fun utf8Write(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
-        JsonUtf8SampleJsonCodec.write(writer = writer, value = utf8Value)
+        JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
         writer.flush()
         return output
     }
 
     @Benchmark
-    fun utf8Read(): JsonUtf8Sample {
+    fun utf8Read(): JsonStrSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
-        val value = JsonUtf8SampleJsonCodec.read(reader)
+        val value = JsonStrSampleJsonCodec.read(reader)
         check(reader.nextToken() == -1)
         return value
     }
@@ -182,12 +181,12 @@ class JsonStreamBenchmark {
     @Benchmark
     fun idealUtf8Write(): RecycledOutputStream {
         output.reset()
-        IdealJsonUtf8Codec.writeVectorToStream(value = utf8Value, output = output)
+        IdealJsonUtf8Codec.writeVectorToStream(value = strValue, output = output)
         return output
     }
 
     @Benchmark
-    fun idealUtf8Read(): JsonUtf8Sample {
+    fun idealUtf8Read(): JsonStrSample {
         input.reset()
         return IdealJsonUtf8Codec.readVectorFromStream(input)
     }

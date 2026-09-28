@@ -1,6 +1,6 @@
 package com.varlanv.koper.benchmarks.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSlice
+import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.allocateByteSlice
 import com.varlanv.koper.lang.text.allocateString
@@ -16,7 +16,7 @@ class CharsetsJsBenchmark {
 
     private lateinit var charset: Charset
     private lateinit var source: String
-    private lateinit var encoded: ByteSlice
+    private lateinit var encoded: BytesSlice
 
     @Setup
     fun setup() {
@@ -54,7 +54,7 @@ class CharsetsJsBenchmark {
         encoded = charset.allocateByteSlice(string = source)
         check(
             charset
-                .allocateString(bytes = encoded.unsafeBorrowArray(), offset = encoded.offset, len = encoded.len)
+                .allocateString(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len)
                 .isNotEmpty(),
         )
     }
@@ -62,7 +62,7 @@ class CharsetsJsBenchmark {
     @Benchmark
     fun encode(blackhole: Blackhole) {
         val result = charset.allocateByteSlice(string = source)
-        blackhole.consume(result.unsafeBorrowArray())
+        blackhole.consume(result.bytes)
         blackhole.consume(result.len)
     }
 
@@ -70,7 +70,7 @@ class CharsetsJsBenchmark {
     fun decode(blackhole: Blackhole) {
         blackhole.consume(
             charset.allocateString(
-                bytes = encoded.unsafeBorrowArray(),
+                bytes = encoded.bytes,
                 offset = encoded.offset,
                 len = encoded.len,
             ),
