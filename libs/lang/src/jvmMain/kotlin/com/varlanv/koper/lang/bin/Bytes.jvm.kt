@@ -7,6 +7,33 @@ import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.util.*
 
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+internal actual typealias BytesImpl = ByteArray
+
+@JvmInline
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+actual value class Bytes private actual constructor(actual val impl: BytesImpl) {
+    actual val size: Int
+        get() = impl.size
+
+    actual fun getInt(idx: Int): Int = intViewHandle.get(impl, idx) as Int
+    actual fun setInt(idx: Int, value: Int) {
+        intViewHandle.set(impl, idx, value)
+    }
+
+    actual operator fun get(idx: Int): Byte = impl[idx]
+    actual operator fun set(idx: Int, value: Byte) {
+        impl[idx] = value
+    }
+
+    actual companion object {
+        actual operator fun invoke(capacity: Int): Bytes = Bytes(ByteArray(capacity))
+
+        actual operator fun invoke(dataSize: DataSize): Bytes = invoke(dataSize.bytes)
+    }
+}
+
+
 actual fun ByteArray.mismatch(
     aFromIndex: Int,
     aToIndex: Int,

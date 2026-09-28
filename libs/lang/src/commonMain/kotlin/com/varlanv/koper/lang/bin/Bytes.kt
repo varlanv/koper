@@ -2,6 +2,26 @@ package com.varlanv.koper.lang.bin
 
 import kotlin.jvm.JvmInline
 
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+expect class BytesImpl
+
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+expect value class Bytes private constructor(private val impl: BytesImpl) {
+
+    val size: Int
+    fun getInt(idx: Int): Int
+    fun setInt(idx: Int, value: Int)
+    operator fun get(idx: Int): Byte
+    operator fun set(idx: Int, value: Byte)
+
+    companion object {
+
+        operator fun invoke(capacity: Int): Bytes
+        operator fun invoke(dataSize: DataSize): Bytes
+    }
+}
+
+
 expect fun ByteArray.mismatch(
     aFromIndex: Int,
     aToIndex: Int,
@@ -43,15 +63,15 @@ fun ByteArray.indexOfNeedle(needle: ByteArray, fromIndex: Int): Int {
     var i = fromIndex.coerceAtLeast(0)
     while (i <= lastPossible) {
         if (this[i] == needleFirst && (
-        needleSize == 1 ||
-            mismatch(
-                aFromIndex = i + 1,
-                aToIndex = i + needleSize,
-                b = needle,
-                bFromIndex = 1,
-                bToIndex = needleSize,
-            ) == -1
-        )
+                    needleSize == 1 ||
+                            mismatch(
+                                aFromIndex = i + 1,
+                                aToIndex = i + needleSize,
+                                b = needle,
+                                bFromIndex = 1,
+                                bToIndex = needleSize,
+                            ) == -1
+                    )
         ) {
             return i
         }
@@ -64,14 +84,14 @@ fun ByteArray.startsWith(
     prefix: ByteArray,
     offset: Int = 0,
 ): Boolean = offset >= 0 &&
-    prefix.size <= size - offset &&
-    mismatch(
-        aFromIndex = offset,
-        aToIndex = offset + prefix.size,
-        b = prefix,
-        bFromIndex = 0,
-        bToIndex = prefix.size,
-    ) == -1
+        prefix.size <= size - offset &&
+        mismatch(
+            aFromIndex = offset,
+            aToIndex = offset + prefix.size,
+            b = prefix,
+            bFromIndex = 0,
+            bToIndex = prefix.size,
+        ) == -1
 
 @JvmInline
 value class ReadonlyBytes(@PublishedApi internal val array: ByteArray)

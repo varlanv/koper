@@ -1,5 +1,32 @@
 package com.varlanv.koper.lang.bin
 
+import org.khronos.webgl.ArrayBuffer
+import org.khronos.webgl.DataView
+
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+internal actual typealias BytesImpl = DataView
+
+@Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
+actual value class Bytes private actual constructor(actual val impl: BytesImpl) {
+    actual val size: Int
+        get() = impl.byteLength
+
+    actual fun getInt(idx: Int): Int = impl.getInt32(idx)
+    actual fun setInt(idx: Int, value: Int) {
+        impl.setInt32(idx, value)
+    }
+
+    actual operator fun get(idx: Int): Byte = impl.getInt8(idx)
+    actual operator fun set(idx: Int, value: Byte) = impl.setInt8(idx, value)
+
+    actual companion object {
+        actual operator fun invoke(capacity: Int): Bytes = Bytes(DataView(ArrayBuffer(capacity)))
+
+        actual operator fun invoke(dataSize: DataSize): Bytes = invoke(dataSize.bytes)
+    }
+}
+
+
 actual fun ByteArray.mismatch(
     aFromIndex: Int,
     aToIndex: Int,
