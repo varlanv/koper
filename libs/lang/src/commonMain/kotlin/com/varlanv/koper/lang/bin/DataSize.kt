@@ -27,7 +27,7 @@ value class DataSize internal constructor(val bytes: Int) {
         return "$readable ($bytes B)"
     }
 
-    fun allocate(): MutBytes = MutBytes(ByteArray(bytes))
+    fun allocate(): MutBytes = MutBytes(this)
 
     private fun format(magnitude: Long, unit: Int): String {
         // Round to thousandths, with ties away from zero.

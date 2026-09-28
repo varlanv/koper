@@ -185,7 +185,7 @@ private fun decodeWithTextDecoder(
     if (len == 0) {
         return ""
     }
-    val input = bytes.asUnsignedArray(offset, len)
+    val input = bytes.asUnsignedArray(offset = offset, len = len)
     return decoder.decode(input).unsafeCast<String>()
 }
 
@@ -212,7 +212,7 @@ private fun latin1String(
         }
     }
 
-    val unsigned = bytes.asUnsignedArray(offset, len)
+    val unsigned = bytes.asUnsignedArray(offset = offset, len = len)
     if (len <= 4096) {
         return charCodesToString(unsigned).unsafeCast<String>()
     }
@@ -232,7 +232,7 @@ private fun latin1Utf16String(
     offset: Int,
     len: Int,
 ): String {
-    val unsigned = bytes.asUnsignedArray(offset, len)
+    val unsigned = bytes.asUnsignedArray(offset = offset, len = len)
     val chars = Uint16Array(len)
     chars.asDynamic().set(unsigned)
     val view = Uint8Array(buffer = chars.buffer, byteOffset = chars.byteOffset, length = chars.byteLength)
