@@ -2,7 +2,7 @@ package com.varlanv.koper.benchmarks.json
 
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.lang.invoke.MethodHandles
 import java.nio.ByteOrder
@@ -51,7 +51,7 @@ class IdealJsonReader(
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    fun readUtf8(): Str {
+    fun readUtf8(): Utf8Str {
         require(last == 34) { "Expected JSON string" }
         val start = position
         var index = if (vectorized) {
@@ -68,14 +68,10 @@ class IdealJsonReader(
             if (value == 34) {
                 position = index + 1
                 if (index == start) {
-                    return Str.empty
+                    return Utf8Str.empty
                 }
                 val bytes = buffer.copyOfRange(from = start, to = index)
-                return Str.wrapBytes(
-                    bytes = Bytes(bytes),
-                    offset = 0,
-                    len = bytes.size,
-                )
+                return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
             }
             if (value == 92 || value < 32) {
                 break
@@ -90,11 +86,7 @@ class IdealJsonReader(
             readStringToScratch(false)
         }
         val bytes = scratch.copyOf(scratchSize)
-        return Str.wrapBytes(
-            bytes = Bytes(bytes),
-            offset = 0,
-            len = bytes.size,
-        )
+        return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
     }
 
     fun readString(): String {
@@ -685,7 +677,7 @@ class IdealJsonReader(
                     } else {
                         require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                     }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
+                    Charset.Utf8.encodeCodepointInline(codepoint) { output[size++] = it }
                     index += consumed
                 } else {
                     output[size++] = when (escaped) {
@@ -767,7 +759,7 @@ class IdealJsonReader(
                     } else {
                         require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                     }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
+                    Charset.Utf8.encodeCodepointInline(codepoint) { output[size++] = it }
                     index += consumed
                     continue
                 }
@@ -868,7 +860,7 @@ class IdealJsonReader(
                     require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                 }
                 ensureScratch(scratchSize + 4)
-                Charset.encodeUtf8Inline(codepoint) { scratch[scratchSize++] = it }
+                Charset.Utf8.encodeCodepointInline(codepoint) { scratch[scratchSize++] = it }
             }
 
             else -> {

@@ -1,6 +1,6 @@
 package com.varlanv.koper.json
 
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.serde.De
 import com.varlanv.koper.serde.Ser
 
@@ -11,7 +11,7 @@ internal data class GeneratedJsonSample(
     val longValue: Long,
     val booleanValue: Boolean,
     val stringValue: String,
-    val strValue: Str,
+    val strValue: Utf8Str,
 )
 
 @Ser

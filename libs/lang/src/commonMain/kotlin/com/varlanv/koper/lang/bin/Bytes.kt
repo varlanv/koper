@@ -32,6 +32,8 @@ fun Bytes.isEmpty(): Boolean = size == 0
 
 fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).asReadonly()
 
+fun Bytes.slice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
+
 fun ByteArray.asReadonly(): Bytes = Bytes(MutBytes(this))
 
 fun ByteArray.asMut(): MutBytes = MutBytes(this)

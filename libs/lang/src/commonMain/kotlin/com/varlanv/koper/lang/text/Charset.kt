@@ -3,34 +3,62 @@ package com.varlanv.koper.lang.text
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.BytesSlice
 
-/** The returned slice may use only part of its backing array. */
-expect fun Charset.allocateByteSlice(
-    string: String,
-    start: Int = 0,
-    end: Int = string.length,
-): BytesSlice
+sealed interface Charset {
+    val ordinal: Int
 
-expect fun Charset.allocateString(
-    bytes: Bytes,
-    offset: Int = 0,
-    len: Int = bytes.bytes.size,
-): String
+    data object Ascii : Charset {
+        override val ordinal: Int = 0
 
-enum class Charset {
-    Utf8,
-    Ascii,
-    Latin1;
+        inline fun encodeInline(chars: CharSequence, block: (Byte) -> Unit) {
+            chars.forEachCodePointInRange(
+                start = 0,
+                end = chars.length,
+            ) { encodeCodepointInline(codepoint = it, block = block) }
+        }
 
-    inline fun encodeInline(codepoint: Int, block: (Byte) -> Unit) {
-        when (this) {
-            Utf8 -> encodeUtf8Inline(codepoint = codepoint, block = block)
-            Ascii -> encodeAsciiInline(codepoint = codepoint, block = block)
-            Latin1 -> encodeLatin1Inline(codepoint = codepoint, block = block)
+        inline fun encodeCodepointInline(codepoint: Int, block: (Byte) -> Unit) {
+            block(
+                if (codepoint in 0..0x7F) {
+                    codepoint.toByte()
+                } else {
+                    0x3F
+                },
+            )
         }
     }
 
-    companion object {
-        inline fun encodeUtf8Inline(codepoint: Int, block: (Byte) -> Unit) {
+    data object Latin1 : Charset {
+        override val ordinal: Int = 1
+
+        inline fun encodeInline(chars: CharSequence, block: (Byte) -> Unit) {
+            chars.forEachCodePointInRange(
+                start = 0,
+                end = chars.length,
+            ) { encodeCodepointInline(codepoint = it, block = block) }
+        }
+
+        inline fun encodeCodepointInline(codepoint: Int, block: (Byte) -> Unit) {
+            block(
+                if (codepoint in 0..0xFF) {
+                    codepoint.toByte()
+                } else {
+                    0x3F
+                },
+            )
+        }
+    }
+
+    data object Utf8 : Charset {
+        override val ordinal: Int = 2
+
+        inline fun encodeInline(chars: CharSequence, block: (Byte) -> Unit) {
+            chars.forEachCodePointInRange(
+                start = 0,
+                end = chars.length,
+            ) { encodeCodepointInline(codepoint = it, block = block) }
+        }
+
+        inline fun encodeCodepointInline(codepoint: Int, block: (Byte) -> Unit) {
             when (codepoint) {
                 in 0..0x7F -> {
                     block(codepoint.toByte())
@@ -63,45 +91,25 @@ enum class Charset {
                 }
             }
         }
-
-        inline fun encodeLatin1Inline(codepoint: Int, block: (Byte) -> Unit) {
-            block(
-                if (codepoint in 0..0xFF) {
-                    codepoint.toByte()
-                } else {
-                    0x3F
-                },
-            )
-        }
-
-        inline fun encodeAsciiInline(codepoint: Int, block: (Byte) -> Unit) {
-            block(
-                if (codepoint in 0..0x7F) {
-                    codepoint.toByte()
-                } else {
-                    0x3F
-                },
-            )
-        }
-    }
-
-    inline fun encodeInline(chars: CharSequence, block: (Byte) -> Unit) {
-        when (this) {
-            Utf8 -> chars.forEachCodePointInRange(
-                start = 0,
-                end = chars.length,
-            ) { encodeUtf8Inline(codepoint = it, block = block) }
-            Ascii -> chars.forEachCodePointInRange(
-                start = 0,
-                end = chars.length,
-            ) { encodeAsciiInline(codepoint = it, block = block) }
-            Latin1 -> chars.forEachCodePointInRange(
-                start = 0,
-                end = chars.length,
-            ) { encodeLatin1Inline(codepoint = it, block = block) }
-        }
     }
 }
+
+/** The returned slice may use only part of its backing array. */
+expect fun Charset.allocateByteSlice(
+    string: String,
+    start: Int = 0,
+    end: Int = string.length,
+): BytesSlice
+
+expect fun Charset.allocateString(
+    bytes: Bytes,
+    offset: Int = 0,
+    len: Int = bytes.bytes.size,
+): String
+
+fun Charset.allocateString(
+    slice: BytesSlice,
+): String = allocateString(bytes = slice.bytes, offset = slice.offset, len = slice.len)
 
 @PublishedApi
 internal inline fun CharSequence.forEachCodePointInRange(

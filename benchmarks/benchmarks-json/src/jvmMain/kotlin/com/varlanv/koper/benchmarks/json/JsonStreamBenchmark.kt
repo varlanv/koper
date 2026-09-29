@@ -4,7 +4,7 @@ import com.varlanv.koper.json.JsonReadProtocol
 import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
 import org.openjdk.jmh.annotations.*
@@ -49,8 +49,8 @@ class JsonStreamBenchmark {
         }
         strValue = JsonStrSample(
             id = 123456789L,
-            symbol = Str.allocateFromString("BTCUSDT"),
-            text = Str.allocateFromString(text),
+            symbol = Utf8Str.allocateFromString(string = "BTCUSDT"),
+            text = Utf8Str.allocateFromString(string = text),
             sequence = 42,
             active = true,
         )

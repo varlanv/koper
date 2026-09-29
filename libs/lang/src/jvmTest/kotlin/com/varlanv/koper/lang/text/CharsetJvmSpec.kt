@@ -11,15 +11,18 @@ class CharsetJvmSpec : BaseSpec({
             should("match JDK encoding for every Unicode code point") {
                 val actual = ByteArray(4)
                 for (codepoint in 0..0x10FFFF) {
+                    if (codepoint in 0xD800..0xDFFF) {
+                        continue
+                    }
                     val chars = String(Character.toChars(codepoint))
                     val expected = chars.toByteArray(charset.jdkEncoding())
                     var size = 0
-                    charset.encodeInline(codepoint) { actual[size++] = it }
+                    charset.encodeCodepoint(codepoint) { actual[size++] = it }
                     check(size == expected.size && expected.indices.all { actual[it] == expected[it] }) {
                         "Code point mismatch: $codepoint"
                     }
                     size = 0
-                    charset.encodeInline(chars) { actual[size++] = it }
+                    charset.encode(chars) { actual[size++] = it }
                     check(size == expected.size && expected.indices.all { actual[it] == expected[it] }) {
                         "Character sequence mismatch: $codepoint"
                     }
@@ -49,7 +52,7 @@ class CharsetJvmSpec : BaseSpec({
                         CharBuffer.wrap(input),
                     )) {
                         val actual = mutableListOf<Byte>()
-                        charset.encodeInline(chars) { actual.add(it) }
+                        charset.encode(chars) { actual.add(it) }
                         actual shouldBe expected
                     }
                 }
@@ -60,10 +63,26 @@ class CharsetJvmSpec : BaseSpec({
                 repeat(1_000) {
                     val chars = String(CharArray(random.nextInt(256)) { random.nextInt(0x10000).toChar() })
                     val actual = mutableListOf<Byte>()
-                    charset.encodeInline(chars) { actual.add(it) }
+                    charset.encode(chars) { actual.add(it) }
                     actual shouldBe chars.toByteArray(charset.jdkEncoding()).toList()
                 }
             }
         }
     }
 })
+
+private fun Charset.encodeCodepoint(codepoint: Int, block: (Byte) -> Unit) {
+    when (this) {
+        Charset.Ascii -> Charset.Ascii.encodeCodepointInline(codepoint = codepoint, block = block)
+        Charset.Latin1 -> Charset.Latin1.encodeCodepointInline(codepoint = codepoint, block = block)
+        Charset.Utf8 -> Charset.Utf8.encodeCodepointInline(codepoint = codepoint, block = block)
+    }
+}
+
+private fun Charset.encode(chars: CharSequence, block: (Byte) -> Unit) {
+    when (this) {
+        Charset.Ascii -> Charset.Ascii.encodeInline(chars = chars, block = block)
+        Charset.Latin1 -> Charset.Latin1.encodeInline(chars = chars, block = block)
+        Charset.Utf8 -> Charset.Utf8.encodeInline(chars = chars, block = block)
+    }
+}

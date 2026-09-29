@@ -120,7 +120,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     } else {
                         require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                     }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
+                    Charset.Utf8.encodeCodepointInline(codepoint) { output[size++] = it }
                     index += consumed
                 } else {
                     output[size++] = when (escaped) {
@@ -203,7 +203,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     } else {
                         require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                     }
-                    Charset.encodeUtf8Inline(codepoint) { output[size++] = it }
+                    Charset.Utf8.encodeCodepointInline(codepoint) { output[size++] = it }
                     index += consumed
                     continue
                 }
@@ -311,7 +311,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     require(codepoint !in 0xDC00..0xDFFF) { "Unpaired low surrogate" }
                 }
                 ensureScratch(scratchSize + 4)
-                Charset.encodeUtf8Inline(codepoint) { scratch[scratchSize++] = it }
+                Charset.Utf8.encodeCodepointInline(codepoint) { scratch[scratchSize++] = it }
             }
 
             else -> {

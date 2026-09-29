@@ -1,9 +1,10 @@
 package com.varlanv.koper.test
 
-import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.kilobytes
+import com.varlanv.koper.lang.bin.slice
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import kotlin.reflect.KClass
 
 private object SampleBuffer {
@@ -18,11 +19,7 @@ private object SampleBuffer {
         Charset.Utf8.encodeInline(value) { put(it.toInt()) }
     }
 
-    fun result(): Str = Str.wrapBytes(
-        bytes = Bytes(bytes),
-        offset = 0,
-        len = size,
-    )
+    fun result(): Utf8Str = Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = size))
 
     private fun put(value: Int) {
         check(size < bytes.size) { "Fixture source exceeds the 10 KiB sample buffer" }
@@ -86,7 +83,7 @@ object SerdeSamples {
         val maxSamples: Int = 100_000,
     )
 
-    fun buildSerdeSample(shape: Shape): Str {
+    fun buildSerdeSample(shape: Shape): Utf8Str {
         validate(shape)
         SampleBuffer.reset()
         if (shape.annotations.includeSer) {
@@ -114,7 +111,7 @@ object SerdeSamples {
         return SampleBuffer.result()
     }
 
-    fun buildSerdeSample(types: List<KClass<*>>, capabilities: Capabilities): Str {
+    fun buildSerdeSample(types: List<KClass<*>>, capabilities: Capabilities): Utf8Str {
         val shape = Shape(
             name = "SerdeFixture",
             kind = capabilities.kinds.single(),
@@ -132,7 +129,7 @@ object SerdeSamples {
         types: Set<KClass<*>>,
         capabilities: Capabilities,
         matrixSettings: MatrixSettings = MatrixSettings(),
-        block: (shape: Shape, source: Str) -> Unit,
+        block: (shape: Shape, source: Utf8Str) -> Unit,
     ) {
         require(types.isNotEmpty()) { "Matrix needs at least one parameter type" }
         require(matrixSettings.parametersRepeating >= 0) { "parametersRepeating must not be negative" }

@@ -2,8 +2,10 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
+import com.varlanv.koper.lang.bin.slice
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
 
 object JsonCodec {
@@ -304,7 +306,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 } else {
                     char
                 }
-                Charset.encodeUtf8Inline(codepoint) { output[position++] = it }
+                Charset.Utf8.encodeCodepointInline(codepoint) { output[position++] = it }
                 index = if (codepoint > 0xFFFF) {
                     index + 2
                 } else {
@@ -327,18 +329,18 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     }
 }
 
-object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
-    override val hints: JsonCodec.Hints<Str> = JsonCodec.Hints(
-        size = JsonValueSize.FromValue { value -> 2L + value.len.toLong() * 6L },
+object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
+    override val hints: JsonCodec.Hints<Utf8Str> = JsonCodec.Hints(
+        size = JsonValueSize.FromValue { value -> 2L + value.byteLen.toLong() * 6L },
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Str) = writePrimitive(writer = writer, value = value)
+    override fun write(writer: JsonWriteProtocol, value: Utf8Str) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Str = readPrimitive(reader)
+    override fun read(reader: JsonReadProtocol): Utf8Str = readPrimitive(reader)
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Str) {
+    fun writePrimitive(writer: JsonWriteProtocol, value: Utf8Str) {
         val slice = value.slice
         val input = slice.bytes
         val end = slice.offset + slice.len
@@ -367,17 +369,13 @@ object StrJsonCodec : JsonCodec.Read<Str>, JsonCodec.Write<Str> {
         writer.position = position
     }
 
-    fun readPrimitive(reader: JsonReadProtocol): Str {
+    fun readPrimitive(reader: JsonReadProtocol): Utf8Str {
         val scanner = reader.stringScanner
         scanner.read(reader)
         if (scanner.length == 0) {
-            return Str.empty
+            return Utf8Str.empty
         }
         val bytes = scanner.bytes.copyOfRange(from = scanner.offset, to = scanner.offset + scanner.length)
-        return Str.wrapBytes(
-            bytes = Bytes(bytes),
-            offset = 0,
-            len = bytes.size,
-        )
+        return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
     }
 }

@@ -2,7 +2,7 @@ package com.varlanv.koper.benchmarks.json
 
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -30,7 +30,7 @@ object MixedJsonUtf8Codec {
         value: JsonMixedSample,
         output: OutputStream,
     ) {
-        val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.len.toLong() * 6L
+        val maximumSize = 87L + value.symbol.length.toLong() * 6L + value.text.byteLen.toLong() * 6L
         require(maximumSize <= Int.MAX_VALUE) { "JSON object is too large" }
         writer.reset(output)
         if (maximumSize <= reservedObjectLimit) {
@@ -84,7 +84,7 @@ object MixedJsonUtf8Codec {
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L
         var symbol = ""
-        var text = Str.empty
+        var text = Utf8Str.empty
         var sequence = 0
         var active = false
         var seen = 0

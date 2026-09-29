@@ -4,7 +4,7 @@ import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.OutputStream
 import java.lang.invoke.MethodHandles
 import java.nio.ByteOrder
@@ -261,7 +261,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         )
     }
 
-    fun writeUtf8(value: Str) {
+    fun writeUtf8(value: Utf8Str) {
         writeByte('"'.code)
         val slice = value.slice
         val bytes = slice.bytes
@@ -285,7 +285,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         writeByte('"'.code)
     }
 
-    fun writeUtf8Reserved(value: Str) {
+    fun writeUtf8Reserved(value: Utf8Str) {
         buffer[position++] = '"'.code.toByte()
         val slice = value.slice
         val bytes = slice.bytes
@@ -361,7 +361,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         } else {
             char
         }
-        Charset.encodeUtf8Inline(codepoint) { buffer[position++] = it }
+        Charset.Utf8.encodeCodepointInline(codepoint) { buffer[position++] = it }
         return if (codepoint > 0xFFFF) {
             index + 2
         } else {

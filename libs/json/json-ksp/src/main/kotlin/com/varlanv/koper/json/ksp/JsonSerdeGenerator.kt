@@ -18,7 +18,7 @@ private enum class FieldType(
     LONG("LongJsonCodec", 20, true),
     BOOLEAN("BooleanJsonCodec", 5, true),
     STRING("StringJsonCodec", 2, false),
-    STR("StrJsonCodec", 2, true),
+    UTF8STR("Utf8StrJsonCodec", 2, true),
 }
 
 private val knownFieldTypes = mapOf(
@@ -26,7 +26,7 @@ private val knownFieldTypes = mapOf(
     "kotlin.Long" to FieldType.LONG,
     "kotlin.Boolean" to FieldType.BOOLEAN,
     "kotlin.String" to FieldType.STRING,
-    "com.varlanv.koper.lang.text.Str" to FieldType.STR,
+    "com.varlanv.koper.lang.text.Utf8Str" to FieldType.UTF8STR,
 )
 
 private data class JsonField(
@@ -166,7 +166,7 @@ private fun generateSource(
     } else {
         0L
     }
-    val variableFields = fields.filter { it.type == FieldType.STRING || it.type == FieldType.STR }
+    val variableFields = fields.filter { it.type == FieldType.STRING || it.type == FieldType.UTF8STR }
     val fastFields = fields.withIndex().filter { it.value.fastMatchable }
 
     fun appendFieldRead(index: Int, indent: String) {
@@ -241,7 +241,7 @@ private fun generateSource(
                 val size = if (field.type == FieldType.STRING) {
                     "value.${identifier(field.name)}.length"
                 } else {
-                    "value.${identifier(field.name)}.len"
+                    "value.${identifier(field.name)}.byteLen"
                 }
                 "$size.toLong() * 6L"
             }
@@ -258,7 +258,7 @@ private fun generateSource(
                 FieldType.LONG -> "Long = 0L"
                 FieldType.BOOLEAN -> "Boolean = false"
                 FieldType.STRING -> "String? = null"
-                FieldType.STR -> "com.varlanv.koper.lang.text.Str? = null"
+                FieldType.UTF8STR -> "com.varlanv.koper.lang.text.Utf8Str? = null"
             }
             appendLine("        var _field$index: $initial")
         }
@@ -345,7 +345,7 @@ private fun generateSource(
         } else {
             appendLine("        return $constructor(")
             fields.forEachIndexed { index, field ->
-                val value = if (field.type == FieldType.STRING || field.type == FieldType.STR) {
+                val value = if (field.type == FieldType.STRING || field.type == FieldType.UTF8STR) {
                     "_field$index ?: error(\"Missing required JSON field\")"
                 } else {
                     "_field$index"

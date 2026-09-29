@@ -119,7 +119,7 @@ private fun encodeUtf8(
     val result = ByteArray(size)
     var position = 0
     string.forEachCodePointInRange(start = start, end = end) { cp ->
-        Charset.encodeUtf8Inline(cp) { result[position++] = it }
+        Charset.Utf8.encodeCodepointInline(cp) { result[position++] = it }
     }
 
     return BytesSlice(bytes = MutBytes(result).asReadonly(), offset = 0, len = result.size)

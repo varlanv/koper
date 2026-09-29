@@ -6,9 +6,10 @@ import com.dslplatform.json.JsonReader
 import com.dslplatform.json.JsonWriter
 import com.dslplatform.json.runtime.Settings
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
+import com.varlanv.koper.lang.bin.slice
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.reflect.KClass
@@ -47,8 +48,8 @@ object JsonV2 {
     }
 }
 
-@JsonConverter(target = Str::class)
-object StrConverter {
+@JsonConverter(target = Utf8Str::class)
+object Utf8StrConverter {
     private val readerBuffer = JsonReader::class.java.getDeclaredField("buffer").apply { isAccessible = true }
     private val readerIndex = JsonReader::class.java.getDeclaredField("currentIndex").apply { isAccessible = true }
     private const val hexDigits = "0123456789abcdef"
@@ -58,7 +59,7 @@ object StrConverter {
     @JvmStatic
     @JvmExposeBoxed
     @OptIn(ExperimentalStdlibApi::class)
-    fun read(reader: JsonReader<*>): Str {
+    fun read(reader: JsonReader<*>): Utf8Str {
         if (reader.last() != '"'.code.toByte()) {
             throw reader.newParseError("Expected a JSON string")
         }
@@ -71,12 +72,10 @@ object StrConverter {
             if (b == '"'.code) {
                 readerIndex.setInt(reader, index + 1)
                 return if (index == start) {
-                    Str.empty
+                    Utf8Str.empty
                 } else {
-                    Str.wrapBytes(
-                        bytes = Bytes(MutBytes(bytes.copyOfRange(start, index))),
-                        offset = 0,
-                        len = index - start,
+                    Utf8Str.unsafeWrap(
+                        bytes.copyOfRange(start, index).asReadonly().slice(offset = 0, len = index- start),
                     )
                 }
             }
@@ -88,7 +87,7 @@ object StrConverter {
         return readBuffered(reader)
     }
 
-    private fun readBuffered(reader: JsonReader<*>): Str {
+    private fun readBuffered(reader: JsonReader<*>): Utf8Str {
         val initialBuffer = readBuffers.get()
         var buffer = initialBuffer
         var size = 0
@@ -99,13 +98,9 @@ object StrConverter {
                     readBuffers.set(buffer)
                 }
                 return if (size == 0) {
-                    Str.empty
+                    Utf8Str.empty
                 } else {
-                    Str.wrapBytes(
-                        bytes = Bytes(MutBytes(buffer.copyOf(size))),
-                        offset = 0,
-                        len = size,
-                    )
+                    Utf8Str.unsafeWrap(buffer.copyOf(size).asReadonly().slice(offset = 0, len = size))
                 }
             }
             if (b < 0x20) {
@@ -143,7 +138,7 @@ object StrConverter {
         codePoint: Int,
     ): Int {
         var size = offset
-        Charset.encodeUtf8Inline(codePoint) { buffer[size++] = it }
+        Charset.Utf8.encodeCodepointInline(codePoint) { buffer[size++] = it }
         return size
     }
 
@@ -182,7 +177,7 @@ object StrConverter {
     @JvmStatic
     @JvmExposeBoxed
     @OptIn(ExperimentalStdlibApi::class)
-    fun write(writer: JsonWriter, value: Str) {
+    fun write(writer: JsonWriter, value: Utf8Str) {
         val slice = value.slice
         val bytes = slice.bytes
         val end = slice.offset + slice.len

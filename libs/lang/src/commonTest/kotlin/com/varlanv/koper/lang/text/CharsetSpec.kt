@@ -19,23 +19,26 @@ class CharsetSpec : BaseSpec({
         )
         for ((codepoint, expected) in cases) {
             val actual = mutableListOf<Byte>()
-            Charset.Utf8.encodeInline(codepoint) { actual.add(it) }
+            Charset.Utf8.encodeCodepointInline(codepoint) { actual.add(it) }
             actual shouldBe expected.map { it.toByte() }
         }
     }
 
     should("encode every representable ASCII and Latin1 byte") {
-        for ((charset, last) in listOf(Charset.Ascii to 0x7F, Charset.Latin1 to 0xFF)) {
-            for (codepoint in 0..last) {
-                val actual = mutableListOf<Byte>()
-                charset.encodeInline(codepoint) { actual.add(it) }
-                actual shouldBe listOf(codepoint.toByte())
-            }
+        for (codepoint in 0..0x7F) {
+            val actual = mutableListOf<Byte>()
+            Charset.Ascii.encodeCodepointInline(codepoint) { actual.add(it) }
+            actual shouldBe listOf(codepoint.toByte())
+        }
+        for (codepoint in 0..0xFF) {
+            val actual = mutableListOf<Byte>()
+            Charset.Latin1.encodeCodepointInline(codepoint) { actual.add(it) }
+            actual shouldBe listOf(codepoint.toByte())
         }
     }
 
     should("replace unrepresentable and invalid code points with a question mark") {
-        for (charset in Charset.entries) {
+        for (charset in listOf(Charset.Ascii, Charset.Latin1, Charset.Utf8)) {
             val invalid = listOf(Int.MIN_VALUE, -1, 0xD800, 0xDFFF, 0x110000, Int.MAX_VALUE) + when (charset) {
                 Charset.Ascii -> listOf(0x80, 0xFF, 0x100, 0x10000)
                 Charset.Latin1 -> listOf(0x100, 0x10000)
@@ -43,7 +46,7 @@ class CharsetSpec : BaseSpec({
             }
             for (codepoint in invalid) {
                 val actual = mutableListOf<Byte>()
-                charset.encodeInline(codepoint) { actual.add(it) }
+                charset.encodeCodepoint(codepoint) { actual.add(it) }
                 actual shouldBe listOf(0x3F.toByte())
             }
         }
@@ -61,19 +64,19 @@ class CharsetSpec : BaseSpec({
             "\uDC00\uD800" to "??",
             "\uD800A\uDC00" to "?A?",
         )
-        for (charset in Charset.entries) {
+        for (charset in listOf(Charset.Ascii, Charset.Latin1, Charset.Utf8)) {
             for ((input, expected) in cases) {
                 for (chars in listOf(
                     input,
                     StringBuilder(input),
                 )) {
                     val actual = mutableListOf<Byte>()
-                    charset.encodeInline(chars) { actual.add(it) }
+                    charset.encode(chars) { actual.add(it) }
                     actual shouldBe expected.encodeToByteArray().toList()
                 }
             }
             val actual = mutableListOf<Byte>()
-            charset.encodeInline("\uD800\uD800\uDC00\uDC00") { actual.add(it) }
+            charset.encode("\uD800\uD800\uDC00\uDC00") { actual.add(it) }
             actual shouldBe if (charset == Charset.Utf8) {
                 listOf(0x3F, 0xF0, 0x90, 0x80, 0x80, 0x3F).map { it.toByte() }
             } else {
@@ -100,3 +103,19 @@ class CharsetSpec : BaseSpec({
         '\uD83D'.toCodePoint('\uDE42') shouldBe 0x1F642
     }
 })
+
+private fun Charset.encodeCodepoint(codepoint: Int, block: (Byte) -> Unit) {
+    when (this) {
+        Charset.Ascii -> Charset.Ascii.encodeCodepointInline(codepoint = codepoint, block = block)
+        Charset.Latin1 -> Charset.Latin1.encodeCodepointInline(codepoint = codepoint, block = block)
+        Charset.Utf8 -> Charset.Utf8.encodeCodepointInline(codepoint = codepoint, block = block)
+    }
+}
+
+private fun Charset.encode(chars: CharSequence, block: (Byte) -> Unit) {
+    when (this) {
+        Charset.Ascii -> Charset.Ascii.encodeInline(chars = chars, block = block)
+        Charset.Latin1 -> Charset.Latin1.encodeInline(chars = chars, block = block)
+        Charset.Utf8 -> Charset.Utf8.encodeInline(chars = chars, block = block)
+    }
+}

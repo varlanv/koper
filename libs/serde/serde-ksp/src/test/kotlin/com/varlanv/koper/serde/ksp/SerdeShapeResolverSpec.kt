@@ -7,7 +7,7 @@ import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.validate
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.serde.Ser
 import com.varlanv.koper.test.SerdeSamples
 import com.varlanv.koper.testing.BaseSpec
@@ -113,7 +113,7 @@ class SerdeShapeResolverSpec : BaseSpec({
                         .encodeToByteArray(),
                 )
                 output.write(
-                    "@com.varlanv.koper.serde.Ser class SupportedTypes(val i: kotlin.Int, val l: kotlin.Long, val b: kotlin.Boolean, val s: kotlin.String, val u: com.varlanv.koper.lang.text.Str)\n"
+                    "@com.varlanv.koper.serde.Ser class SupportedTypes(val i: kotlin.Int, val l: kotlin.Long, val b: kotlin.Boolean, val s: kotlin.String, val u: com.varlanv.koper.lang.text.Utf8Str)\n"
                         .encodeToByteArray(),
                 )
             }
@@ -124,7 +124,7 @@ class SerdeShapeResolverSpec : BaseSpec({
             val version = "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}"
             val classpath = listOf(
                 Ser::class.java,
-                Str::class.java,
+                Utf8Str::class.java,
                 Unit::class.java,
             ).map { File(it.protectionDomain.codeSource.location.toURI()) }.distinct()
             val config = KSPJvmConfig
@@ -228,7 +228,7 @@ class SerdeShapeResolverSpec : BaseSpec({
                         ),
                         Triple(
                             "u",
-                            "com.varlanv.koper.lang.text.Str",
+                            "com.varlanv.koper.lang.text.Utf8Str",
                             true,
                         ),
                     ),

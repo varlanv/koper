@@ -2,7 +2,7 @@ package com.varlanv.koper.benchmarks.json
 
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.text.Str
+import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -85,8 +85,8 @@ object IdealJsonUtf8Codec {
         reader.reset(input)
         require(reader.nextToken() == '{'.code) { "Expected JSON object" }
         var id = 0L
-        var symbol = Str.empty
-        var text = Str.empty
+        var symbol = Utf8Str.empty
+        var text = Utf8Str.empty
         var sequence = 0
         var active = false
         var seen = 0
