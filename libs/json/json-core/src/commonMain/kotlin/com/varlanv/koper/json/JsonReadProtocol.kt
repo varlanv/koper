@@ -133,7 +133,7 @@ object JsonReadProtocol {
             hash = 31 * hash + value
             index++
         }
-        JsonStringScannerV2.readToScratch()
+        JsonStringScanner.readToScratch()
         parseScope.fieldSize = parseScope.scratchLength
         parseScope.field = parseScope.scratchBytes
         parseScope.fieldOffset = parseScope.scratchOffset
@@ -163,7 +163,7 @@ object JsonReadProtocol {
         require(depth <= 128) { "JSON nesting limit exceeded" }
         when (parseScope.last) {
             34 -> {
-                JsonStringScannerV2.readToScratch()
+                JsonStringScanner.readToScratch()
             }
 
             116 -> {
@@ -184,7 +184,7 @@ object JsonReadProtocol {
                 }
                 while (true) {
                     require(parseScope.last == 34) { "Expected JSON field name" }
-                    JsonStringScannerV2.readToScratch()
+                    JsonStringScanner.readToScratch()
                     require(nextToken() == 58) { "Expected colon" }
                     nextToken()
                     skipValue(depth + 1)

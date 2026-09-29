@@ -329,7 +329,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
 
     context(input: ByteSource, parseScope: JsonParseScope)
     override fun read(): String {
-        JsonStringScannerV2.read()
+        JsonStringScanner.read()
         return Charset.Utf8.allocateString(
             bytes = parseScope.scratchBytes.asReadonly(),
             offset = parseScope.scratchOffset,
@@ -354,7 +354,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         val slice = value.slice
         val input = slice.bytes
         val end = slice.offset + slice.len
-        val special = writer.scan.firstSpecial(bytes = input, start = slice.offset, end = end)
+        val special = jsonScanner.firstSpecial(bytes = input, start = slice.offset, end = end)
         val output = writer.buffer
         var position = writer.position
         output[position++] = '"'.code.toByte()
@@ -381,7 +381,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
 
     context(input: ByteSource, parseScope: JsonParseScope)
     fun readPrimitive(): Utf8Str {
-        JsonStringScannerV2.read()
+        JsonStringScanner.read()
         if (parseScope.scratchLength == 0) {
             return Utf8Str.empty
         }

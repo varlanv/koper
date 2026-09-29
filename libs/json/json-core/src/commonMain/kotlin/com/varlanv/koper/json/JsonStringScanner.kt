@@ -5,16 +5,13 @@ import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.text.Charset
 
-private val scan = jsonSpecialScan(true)
-private val vectorized = scan.isVector
-
-object JsonStringScannerV2 {
+object JsonStringScanner {
     context(input: ByteSource, parseScope: JsonParseScope)
     fun read() {
         require(parseScope.last == 34) { "Expected JSON string" }
         val start = parseScope.position
-        var index = if (vectorized) {
-            scan.firstSpecial(
+        var index = if (isVectorized) {
+            jsonScanner.firstSpecial(
                 bytes = Bytes(parseScope.buffer),
                 start = start,
                 end = parseScope.limit,
@@ -63,7 +60,7 @@ object JsonStringScannerV2 {
 
     context(parseScope: JsonParseScope)
     private fun readBufferedEscapes(): Boolean {
-        return if (vectorized && parseScope.limit - parseScope.position >= scan.laneCount) {
+        return if (isVectorized && parseScope.limit - parseScope.position >= jsonScanner.laneCount) {
             readVectorEscapes()
         } else {
             readScalarEscapes()
@@ -76,11 +73,11 @@ object JsonStringScannerV2 {
         var index = parseScope.position
         var size = parseScope.scratchSize
         val output = parseScope.scratch
-        val width = scan.laneCount
+        val width = jsonScanner.laneCount
         scan@ while (parseScope.limit - index >= width) {
             val start = index
             val end = start + width
-            var events = scan.specialMask(
+            var events = jsonScanner.specialMask(
                 bytes = Bytes(parseScope.buffer),
                 start = start,
             )
@@ -246,8 +243,8 @@ object JsonStringScannerV2 {
         }
         while (true) {
             val start = parseScope.position
-            var end = if (vectorized) {
-                scan.firstSpecial(
+            var end = if (isVectorized) {
+                jsonScanner.firstSpecial(
                     bytes = Bytes(parseScope.buffer),
                     start = start,
                     end = parseScope.limit,

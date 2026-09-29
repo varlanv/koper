@@ -42,12 +42,11 @@ internal object JsonStringEscapes {
         val target = writer.buffer
         var index = start
         var offset = targetStart
-        val scan = writer.scan
-        val width = scan.laneCount
+        val width = jsonScanner.laneCount
         while (end - index >= width) {
             val blockStart = index
             val blockEnd = blockStart + width
-            var events = scan.specialMask(bytes = bytes, start = blockStart)
+            var events = jsonScanner.specialMask(bytes = bytes, start = blockStart)
             while (events != 0L) {
                 val special = blockStart + events.countTrailingZeroBits()
                 if (special > index) {

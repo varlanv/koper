@@ -5,8 +5,7 @@ import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 
-class JsonWriteProtocol(vectorized: Boolean = false) {
-    internal val scan = jsonSpecialScan(vectorized)
+class JsonWriteProtocol {
     internal var buffer = MutBytes(512.bytes())
     internal var position = 0
     private lateinit var output: ByteSink
