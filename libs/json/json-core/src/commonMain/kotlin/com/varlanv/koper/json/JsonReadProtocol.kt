@@ -1,18 +1,14 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSource
-import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.DataSize
+import com.varlanv.koper.lang.bin.kilobytes
 
-class JsonReadProtocol(
-    bufferSize: Int = 32768,
-    vectorized: Boolean = false,
-) {
-    internal val stringScanner = JsonStringScanner(vectorized)
-    internal val buffer = MutBytes(ByteArray(bufferSize.also { require(it > 0) }))
+class JsonReadProtocol(bufferSize: DataSize = 32.kilobytes()) {
     private lateinit var input: ByteSource
-    internal val parseScope = JsonParseScope()
+    internal val parseScope = JsonParseScope(bufferSize)
     private var last = -1
-    private var field = buffer
+    private var field = parseScope.buffer
     private var fieldOffset = 0
     private var fieldSize = 0
 
@@ -35,8 +31,8 @@ class JsonReadProtocol(
 
     fun nextFieldValue() {
         val index = parseScope.position
-        if (parseScope.limit - index >= 2 && buffer[index].toInt() == 58) {
-            val value = buffer[index + 1].toInt() and 255
+        if (parseScope.limit - index >= 2 && parseScope.buffer[index].toInt() == 58) {
+            val value = parseScope.buffer[index + 1].toInt() and 255
             if (value > 32) {
                 parseScope.position = index + 2
                 last = value
@@ -49,7 +45,7 @@ class JsonReadProtocol(
 
     fun peekFieldWord(): Long {
         return if (parseScope.limit - parseScope.position >= 8) {
-            buffer.getPackedLong(parseScope.position)
+            parseScope.buffer.getPackedLong(parseScope.position)
         } else {
             0L
         }
@@ -57,7 +53,7 @@ class JsonReadProtocol(
 
     fun consumeField(length: Int): Boolean {
         val position = parseScope.position
-        if (parseScope.limit - position <= length || buffer[position + length].toInt() != 34) {
+        if (parseScope.limit - position <= length || parseScope.buffer[position + length].toInt() != 34) {
             return false
         }
         parseScope.position = position + length + 1
@@ -70,11 +66,11 @@ class JsonReadProtocol(
             return false
         }
         for (index in expected.indices) {
-            if (buffer[start + index] != expected[index]) {
+            if (parseScope.buffer[start + index] != expected[index]) {
                 return false
             }
         }
-        return buffer[start + expected.size].toInt() == 34
+        return parseScope.buffer[start + expected.size].toInt() == 34
     }
 
     fun consumeMatchedFieldColon(length: Int) {
@@ -85,8 +81,8 @@ class JsonReadProtocol(
         val limit = parseScope.limit
         val position = parseScope.position
         if (limit - position <= length + 1 ||
-            buffer[position + length].toInt() != 34 ||
-            buffer[position + length + 1].toInt() != 58
+            parseScope.buffer[position + length].toInt() != 34 ||
+            parseScope.buffer[position + length + 1].toInt() != 58
         ) {
             return false
         }
@@ -97,12 +93,14 @@ class JsonReadProtocol(
     fun nextFieldOrEnd(): Int {
         val index = parseScope.position
         val limit = parseScope.limit
-        if (limit - index >= 2 && buffer[index].toInt() == 44 && buffer[index + 1].toInt() == 34) {
+        if (limit - index >= 2 &&
+            parseScope.buffer[index].toInt() == 44 &&
+            parseScope.buffer[index + 1].toInt() == 34) {
             parseScope.position = index + 2
             last = 34
             return 34
         }
-        if (index < limit && buffer[index].toInt() == 125) {
+        if (index < limit && parseScope.buffer[index].toInt() == 125) {
             parseScope.position = index + 1
             last = 125
             return 125
@@ -123,10 +121,10 @@ class JsonReadProtocol(
         var index = start
         var hash = 0
         while (index < parseScope.limit) {
-            val value = buffer[index].toInt() and 255
+            val value = parseScope.buffer[index].toInt() and 255
             if (value == 34) {
                 fieldSize = index - start
-                field = buffer
+                field = parseScope.buffer
                 fieldOffset = start
                 parseScope.position = index + 1
                 return hash
@@ -137,10 +135,10 @@ class JsonReadProtocol(
             hash = 31 * hash + value
             index++
         }
-        stringScanner.readToScratch(this)
-        fieldSize = stringScanner.length
-        field = stringScanner.bytes
-        fieldOffset = stringScanner.offset
+        parseScope.stringScanner.readToScratch(this)
+        fieldSize = parseScope.stringScanner.length
+        field = parseScope.stringScanner.bytes
+        fieldOffset = parseScope.stringScanner.offset
         hash = 0
         for (i in 0 until fieldSize) hash = 31 * hash + (field[i].toInt() and 255)
         return hash
@@ -164,7 +162,7 @@ class JsonReadProtocol(
         require(depth <= 128) { "JSON nesting limit exceeded" }
         when (last) {
             34 -> {
-                stringScanner.readToScratch(this)
+                parseScope.stringScanner.readToScratch(this)
             }
 
             116 -> {
@@ -185,7 +183,7 @@ class JsonReadProtocol(
                 }
                 while (true) {
                     require(last == 34) { "Expected JSON field name" }
-                    stringScanner.readToScratch(this)
+                    parseScope.stringScanner.readToScratch(this)
                     require(nextToken() == 58) { "Expected colon" }
                     nextToken()
                     skipValue(depth + 1)
@@ -291,7 +289,7 @@ class JsonReadProtocol(
     private fun nextValue(index: Int) {
         parseScope.position = index
         if (index < parseScope.limit) {
-            val value = buffer[index].toInt() and 255
+            val value = parseScope.buffer[index].toInt() and 255
             if (value > 32) {
                 parseScope.position = index + 1
                 last = value
@@ -305,12 +303,12 @@ class JsonReadProtocol(
         if (parseScope.position == parseScope.limit && !refill()) {
             return -1
         }
-        return buffer[parseScope.position].toInt() and 255
+        return parseScope.buffer[parseScope.position].toInt() and 255
     }
 
     internal fun refill(): Boolean {
         parseScope.position = 0
-        parseScope.limit = input.readAtMostTo(sink = buffer, offset = 0, length = buffer.size)
+        parseScope.limit = input.readAtMostTo(sink = parseScope.buffer, offset = 0, length = parseScope.buffer.size)
         if (parseScope.limit <= 0) {
             check(parseScope.limit != 0) { "ByteSource returned zero bytes for a non-empty read" }
             parseScope.limit = 0

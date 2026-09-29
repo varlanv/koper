@@ -16,10 +16,6 @@ class JsonStreamBenchmark {
     @JvmField
     final var payload: String = ""
 
-    @Param("true")
-    @JvmField
-    final var vectorized: Boolean = false
-
     private lateinit var strValue: JsonStrSample
     private lateinit var mixedValue: JsonMixedSample
     private lateinit var dslMixedValue: DslMixedSample
@@ -98,8 +94,8 @@ class JsonStreamBenchmark {
         dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
         dslUtf8Parent = object : DslJsonParent<DslUtf8Sample>(DslUtf8Sample::class) {}
         dslUtf8DirectParent = object : DslJsonParent<DslUtf8DirectSample>(DslUtf8DirectSample::class) {}
-        reader = JsonReadProtocol(vectorized = vectorized)
-        writer = JsonWriteProtocol(vectorized)
+        reader = JsonReadProtocol()
+        writer = JsonWriteProtocol()
 
         val expectedOutput = ReusableByteArraySink(512.bytes())
         writer.reset(expectedOutput)

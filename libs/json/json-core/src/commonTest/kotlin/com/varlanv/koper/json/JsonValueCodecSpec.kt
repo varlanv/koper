@@ -32,7 +32,7 @@ class JsonValueCodecSpec : BaseSpec({
         bytes.decodeToString() shouldBe expectedJson
 
         for (bufferSize in listOf(1, 32768)) {
-            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            val reader = JsonReadProtocol(bufferSize.bytes())
             reader.reset(bytes.asByteSource())
             reader.nextToken()
             readerCodec.read(reader) shouldBe value
@@ -77,7 +77,7 @@ class JsonValueCodecSpec : BaseSpec({
             "-9223372036854775808" to Long.MIN_VALUE,
         )
         for (bufferSize in listOf(1, 2, 8, 16, 32768)) {
-            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            val reader = JsonReadProtocol(bufferSize.bytes())
             for ((document, expected) in validInts) {
                 reader.reset(document.encodeToByteArray().asByteSource())
                 reader.nextToken()
@@ -105,7 +105,7 @@ class JsonValueCodecSpec : BaseSpec({
 
     should("read boolean literals across buffer boundaries and reject invalid suffixes") {
         for (bufferSize in listOf(1, 2, 4, 5, 32768)) {
-            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            val reader = JsonReadProtocol(bufferSize.bytes())
             for ((document, expected) in mapOf("true " to true, "false " to false)) {
                 reader.reset(document.encodeToByteArray().asByteSource())
                 reader.nextToken()
@@ -143,7 +143,7 @@ class JsonValueCodecSpec : BaseSpec({
     should("read object fields in any order and skip unknown values") {
         val bytes = "{\"extra\":[null,{\"nested\":true}],\"text\":\"A\\n\",\"id\":42}".encodeToByteArray()
         for (bufferSize in listOf(1, 32768)) {
-            val reader = JsonReadProtocol(bufferSize = bufferSize)
+            val reader = JsonReadProtocol(bufferSize.bytes())
             reader.reset(bytes.asByteSource())
             reader.nextToken()
             HandwrittenJsonSampleCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
@@ -180,7 +180,7 @@ class JsonValueCodecSpec : BaseSpec({
 
     should("read generated fields with colliding hashes and a non-ASCII name") {
         val expectedJson = "{\"axx\":1,\"bYx\":2,\"aaaaé\":4}"
-        val reader = JsonReadProtocol(bufferSize = 1)
+        val reader = JsonReadProtocol(1.bytes())
         reader.reset(expectedJson.encodeToByteArray().asByteSource())
         reader.nextToken()
         val value = GeneratedJsonNamesJsonCodec.read(reader)
@@ -209,7 +209,7 @@ class JsonValueCodecSpec : BaseSpec({
         )
         for (document in documents) {
             for (bufferSize in listOf(1, 8, 16, 32768)) {
-                val reader = JsonReadProtocol(bufferSize = bufferSize)
+                val reader = JsonReadProtocol(bufferSize.bytes())
                 reader.reset(document.encodeToByteArray().asByteSource())
                 reader.nextToken()
                 GeneratedLongFieldNamesJsonCodec.read(reader) shouldBe value

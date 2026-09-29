@@ -21,7 +21,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         val start = reader.parseScope.position
         var index = if (vectorized) {
             scan.firstSpecial(
-                bytes = Bytes(reader.buffer),
+                bytes = Bytes(reader.parseScope.buffer),
                 start = start,
                 end = reader.parseScope.limit,
             )
@@ -29,10 +29,10 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             start
         }
         while (index < reader.parseScope.limit) {
-            val value = reader.buffer[index].toInt() and 255
+            val value = reader.parseScope.buffer[index].toInt() and 255
             if (value == 34) {
                 reader.parseScope.position = index + 1
-                bytes = reader.buffer
+                bytes = reader.parseScope.buffer
                 offset = start
                 length = index - start
                 return
@@ -44,7 +44,12 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         }
         scratchSize = index - start
         ensureScratch(scratchSize)
-        reader.buffer.copyInto(destination = scratch, destinationOffset = 0, startIndex = start, endIndex = index)
+        reader.parseScope.buffer.copyInto(
+            destination = scratch,
+            destinationOffset = 0,
+            startIndex = start,
+            endIndex = index,
+        )
         reader.parseScope.position = index
         if (index == reader.parseScope.limit || !readBufferedEscapes(reader)) {
             readStringToScratch(reader = reader, clear = false)
@@ -79,7 +84,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             val start = index
             val end = start + width
             var events = scan.specialMask(
-                bytes = Bytes(reader.buffer),
+                bytes = Bytes(reader.parseScope.buffer),
                 start = start,
             )
             while (events != 0L) {
@@ -89,7 +94,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     size += special - index
                 }
                 index = special
-                val value = reader.buffer[index].toInt() and 255
+                val value = reader.parseScope.buffer[index].toInt() and 255
                 if (value == 34) {
                     reader.parseScope.position = index + 1
                     scratchSize = size
@@ -99,7 +104,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 if (reader.parseScope.limit - index < 2) {
                     break@scan
                 }
-                val escaped = reader.buffer[index + 1].toInt() and 255
+                val escaped = reader.parseScope.buffer[index + 1].toInt() and 255
                 if (escaped == 117) {
                     if (reader.parseScope.limit - index < 6) {
                         break@scan
@@ -110,7 +115,10 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                         if (reader.parseScope.limit - index < 12) {
                             break@scan
                         }
-                        require(reader.buffer[index + 6].toInt() == 92 && reader.buffer[index + 7].toInt() == 117) {
+                        require(
+                            reader.parseScope.buffer[index + 6].toInt() == 92 &&
+                                reader.parseScope.buffer[index + 7].toInt() == 117,
+                        ) {
                             "Expected low surrogate escape"
                         }
                         val low = readHexAt(reader = reader, index = index + 8)
@@ -158,11 +166,16 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         start: Int,
         end: Int,
     ) {
-        if (end - start <= 8 && start <= reader.buffer.size - 8 && offset <= output.size - 8) {
-            val word = reader.buffer.getPackedLong(start)
+        if (end - start <= 8 && start <= reader.parseScope.buffer.size - 8 && offset <= output.size - 8) {
+            val word = reader.parseScope.buffer.getPackedLong(start)
             output.setPackedLong(idx = offset, value = word)
         } else {
-            reader.buffer.copyInto(destination = output, destinationOffset = offset, startIndex = start, endIndex = end)
+            reader.parseScope.buffer.copyInto(
+                destination = output,
+                destinationOffset = offset,
+                startIndex = start,
+                endIndex = end,
+            )
         }
     }
 
@@ -172,7 +185,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         var size = scratchSize
         val output = scratch
         while (index < reader.parseScope.limit) {
-            val value = reader.buffer[index].toInt() and 255
+            val value = reader.parseScope.buffer[index].toInt() and 255
             if (value == 34) {
                 reader.parseScope.position = index + 1
                 scratchSize = size
@@ -183,7 +196,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 if (index + 1 == reader.parseScope.limit) {
                     break
                 }
-                if (reader.buffer[index + 1].toInt() == 117) {
+                if (reader.parseScope.buffer[index + 1].toInt() == 117) {
                     if (reader.parseScope.limit - index < 6) {
                         break
                     }
@@ -193,7 +206,10 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                         if (reader.parseScope.limit - index < 12) {
                             break
                         }
-                        require(reader.buffer[index + 6].toInt() == 92 && reader.buffer[index + 7].toInt() == 117) {
+                        require(
+                            reader.parseScope.buffer[index + 6].toInt() == 92 &&
+                                reader.parseScope.buffer[index + 7].toInt() == 117,
+                        ) {
                             "Expected low surrogate escape"
                         }
                         val low = readHexAt(reader = reader, index = index + 8)
@@ -207,7 +223,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     index += consumed
                     continue
                 }
-                output[size++] = when (val escaped = reader.buffer[index + 1].toInt() and 255) {
+                output[size++] = when (val escaped = reader.parseScope.buffer[index + 1].toInt() and 255) {
                     34, 92, 47 -> escaped.toByte()
                     98 -> 8
                     102 -> 12
@@ -238,7 +254,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             val start = reader.parseScope.position
             var end = if (vectorized) {
                 scan.firstSpecial(
-                    bytes = Bytes(reader.buffer),
+                    bytes = Bytes(reader.parseScope.buffer),
                     start = start,
                     end = reader.parseScope.limit,
                 )
@@ -246,7 +262,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 start
             }
             while (end < reader.parseScope.limit) {
-                val value = reader.buffer[end].toInt() and 255
+                val value = reader.parseScope.buffer[end].toInt() and 255
                 if (value == 34 || value == 92 || value < 32) {
                     break
                 }
@@ -255,7 +271,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             if (end > start) {
                 val size = end - start
                 ensureScratch(scratchSize + size)
-                reader.buffer.copyInto(
+                reader.parseScope.buffer.copyInto(
                     destination = scratch,
                     destinationOffset = scratchSize,
                     startIndex = start,
@@ -321,10 +337,10 @@ internal class JsonStringScanner(val vectorized: Boolean) {
     }
 
     private fun readHexAt(reader: JsonReadProtocol, index: Int): Int {
-        return (hexDigit(reader.buffer[index].toInt() and 255) shl 12) or
-            (hexDigit(reader.buffer[index + 1].toInt() and 255) shl 8) or
-            (hexDigit(reader.buffer[index + 2].toInt() and 255) shl 4) or
-            hexDigit(reader.buffer[index + 3].toInt() and 255)
+        return (hexDigit(reader.parseScope.buffer[index].toInt() and 255) shl 12) or
+            (hexDigit(reader.parseScope.buffer[index + 1].toInt() and 255) shl 8) or
+            (hexDigit(reader.parseScope.buffer[index + 2].toInt() and 255) shl 4) or
+            hexDigit(reader.parseScope.buffer[index + 3].toInt() and 255)
     }
 
     private fun hexDigit(value: Int): Int {

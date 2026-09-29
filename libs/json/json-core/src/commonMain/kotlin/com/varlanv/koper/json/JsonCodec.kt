@@ -143,7 +143,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         var result = -(digit - 48).toLong()
         val leadingZero = digit == 48
         var index = reader.parseScope.position
-        val input = reader.buffer
+        val input = reader.parseScope.buffer
         while (true) {
             while (reader.parseScope.limit - index >= 8) {
                 val number = readEightDigits(input = input, index = index)
@@ -230,7 +230,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         val index = reader.parseScope.position
         val available = reader.parseScope.limit - index
         if (reader.token == 116 && available >= 4) {
-            val word = reader.buffer.getPackedInt(index)
+            val word = reader.parseScope.buffer.getPackedInt(index)
             if (word and 0x00ffffff == 0x00657572) {
                 reader.requireDelimiter(word ushr 24)
                 reader.parseScope.position = index + 3
@@ -239,8 +239,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
             throw IllegalArgumentException("Invalid JSON literal")
         }
         if (reader.token == 102 && available >= 5) {
-            if (reader.buffer.getPackedInt(index) == 0x65736c61) {
-                reader.requireDelimiter(reader.buffer[index + 4].toInt() and 255)
+            if (reader.parseScope.buffer.getPackedInt(index) == 0x65736c61) {
+                reader.requireDelimiter(reader.parseScope.buffer[index + 4].toInt() and 255)
                 reader.parseScope.position = index + 4
                 return false
             }
@@ -319,7 +319,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     }
 
     override fun read(reader: JsonReadProtocol): String {
-        val scanner = reader.stringScanner
+        val scanner = reader.parseScope.stringScanner
         scanner.read(reader)
         return Charset.Utf8.allocateString(
             bytes = Bytes(scanner.bytes),
@@ -370,7 +370,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
     }
 
     fun readPrimitive(reader: JsonReadProtocol): Utf8Str {
-        val scanner = reader.stringScanner
+        val scanner = reader.parseScope.stringScanner
         scanner.read(reader)
         if (scanner.length == 0) {
             return Utf8Str.empty
