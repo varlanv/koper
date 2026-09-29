@@ -2,6 +2,9 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.MutBytes
 
+/**
+ * Decimal digit tables and sizing helpers used by integer writers; helpers do not reserve or flush output.
+ */
 internal object JsonDecimalDigits {
     val triplets = IntArray(1000) {
         ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
@@ -9,6 +12,12 @@ internal object JsonDecimalDigits {
     private val tens = ByteArray(100) { ('0'.code + it / 10).toByte() }
     private val ones = ByteArray(100) { ('0'.code + it % 10).toByte() }
 
+    /**
+     * Writes a leading decimal group of [number] backwards into [buffer], ending immediately before [end].
+     * Requires a number in 0..999 and sufficient preceding capacity; writes one to three bytes without changing scope state.
+     *
+     * @return The first written offset as an [Int].
+     */
     fun writeLeading(
         buffer: MutBytes,
         number: Int,
@@ -25,6 +34,11 @@ internal object JsonDecimalDigits {
         return index
     }
 
+    /**
+     * Computes the decimal byte length of [value], including a minus sign when negative, without changing state.
+     *
+     * @return The exact length as an [Int], including for Long.MIN_VALUE.
+     */
     fun decimalSize(value: Long): Int {
         val number = if (value > 0) {
             -value
@@ -43,6 +57,11 @@ internal object JsonDecimalDigits {
         }
     }
 
+    /**
+     * Counts digits of a nonnegative decimal group below 1,000,000,000 without changing state.
+     *
+     * @return The decimal digit count as an [Int], with zero requiring one digit.
+     */
     private fun intDigits(value: Int): Int {
         return if (value < 100000) {
             if (value < 100) {

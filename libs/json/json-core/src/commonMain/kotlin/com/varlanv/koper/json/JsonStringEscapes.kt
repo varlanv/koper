@@ -3,6 +3,9 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.getPackedLong
 
+/**
+ * Escape tables and buffered UTF-8 string output. Helpers write string contents without surrounding quotes.
+ */
 internal object JsonStringEscapes {
     const val unicodePair: Short = 0x755c
     private const val hex = "0123456789abcdef"
@@ -32,6 +35,13 @@ internal object JsonStringEscapes {
             }
         }
 
+    /**
+     * Escapes [bytes] from [start] until [end] into the write buffer beginning at [targetStart].
+     * Requires non-aliasing input and sufficient reserved capacity for escaped output and packed-write padding.
+     * Mutates the write buffer, but does not reserve, flush, or update the scope's position; the caller sets that position.
+     *
+     * @return The exclusive output end as an [Int], including inserted JSON escape bytes.
+     */
     context(writeScope: JsonWriteScope)
     fun writeUtf8Escaped(
         bytes: Bytes,

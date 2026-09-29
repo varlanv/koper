@@ -20,7 +20,14 @@ import kotlin.require
 import kotlin.text.encodeToByteArray
 import kotlin.text.iterator
 
+/**
+ * Contracts and sizing hints for codecs operating in read or write scope contexts.
+ */
 object JsonCodec {
+    /**
+     * Metadata used to plan reservations and generated calls. Construction records hints without reading or writing bytes.
+     * The size hint describes the complete JSON representation, including delimiters and escaping.
+     */
     class Hints<T>(
         /**
          * Hint for what is the size of the value.
@@ -40,26 +47,59 @@ object JsonCodec {
         val isBoxedByGeneric: Boolean = false,
     )
 
+    /**
+     * Consumes a value using the input and read-scope context. Built-in and generated readers expect the value's first
+     * byte to have been consumed into the last token by the caller before [read] is invoked.
+     */
     interface Read<T> {
         val hints: Hints<T>
 
+        /**
+         * Consumes the value beginning with the scope's last token.
+         * Updates parser state and may refill, compact, or grow input storage; buffering can read ahead in the source.
+         * Does not require consuming the entire document.
+         *
+         * @return The decoded value of type [T].
+         */
         context(input: ByteSource, parseScope: JsonReadScope)
         fun read(): T
     }
 
+    /**
+     * Appends a value using the sink and write-scope context; capacity must be reserved before raw buffer writes.
+     */
     interface Write<T> {
         val hints: Hints<T>
 
+        /**
+         * Appends the JSON representation of [value], updating the write buffer and position.
+         * Reservations may grow the buffer or flush bytes to the sink; completion does not imply pending output was flushed.
+         *
+         * @return [Unit] after writing the value into the output state.
+         */
         context(sink: ByteSink, writeScope: JsonWriteScope)
         fun write(value: T)
     }
 }
 
+/**
+ * Upper-bound sizing strategies for a complete encoded JSON value, used to plan output reservations.
+ */
 sealed interface JsonValueSize<in T> {
+    /**
+     * Fixed maximum encoded byte count; construction records the bound without performing output operations.
+     */
     data class Static(val maximumBytes: Long) : JsonValueSize<Any?>
 
+    /**
+     * Value-dependent maximum encoded byte count. The stored function returns a [Long] bound for its input;
+     * construction stores the function without invoking it or writing bytes.
+     */
     class FromValue<T>(val maximumBytes: (T) -> Long) : JsonValueSize<T>
 
+    /**
+     * No bounded size is supplied; callers cannot determine a complete reservation from this hint alone.
+     */
     data object Dynamic : JsonValueSize<Any?>
 }
 
@@ -151,7 +191,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
     fun readPrimitive(): Long {
         val negative = parseScope.last == 45
         val digit = if (negative) {
-            JsonReadProtocol.take()
+            JsonReadBuffer.take()
         } else {
             parseScope.last
         }
@@ -202,7 +242,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
                 index++
             }
             parseScope.position = index
-            if (!JsonReadProtocol.refill()) {
+            if (!JsonReadBuffer.refill()) {
                 return if (negative) {
                     result
                 } else {
@@ -287,14 +327,14 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
                 throw IllegalArgumentException("Expected JSON boolean")
             }
         }
-        JsonReadProtocol.requireDelimiter(JsonReadProtocol.peek())
+        JsonReadProtocol.requireDelimiter(JsonReadBuffer.peek())
         return value
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
     private fun readTail(tail: String) {
         for (char in tail) {
-            require(JsonReadProtocol.take() == char.code) { "Invalid JSON literal" }
+            require(JsonReadBuffer.take() == char.code) { "Invalid JSON literal" }
         }
     }
 }
@@ -348,11 +388,11 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): String {
-        JsonStringScanner.read()
+        JsonReadBuffer.readString()
         return Charset.Utf8.allocateString(
-            bytes = parseScope.scratchBytes.asReadonly(),
-            offset = parseScope.scratchOffset,
-            len = parseScope.scratchLength,
+            bytes = parseScope.buffer.asReadonly(),
+            offset = parseScope.stringOffset,
+            len = parseScope.stringLength,
         )
     }
 }
@@ -396,13 +436,13 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Utf8Str {
-        JsonStringScanner.read()
-        if (parseScope.scratchLength == 0) {
+        JsonReadBuffer.readString()
+        if (parseScope.stringLength == 0) {
             return Utf8Str.empty
         }
-        val bytes = parseScope.scratchBytes.copyOfRange(
-            from = parseScope.scratchOffset,
-            to = parseScope.scratchOffset + parseScope.scratchLength,
+        val bytes = parseScope.buffer.copyOfRange(
+            from = parseScope.stringOffset,
+            to = parseScope.stringOffset + parseScope.stringLength,
         )
         return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
     }
