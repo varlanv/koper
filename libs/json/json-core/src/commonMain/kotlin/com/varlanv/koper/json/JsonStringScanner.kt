@@ -5,7 +5,7 @@ import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.text.Charset
 
-object JsonStringScanner {
+internal object JsonStringScanner {
     context(input: ByteSource, parseScope: JsonReadScope)
     fun read() {
         require(parseScope.last == 34) { "Expected JSON string" }

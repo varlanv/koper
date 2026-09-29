@@ -3,15 +3,6 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSource
 
 object JsonReadProtocol {
-    //    context(parseScope: JsonParseScope)
-    //    fun reset(input: ByteSource) {
-    //        this.input = input
-    //        parseScope.position = 0
-    //        parseScope.limit = 0
-    //        last = -1
-    //        fieldSize = 0
-    //    }
-
     context(input: ByteSource, parseScope: JsonReadScope)
     fun nextToken(): Int {
         var value = take()

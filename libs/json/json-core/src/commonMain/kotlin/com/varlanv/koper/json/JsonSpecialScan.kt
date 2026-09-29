@@ -2,7 +2,7 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
 
-interface JsonSpecialScan {
+internal interface JsonSpecialScan {
     val laneCount: Int
     val isVector: Boolean
 
