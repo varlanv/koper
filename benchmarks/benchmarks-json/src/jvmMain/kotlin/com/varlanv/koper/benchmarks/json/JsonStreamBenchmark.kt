@@ -3,6 +3,7 @@ package com.varlanv.koper.benchmarks.json
 import com.varlanv.koper.json.JsonReadProtocol
 import com.varlanv.koper.json.JsonReadScope
 import com.varlanv.koper.json.JsonWriteProtocol
+import com.varlanv.koper.json.JsonWriteScope
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Utf8Str
@@ -31,7 +32,7 @@ class JsonStreamBenchmark {
     private lateinit var streamInput: InputStreamByteSource
     private lateinit var output: RecycledOutputStream
     private lateinit var streamOutput: OutputStreamByteSink
-    private lateinit var writer: JsonWriteProtocol
+    private lateinit var writeScope: JsonWriteScope
     private lateinit var parseScope: JsonReadScope
 
     @Setup
@@ -95,12 +96,13 @@ class JsonStreamBenchmark {
         dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
         dslUtf8Parent = object : DslJsonParent<DslUtf8Sample>(DslUtf8Sample::class) {}
         dslUtf8DirectParent = object : DslJsonParent<DslUtf8DirectSample>(DslUtf8DirectSample::class) {}
-        writer = JsonWriteProtocol()
+        writeScope = JsonWriteScope()
 
         val expectedOutput = ReusableByteArraySink(512.bytes())
-        writer.reset(expectedOutput)
-        JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
-        writer.flush()
+        writeScope.scoped(expectedOutput) {
+            JsonStrSampleJsonCodec.write(value = strValue)
+            JsonWriteProtocol.flush()
+        }
         val bytes = expectedOutput.useBytes { data, length -> data.copyOf(length) }
         val arr = Bytes.unsafe { useInternal(bytes) { it } }
         input = ByteArrayInputStream(arr)
@@ -138,9 +140,10 @@ class JsonStreamBenchmark {
     @Benchmark
     fun generatedWriteUtf8(): RecycledOutputStream {
         output.reset()
-        writer.reset(streamOutput)
-        JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
-        writer.flush()
+        writeScope.scoped(streamOutput) {
+            JsonStrSampleJsonCodec.write(value = strValue)
+            JsonWriteProtocol.flush()
+        }
         return output
     }
 
@@ -159,9 +162,10 @@ class JsonStreamBenchmark {
     @Benchmark
     fun generatedWriteMixed(): RecycledOutputStream {
         output.reset()
-        writer.reset(streamOutput)
-        JsonMixedSampleJsonCodec.write(writer = writer, value = mixedValue)
-        writer.flush()
+        writeScope.scoped(streamOutput) {
+            JsonMixedSampleJsonCodec.write(value = mixedValue)
+            JsonWriteProtocol.flush()
+        }
         return output
     }
 

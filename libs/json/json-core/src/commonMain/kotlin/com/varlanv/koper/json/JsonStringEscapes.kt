@@ -32,14 +32,14 @@ internal object JsonStringEscapes {
             }
         }
 
+    context(writeScope: JsonWriteScope)
     fun writeUtf8Escaped(
-        writer: JsonWriteProtocol,
         bytes: Bytes,
         start: Int,
         end: Int,
         targetStart: Int,
     ): Int {
-        val target = writer.buffer
+        val target = writeScope.buffer
         var index = start
         var offset = targetStart
         val width = jsonScanner.laneCount

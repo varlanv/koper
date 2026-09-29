@@ -153,6 +153,7 @@ private fun generateSource(
     val jsonType = "com.varlanv.koper.json"
     val binType = "com.varlanv.koper.lang.bin"
     val readProtocol = "$jsonType.JsonReadProtocol"
+    val writeProtocol = "$jsonType.JsonWriteProtocol"
     val write = shape.annotations.isSer
     val read = shape.annotations.isDe
     val interfaces = buildList {
@@ -215,27 +216,28 @@ private fun generateSource(
     }
     if (write) {
         appendLine()
-        appendLine("    override fun write(writer: $jsonType.JsonWriteProtocol, value: $classType) {")
+        appendLine("    context(sink: $binType.ByteSink, writeScope: $jsonType.JsonWriteScope)")
+        appendLine("    override fun write(value: $classType) {")
         appendLine(
-            "        writer.reserve(${if (variableFields.isEmpty()) {
+            "        $writeProtocol.reserve(${if (variableFields.isEmpty()) {
                 "${fixedMaximum}L"
             } else {
                 "maximumBytes(value)"
             }})",
         )
         if (fields.isEmpty()) {
-            appendLine("        writer.writeByte(123)")
+            appendLine("        $writeProtocol.writeByte(123)")
         }
         for (field in fields) {
-            appendPackedWrites(bytes = field.prefix, indent = "        ")
+            appendPackedWrites(bytes = field.prefix, indent = "        ", writeProtocol = writeProtocol)
             val method = if (field.type.boxedByGeneric) {
                 "writePrimitive"
             } else {
                 "write"
             }
-            appendLine("        $jsonType.${field.type.codec}.$method(writer, value.${identifier(field.name)})")
+            appendLine("        $jsonType.${field.type.codec}.$method(value.${identifier(field.name)})")
         }
-        appendLine("        writer.writeByte(125)")
+        appendLine("        $writeProtocol.writeByte(125)")
         appendLine("    }")
         if (variableFields.isNotEmpty()) {
             appendLine()
@@ -368,14 +370,14 @@ private fun generateSource(
     appendLine("}")
 }
 
-private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String) {
+private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String, writeProtocol: String) {
     var index = 0
     while (index < bytes.size) {
         val remaining = bytes.size - index
         when {
             remaining >= 12 -> {
                 appendLine(
-                    "${indent}writer.writeRaw(first = ${packedLong(
+                    "${indent}$writeProtocol.writeRaw(first = ${packedLong(
                         bytes = bytes,
                         start = index,
                     )}, second = ${packedInt(bytes = bytes, start = index + 8)})",
@@ -384,7 +386,7 @@ private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String) {
             }
             remaining >= 10 -> {
                 appendLine(
-                    "${indent}writer.writeRaw(first = ${packedLong(
+                    "${indent}$writeProtocol.writeRaw(first = ${packedLong(
                         bytes = bytes,
                         start = index,
                     )}, second = ${packedShort(bytes = bytes, start = index + 8)})",
@@ -392,12 +394,12 @@ private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String) {
                 index += 10
             }
             remaining >= 8 -> {
-                appendLine("${indent}writer.writeRaw(value = ${packedLong(bytes = bytes, start = index)})")
+                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedLong(bytes = bytes, start = index)})")
                 index += 8
             }
             remaining >= 6 -> {
                 appendLine(
-                    "${indent}writer.writeRaw(first = ${packedInt(
+                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(
                         bytes = bytes,
                         start = index,
                     )}, second = ${packedShort(bytes = bytes, start = index + 4)})",
@@ -405,7 +407,7 @@ private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String) {
                 index += 6
             }
             else -> {
-                appendLine("${indent}writer.writeByte(${bytes[index].toInt() and 255})")
+                appendLine("${indent}$writeProtocol.writeByte(${bytes[index].toInt() and 255})")
                 index++
             }
         }

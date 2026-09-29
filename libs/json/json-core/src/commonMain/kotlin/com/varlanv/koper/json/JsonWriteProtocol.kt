@@ -5,76 +5,77 @@ import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 
-class JsonWriteProtocol {
-    internal var buffer = MutBytes(512.bytes())
-    internal var position = 0
-    private lateinit var output: ByteSink
+object JsonWriteProtocol {
 
-    fun reset(output: ByteSink) {
-        this.output = output
-        position = 0
-    }
-
+    context(sink: ByteSink, writeScope: JsonWriteScope)
     fun flush() {
-        if (position != 0) {
-            output.writeTo(source = buffer, offset = 0, length = position)
-            position = 0
+        if (writeScope.position != 0) {
+            sink.writeTo(source = writeScope.buffer, offset = 0, length = writeScope.position)
+            writeScope.position = 0
         }
     }
 
+    context(sink: ByteSink, writeScope: JsonWriteScope)
     fun reserve(size: Int) {
         require(size >= 0) { "Negative JSON reservation" }
-        if (buffer.size - position < size) {
+        if (writeScope.buffer.size - writeScope.position < size) {
             flush()
-            if (buffer.size < size) {
-                buffer = MutBytes(size.bytes())
+            if (writeScope.buffer.size < size) {
+                writeScope.buffer = MutBytes(size.bytes())
             }
         }
     }
 
+    context(sink: ByteSink, writeScope: JsonWriteScope)
     fun reserve(size: Long) {
         require(size in 0L..Int.MAX_VALUE.toLong()) { "JSON reservation is too large" }
         reserve(size.toInt())
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeByte(value: Int) {
-        buffer[position++] = value.toByte()
+        writeScope.buffer[writeScope.position++] = value.toByte()
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeRaw(
         bytes: Bytes,
         offset: Int = 0,
         length: Int = bytes.size - offset,
     ) {
         bytes.copyInto(
-            destination = buffer,
-            destinationOffset = position,
+            destination = writeScope.buffer,
+            destinationOffset = writeScope.position,
             startIndex = offset,
             endIndex = offset + length,
         )
-        position += length
+        writeScope.position += length
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeRaw(first: Int, second: Short) {
-        buffer.setPackedInt(idx = position, value = first)
-        buffer.setPackedShort(idx = position+ 4, value = second)
-        position += 6
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedShort(idx = writeScope.position+ 4, value = second)
+        writeScope.position += 6
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeRaw(value: Long) {
-        buffer.setPackedLong(idx = position, value = value)
-        position += 8
+        writeScope.buffer.setPackedLong(idx = writeScope.position, value = value)
+        writeScope.position += 8
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeRaw(first: Long, second: Short) {
-        buffer.setPackedLong(idx = position, value = first)
-        buffer.setPackedShort(idx = position+ 8, value = second)
-        position += 10
+        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedShort(idx =writeScope. position+ 8, value = second)
+        writeScope.position += 10
     }
 
+    context(writeScope: JsonWriteScope)
     fun writeRaw(first: Long, second: Int) {
-        buffer.setPackedLong(idx = position, value = first)
-        buffer.setPackedInt(idx = position + 8, value = second)
-        position += 12
+        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = second)
+        writeScope.position += 12
     }
 }

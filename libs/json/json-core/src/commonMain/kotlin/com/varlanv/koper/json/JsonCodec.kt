@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
@@ -8,6 +9,23 @@ import com.varlanv.koper.lang.bin.slice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.IllegalArgumentException
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.code
+import kotlin.collections.minusAssign
+import kotlin.collections.plus
+import kotlin.collections.plusAssign
+import kotlin.collections.set
+import kotlin.plus
+import kotlin.require
+import kotlin.sequences.plus
+import kotlin.text.encodeToByteArray
+import kotlin.text.iterator
+import kotlin.text.set
 
 object JsonCodec {
     class Hints<T>(
@@ -39,7 +57,8 @@ object JsonCodec {
     interface Write<T> {
         val hints: Hints<T>
 
-        fun write(writer: JsonWriteProtocol, value: T)
+        context(sink: ByteSink, writeScope: JsonWriteScope)
+        fun write(value: T)
     }
 }
 
@@ -58,7 +77,8 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
         isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Int) = writePrimitive(writer = writer, value = value)
+    context(sink: ByteSink, writeScope: JsonWriteScope)
+    override fun write(value: Int) = writePrimitive(value = value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Int = readPrimitive()
@@ -70,9 +90,10 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
         return value.toInt()
     }
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Int) {
-        val output = writer.buffer
-        val end = writer.position + JsonDecimalDigits.decimalSize(value.toLong())
+    context(writeScope: JsonWriteScope)
+    fun writePrimitive(value: Int) {
+        val output = writeScope.buffer
+        val end = writeScope.position + JsonDecimalDigits.decimalSize(value.toLong())
         var index = end
         var number = if (value > 0) {
             -value
@@ -91,7 +112,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
         if (value < 0) {
             output[index - 1] = '-'.code.toByte()
         }
-        writer.position = end
+        writeScope.position = end
     }
 }
 
@@ -102,14 +123,16 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Long) = writePrimitive(writer = writer, value = value)
+    context(sink: ByteSink, writeScope: JsonWriteScope)
+    override fun write(value: Long) = writePrimitive(value = value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Long = readPrimitive()
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Long) {
-        val output = writer.buffer
-        val end = writer.position + JsonDecimalDigits.decimalSize(value)
+    context(writeScope: JsonWriteScope)
+    fun writePrimitive(value: Long) {
+        val output = writeScope.buffer
+        val end = writeScope.position + JsonDecimalDigits.decimalSize(value)
         var index = end
         var number = if (value > 0) {
             -value
@@ -128,7 +151,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         if (value < 0) {
             output[index - 1] = '-'.code.toByte()
         }
-        writer.position = end
+        writeScope.position = end
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
@@ -215,16 +238,18 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )
-    private val trueBytes = Bytes(MutBytes("true".encodeToByteArray()))
-    private val falseBytes = Bytes(MutBytes("false".encodeToByteArray()))
+    private val trueBytes = "true".encodeToByteArray().asReadonly()
+    private val falseBytes = "false".encodeToByteArray().asReadonly()
 
-    override fun write(writer: JsonWriteProtocol, value: Boolean) = writePrimitive(writer = writer, value = value)
+    context(sink: ByteSink, writeScope: JsonWriteScope)
+    override fun write(value: Boolean) = writePrimitive(value = value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Boolean = readPrimitive()
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Boolean) {
-        writer.writeRaw(
+    context(writeScope: JsonWriteScope)
+    fun writePrimitive(value: Boolean) {
+        JsonWriteProtocol.writeRaw(
             bytes = if (value) {
                 trueBytes
             } else {
@@ -287,9 +312,10 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
         isJsonPrimitive = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: String) {
-        val output = writer.buffer
-        var position = writer.position
+    context(sink: ByteSink, writeScope: JsonWriteScope)
+    override fun write(value: String) {
+        val output = writeScope.buffer
+        var position = writeScope.position
         output[position++] = '"'.code.toByte()
         var index = 0
         while (index < value.length) {
@@ -324,7 +350,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             }
         }
         output[position++] = '"'.code.toByte()
-        writer.position = position
+        writeScope.position = position
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
@@ -345,18 +371,20 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         isBoxedByGeneric = true,
     )
 
-    override fun write(writer: JsonWriteProtocol, value: Utf8Str) = writePrimitive(writer = writer, value = value)
+    context(sink: ByteSink, writeScope: JsonWriteScope)
+    override fun write(value: Utf8Str) = writePrimitive(value = value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Utf8Str = readPrimitive()
 
-    fun writePrimitive(writer: JsonWriteProtocol, value: Utf8Str) {
+    context(writeScope: JsonWriteScope)
+    fun writePrimitive(value: Utf8Str) {
         val slice = value.slice
         val input = slice.bytes
         val end = slice.offset + slice.len
         val special = jsonScanner.firstSpecial(bytes = input, start = slice.offset, end = end)
-        val output = writer.buffer
-        var position = writer.position
+        val output = writeScope.buffer
+        var position = writeScope.position
         output[position++] = '"'.code.toByte()
         input.copyInto(
             destination = output,
@@ -368,7 +396,6 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         if (special < end) {
             position =
                 JsonStringEscapes.writeUtf8Escaped(
-                    writer = writer,
                     bytes = input,
                     start = special,
                     end = end,
@@ -376,7 +403,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
                 )
         }
         output[position++] = '"'.code.toByte()
-        writer.position = position
+        writeScope.position = position
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)

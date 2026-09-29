@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.serde.De
 import com.varlanv.koper.serde.Ser
@@ -16,14 +17,15 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         size = JsonValueSize.FromValue<HandwrittenJsonSample> { value -> maximumBytes(value) },
     )
 
-    override fun write(writer: JsonWriteProtocol, value: HandwrittenJsonSample) {
+    context(sink: ByteSink,writeScope: JsonWriteScope)
+    override fun write(value: HandwrittenJsonSample) {
         val maximumBytes = maximumBytes(value)
-        writer.reserve(maximumBytes)
-        writer.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
-        IntJsonCodec.write(writer = writer, value = value.id)
-        writer.writeRaw(0x3a2274786574222cL)
-        StringJsonCodec.write(writer = writer, value = value.text)
-        writer.writeByte('}'.code)
+        JsonWriteProtocol.reserve(maximumBytes)
+        JsonWriteProtocol.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
+        IntJsonCodec.write(value = value.id)
+        JsonWriteProtocol.writeRaw(0x3a2274786574222cL)
+        StringJsonCodec.write(value = value.text)
+        JsonWriteProtocol.writeByte('}'.code)
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
