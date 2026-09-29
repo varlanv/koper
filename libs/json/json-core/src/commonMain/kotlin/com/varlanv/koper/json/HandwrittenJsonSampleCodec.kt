@@ -23,7 +23,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         JsonWriteProtocol.reserve(maximumBytes)
         JsonWriteProtocol.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
         IntJsonCodec.writePrimitive(value.id)
-        JsonWriteProtocol.writeRaw(0x3a2274786574222cL)
+        JsonWriteProtocol.writeRaw(first = 0x6574222c, second = 0x3a227478)
         StringJsonCodec.write(value.text)
         JsonWriteProtocol.writeByte('}'.code)
     }

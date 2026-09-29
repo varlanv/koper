@@ -180,7 +180,7 @@ private fun generateSource(
             "read"
         }
         appendLine("${indent}_field$index = $jsonType.${field.type.codec}.$method()")
-        appendLine("${indent}_seen${index / 64} = _seen${index / 64} or (1L shl ${index % 64})")
+        appendLine("${indent}_seen${index / 32} = _seen${index / 32} or (1 shl ${index % 32})")
     }
 
     if (packageName.isNotEmpty()) {
@@ -267,14 +267,17 @@ private fun generateSource(
             }
             appendLine("        var _field$index: $initial")
         }
-        val groupCount = (fields.size + 63) / 64
-        repeat(groupCount) { appendLine("        var _seen$it = 0L") }
+        val groupCount = (fields.size + 31) / 32
+        repeat(groupCount) { appendLine("        var _seen$it = 0") }
         appendLine("        var _token = $readProtocol.nextToken()")
         appendLine("        if (_token != 125) {")
         appendLine("            while (true) {")
         appendLine("                require(_token == 34) { \"Expected JSON field name\" }")
         if (fastFields.isNotEmpty()) {
             appendLine("                val _word = $readProtocol.peekFieldWord()")
+            if (fastFields.any { it.value.nameBytes.size > 2 }) {
+                appendLine("                val _wordTail = $readProtocol.peekFieldWord(4)")
+            }
         }
         appendLine("                when {")
         fastFields.forEach { (index, field) ->
@@ -331,13 +334,13 @@ private fun generateSource(
         appendLine("            }")
         appendLine("        }")
         repeat(groupCount) { group ->
-            val bits = minOf(64, fields.size - group * 64)
-            val expected = if (bits == 64) {
-                -1L
+            val bits = minOf(32, fields.size - group * 32)
+            val expected = if (bits == 32) {
+                -1
             } else {
-                (1L shl bits) - 1L
+                (1 shl bits) - 1
             }
-            appendLine("        require(_seen$group == ${expected}L) { \"Missing required JSON field\" }")
+            appendLine("        require(_seen$group == $expected) { \"Missing required JSON field\" }")
         }
         val constructor = if (shape.constructorOrFactory == shape.constructor) {
             classType
@@ -381,34 +384,45 @@ private fun StringBuilder.appendPackedWrites(
         when {
             remaining >= 12 -> {
                 appendLine(
-                    "${indent}$writeProtocol.writeRaw(first = ${packedLong(
-                        bytes = bytes,
-                        start = index,
-                    )}, second = ${packedInt(bytes = bytes, start = index + 8)})",
+                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
+                        "second = ${packedInt(
+                            bytes = bytes,
+                            start = index + 4,
+                        )}, third = ${packedInt(bytes = bytes, start = index + 8)})",
                 )
                 index += 12
             }
             remaining >= 10 -> {
                 appendLine(
-                    "${indent}$writeProtocol.writeRaw(first = ${packedLong(
-                        bytes = bytes,
-                        start = index,
-                    )}, second = ${packedShort(bytes = bytes, start = index + 8)})",
+                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
+                        "second = ${packedInt(
+                            bytes = bytes,
+                            start = index + 4,
+                        )}, third = ${packedShort(bytes = bytes, start = index + 8)})",
                 )
                 index += 10
             }
             remaining >= 8 -> {
-                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedLong(bytes = bytes, start = index)})")
+                appendLine(
+                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
+                        "second = ${packedInt(bytes = bytes, start = index + 4)})",
+                )
                 index += 8
             }
             remaining >= 6 -> {
                 appendLine(
-                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(
-                        bytes = bytes,
-                        start = index,
-                    )}, second = ${packedShort(bytes = bytes, start = index + 4)})",
+                    "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
+                        "second = ${packedShort(bytes = bytes, start = index + 4)})",
                 )
                 index += 6
+            }
+            remaining >= 4 -> {
+                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedInt(bytes = bytes, start = index)})")
+                index += 4
+            }
+            remaining >= 2 -> {
+                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedShort(bytes = bytes, start = index)})")
+                index += 2
             }
             else -> {
                 appendLine("${indent}$writeProtocol.writeByte(${bytes[index].toInt() and 255})")
@@ -419,21 +433,37 @@ private fun StringBuilder.appendPackedWrites(
 }
 
 private fun packedShort(bytes: ByteArray, start: Int): String =
-    "${(bytes[start].toInt() and 255) or ((bytes[start + 1].toInt() and 255) shl 8)}.toShort()"
+    "${packed(bytes = bytes, start = start, count = 2)}.toShort()"
 
 private fun packedInt(bytes: ByteArray, start: Int): String =
-    "0x${packed(bytes = bytes, start = start, count = 4).toString(16)}u.toInt()"
-
-private fun packedLong(bytes: ByteArray, start: Int): String =
-    "0x${packed(bytes = bytes, start = start, count = 8).toULong().toString(16)}uL.toLong()"
+    "0x${packed(bytes = bytes, start = start, count = 4).toUInt().toString(16)}u.toInt()"
 
 private fun packedWordMatch(bytes: ByteArray): String {
-    val value = packed(bytes = bytes, start = 0, count = bytes.size)
-    return if (bytes.size == 8) {
-        "_word == 0x${value.toULong().toString(16)}uL.toLong()"
+    fun match(
+        word: String,
+        start: Int,
+        count: Int,
+    ): String {
+        val value = packed(bytes = bytes, start = start, count = count)
+        return if (count == 4) {
+            "$word == 0x${value.toUInt().toString(16)}u.toInt()"
+        } else {
+            val mask = (1 shl (count * 8)) - 1
+            "($word and 0x${mask.toString(16)}) == 0x${value.toString(16)}"
+        }
+    }
+    val first = match(
+        word = "_word",
+        start = 0,
+        count = minOf(
+            4,
+            bytes.size,
+        ),
+    )
+    return if (bytes.size <= 4) {
+        first
     } else {
-        val mask = (1L shl (bytes.size * 8)) - 1L
-        "(_word and 0x${mask.toString(16)}L) == 0x${value.toString(16)}L"
+        "$first && ${match(word = "_wordTail", start = 4, count = bytes.size - 4)}"
     }
 }
 
@@ -441,9 +471,9 @@ private fun packed(
     bytes: ByteArray,
     start: Int,
     count: Int,
-): Long {
-    var result = 0L
-    repeat(count) { result = result or ((bytes[start + it].toLong() and 255L) shl (it * 8)) }
+): Int {
+    var result = 0
+    repeat(count) { result = result or ((bytes[start + it].toInt() and 255) shl (it * 8)) }
     return result
 }
 

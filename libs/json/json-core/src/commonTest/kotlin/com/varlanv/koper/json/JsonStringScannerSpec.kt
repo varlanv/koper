@@ -1,6 +1,7 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSource
+import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Utf8Str
@@ -9,6 +10,29 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 
 class JsonStringScannerSpec : BaseSpec({
+    should("detect every special byte in every scalar and vector mask lane") {
+        for (scanner in listOf(ScalarJsonSpecialScan, jsonScanner)) {
+            (scanner.laneCount <= 32) shouldBe true
+            val bytes = MutBytes(ByteArray(scanner.laneCount + 2) { 65 })
+            for (lane in 0 until scanner.laneCount) {
+                for (value in 0..255) {
+                    bytes[lane + 1] = value.toByte()
+                    val special = value < 32 || value == 34 || value == 92
+                    scanner.specialMask(
+                        bytes = Bytes(bytes),
+                        start = 1,
+                    ) shouldBe if (special) { 1 shl lane } else { 0 }
+                    scanner.firstSpecial(
+                        bytes = Bytes(bytes),
+                        start = 1,
+                        end = scanner.laneCount + 1,
+                    ) shouldBe if (special) { lane + 1 } else { scanner.laneCount + 1 }
+                    bytes[lane + 1] = 65
+                }
+            }
+        }
+    }
+
     should("decode every escape across each possible input split") {
         val escapes = listOf(
             "\\\"" to "\"",

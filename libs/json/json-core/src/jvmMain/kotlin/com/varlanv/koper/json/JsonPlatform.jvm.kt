@@ -18,7 +18,11 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
         VectorApi.ensureEnabled(VectorJsonSpecialScan::class)
     }
 
-    private val species = ByteVector.SPECIES_PREFERRED
+    private val species = if (ByteVector.SPECIES_PREFERRED.length() <= 32) {
+        ByteVector.SPECIES_PREFERRED
+    } else {
+        ByteVector.SPECIES_256
+    }
     override val laneCount: Int = species.length()
     override val isVector: Boolean = true
 
@@ -29,16 +33,17 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
         return specialMask(
             bytes = Bytes(bytes),
             start = 1,
-        ) == (1L shl special)
+        ) == (1 shl special)
     }
 
-    override fun specialMask(bytes: Bytes, start: Int): Long {
+    override fun specialMask(bytes: Bytes, start: Int): Int {
         val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
         return vector
             .compare(VectorOperators.EQ, 34.toByte())
             .or(vector.compare(VectorOperators.EQ, 92.toByte()))
             .or(vector.compare(VectorOperators.GE, 0.toByte()).and(vector.compare(VectorOperators.LT, 32.toByte())))
             .toLong()
+            .toInt()
     }
 
     override fun firstSpecial(
@@ -49,7 +54,7 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
         var index = start
         while (index <= end - laneCount) {
             val mask = specialMask(bytes = bytes, start = index)
-            if (mask != 0L) {
+            if (mask != 0) {
                 return index + mask.countTrailingZeroBits()
             }
             index += laneCount

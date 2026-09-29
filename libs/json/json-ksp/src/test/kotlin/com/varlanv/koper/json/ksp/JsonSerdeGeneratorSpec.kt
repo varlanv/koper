@@ -35,7 +35,10 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                     @com.varlanv.koper.serde.De class ReadOnly(value: kotlin.Int)
                     @com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class EscapedName(val `a"b`: kotlin.Int)
                     """
-                    .trimIndent(),
+                    .trimIndent() +
+                    "\n@com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class ManyFields(" +
+                    (0..64).joinToString { "val field$it: kotlin.Int" } +
+                    ")",
             )
 
             val logger = RecordingLogger()
@@ -92,6 +95,21 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             writeOnly.contains("JsonCodec.Read<") shouldBe false
             readOnly.contains("JsonCodec.Read<") shouldBe true
             readOnly.contains("JsonCodec.Write<") shouldBe false
+            val manyFieldsSource = output.resolve("kotlin/ManyFieldsJsonCodec.kt").readText()
+            manyFieldsSource.contains("var _seen0 = 0") shouldBe true
+            manyFieldsSource.contains("var _seen1 = 0") shouldBe true
+            manyFieldsSource.contains("var _seen2 = 0") shouldBe true
+            manyFieldsSource.contains("_seen0 = _seen0 or (1 shl 31)") shouldBe true
+            manyFieldsSource.contains("_seen1 = _seen1 or (1 shl 31)") shouldBe true
+            manyFieldsSource.contains("_seen2 = _seen2 or (1 shl 0)") shouldBe true
+            manyFieldsSource.contains("require(_seen0 == -1)") shouldBe true
+            manyFieldsSource.contains("require(_seen1 == -1)") shouldBe true
+            manyFieldsSource.contains("require(_seen2 == 1)") shouldBe true
+            manyFieldsSource.contains(
+                "val _wordTail = com.varlanv.koper.json.JsonReadProtocol.peekFieldWord(4)",
+            ) shouldBe true
+            manyFieldsSource.contains("uL.toLong()") shouldBe false
+            manyFieldsSource.contains("1L shl") shouldBe false
             val escapedNameSource = output.resolve("kotlin/EscapedNameJsonCodec.kt").readText()
             escapedNameSource.contains("byteArrayOf(97, 34, 98)") shouldBe true
             escapedNameSource.contains("reader.consumeMatchedFieldColon") shouldBe false

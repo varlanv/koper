@@ -3,7 +3,6 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.slice
 import com.varlanv.koper.lang.text.Charset
@@ -118,15 +117,72 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Int {
-        val value = LongJsonCodec.readPrimitive()
-        require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
-        return value.toInt()
+        val negative = parseScope.last == 45
+        val digit = if (negative) {
+            JsonReadBuffer.take()
+        } else {
+            parseScope.last
+        }
+        require(digit in 48..57) { "Expected JSON integer" }
+        val minimum = if (negative) {
+            Int.MIN_VALUE
+        } else {
+            -Int.MAX_VALUE
+        }
+        val multiplyMinimum = minimum / 10
+        val packedMultiplyMinimum = minimum / 10000
+        var result = -(digit - 48)
+        val leadingZero = digit == 48
+        var index = parseScope.position
+        val input = parseScope.buffer
+        while (true) {
+            while (parseScope.limit - index >= 4) {
+                val number = JsonDecimalDigits.readFourDigits(input = input, index = index)
+                if (number < 0) {
+                    break
+                }
+                require(!leadingZero) { "Leading zero in JSON integer" }
+                require(result >= packedMultiplyMinimum) { "Integer overflow" }
+                result *= 10000
+                require(result >= minimum + number) { "Integer overflow" }
+                result -= number
+                index += 4
+            }
+            while (index < parseScope.limit) {
+                val next = input[index].toInt() and 255
+                if (next !in 48..57) {
+                    parseScope.position = index
+                    JsonReadProtocol.requireDelimiter(next)
+                    return if (negative) {
+                        result
+                    } else {
+                        -result
+                    }
+                }
+                require(!leadingZero) { "Leading zero in JSON integer" }
+                require(result >= multiplyMinimum) { "Integer overflow" }
+                result *= 10
+                val number = next - 48
+                require(result >= minimum + number) { "Integer overflow" }
+                result -= number
+                index++
+            }
+            parseScope.position = index
+            if (!JsonReadBuffer.refill()) {
+                return if (negative) {
+                    result
+                } else {
+                    -result
+                }
+            }
+            index = 0
+        }
     }
 
     context(writeScope: JsonWriteScope)
     fun writePrimitive(value: Int) {
         val output = writeScope.buffer
-        val end = writeScope.position + JsonDecimalDigits.decimalSize(value.toLong())
+        val end = writeScope.position + JsonDecimalDigits.decimalSize(value)
         var index = end
         var number = if (value > 0) {
             -value
@@ -202,22 +258,23 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
             -Long.MAX_VALUE
         }
         val multiplyMinimum = minimum / 10
+        val packedMultiplyMinimum = minimum / 10000
         var result = -(digit - 48).toLong()
         val leadingZero = digit == 48
         var index = parseScope.position
         val input = parseScope.buffer
         while (true) {
-            while (parseScope.limit - index >= 8) {
-                val number = readEightDigits(input = input, index = index)
+            while (parseScope.limit - index >= 4) {
+                val number = JsonDecimalDigits.readFourDigits(input = input, index = index)
                 if (number < 0) {
                     break
                 }
                 require(!leadingZero) { "Leading zero in JSON integer" }
-                require(result >= -92233720368L) { "Integer overflow" }
-                result *= 100000000L
+                require(result >= packedMultiplyMinimum) { "Integer overflow" }
+                result *= 10000
                 require(result >= minimum + number) { "Integer overflow" }
                 result -= number
-                index += 8
+                index += 4
                 if (index < parseScope.limit && (input[index].toInt() and 255) !in 48..57) {
                     break
                 }
@@ -251,17 +308,6 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
             }
             index = 0
         }
-    }
-
-    private fun readEightDigits(input: MutBytes, index: Int): Long {
-        val word = input.getPackedLong(index)
-        if (((word + 0x4646464646464646L) or (word - 0x3030303030303030L)) and -0x7f7f7f7f7f7f7f80L != 0L) {
-            return -1L
-        }
-        val digits = word - 0x3030303030303030L
-        val pairs = (digits * 10 + (digits ushr 8)) and 0x00ff00ff00ff00ffL
-        val quads = (pairs * 100 + (pairs ushr 16)) and 0x0000ffff0000ffffL
-        return (quads * 10000 + (quads ushr 32)) and 0xffffffffL
     }
 }
 

@@ -71,7 +71,7 @@ internal object JsonStringScanner {
                 bytes = Bytes(bytes),
                 start = start,
             )
-            while (events != 0L) {
+            while (events != 0) {
                 val special = start + events.countTrailingZeroBits()
                 if (decode) {
                     output = copyRun(bytes = bytes, outputPosition = output, start = index, end = special)
@@ -96,7 +96,7 @@ internal object JsonStringScanner {
                 if (consumed >= width) {
                     break
                 }
-                events = events and (-1L shl consumed)
+                events = events and (-1 shl consumed)
             }
             if (index < end) {
                 if (decode) {
@@ -166,9 +166,9 @@ internal object JsonStringScanner {
     ): Int {
         val size = end - start
         if (size != 0 && outputPosition != start) {
-            if (size <= 8 && start <= bytes.size - 8 && outputPosition <= end - 8) {
-                val word = bytes.getPackedLong(start)
-                bytes.setPackedLong(idx = outputPosition, value = word)
+            if (size <= 4 && start <= bytes.size - 4 && outputPosition <= end - 4) {
+                val word = bytes.getPackedInt(start)
+                bytes.setPackedInt(idx = outputPosition, value = word)
             } else {
                 bytes.copyInto(
                     destination = bytes,

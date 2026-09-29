@@ -9,6 +9,8 @@ plugins {
 dependencies {
     add("kspJvm", projects.libs.serde.serdeKsp)
     add("kspJvm", projects.libs.json.jsonKsp)
+    add("kspJs", projects.libs.serde.serdeKsp)
+    add("kspJs", projects.libs.json.jsonKsp)
     add("kapt", libs.dslJson)
 }
 
@@ -29,6 +31,12 @@ kotlin {
     }
 
     sourceSets {
+        jsMain {
+            dependencies {
+                implementation(projects.libs.json.jsonCore)
+                implementation(libs.kotlin.x.serialization.jsonCore)
+            }
+        }
         jvmMain {
             dependencies {
                 implementation(projects.libs.json.jsonCore)

@@ -1,6 +1,7 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSource
+import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Utf8Str
@@ -102,6 +103,81 @@ class JsonValueCodecSpec : BaseSpec({
                     ) { LongJsonCodec.readPrimitive() }
                 }
             }
+        }
+    }
+
+    should("decode all four-digit groups and reject every non-digit byte in each lane") {
+        val input = MutBytes(ByteArray(6))
+        for (number in 0..9999) {
+            val digits = number.toString().padStart(4, '0')
+            for (lane in 0..3) input[lane + 1] = digits[lane].code.toByte()
+            JsonDecimalDigits.readFourDigits(input = input, index = 1) shouldBe number
+        }
+        for (fill in listOf(48, 57)) {
+            for (lane in 0..3) {
+                for (value in 0..255) {
+                    for (index in 0..3) input[index + 1] = fill.toByte()
+                    input[lane + 1] = value.toByte()
+                    if (value !in 48..57) {
+                        JsonDecimalDigits.readFourDigits(input = input, index = 1) shouldBe -1
+                    }
+                }
+            }
+        }
+    }
+
+    should("read packed integers at every buffer boundary and preserve their delimiters") {
+        val values = listOf(1, -1, 9999, 10000, -10000, 99999999, -99999999, Int.MIN_VALUE, Int.MAX_VALUE)
+        for (value in values) {
+            roundTrip(
+                writerCodec = IntJsonCodec,
+                readerCodec = IntJsonCodec,
+                value = value,
+                expectedJson = value.toString(),
+            )
+            for (bufferSize in 1..20) {
+                readJson(bytes = "$value ".encodeToByteArray(), bufferSize = bufferSize) {
+                    IntJsonCodec.readPrimitive()
+                } shouldBe value
+                readJson(bytes = "$value ".encodeToByteArray(), bufferSize = bufferSize) {
+                    LongJsonCodec.readPrimitive()
+                } shouldBe value.toLong()
+            }
+        }
+        val malformed = listOf(
+            "00000",
+            "-00000",
+            "01234",
+            "-01234",
+            "2147483648",
+            "-2147483649",
+            "9999999999999999999999999999999",
+            "1234x",
+            "12345x",
+            "123456789x",
+            "1234567890x",
+        )
+        for (document in malformed) {
+            for (bufferSize in 1..20) {
+                shouldThrow<IllegalArgumentException> {
+                    readJson(bytes = document.encodeToByteArray(), bufferSize = bufferSize) {
+                        IntJsonCodec.readPrimitive()
+                    }
+                }
+            }
+        }
+    }
+
+    should("escape short packed UTF-8 runs and every control byte") {
+        for (runSize in 0..12) {
+            val text = "\"" + (0..31).joinToString("") { "a".repeat(runSize) + it.toChar() } + "é😃\\end"
+            val expected = kotlinx.serialization.json.JsonPrimitive(text).toString()
+            roundTrip(
+                writerCodec = Utf8StrJsonCodec,
+                readerCodec = Utf8StrJsonCodec,
+                value = Utf8Str.allocateFromString(string = text),
+                expectedJson = expected,
+            )
         }
     }
 

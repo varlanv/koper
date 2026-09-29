@@ -44,17 +44,12 @@ object JsonReadProtocol {
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    /**
-     * Inspects eight buffered bytes starting at position without advancing or refilling input.
-     *
-     * @return A [Long] with bytes packed in little-endian order, or zero if fewer than eight bytes remain.
-     */
     context(parseScope: JsonReadScope)
-    fun peekFieldWord(): Long {
-        return if (parseScope.limit - parseScope.position >= 8) {
-            parseScope.buffer.getPackedLong(parseScope.position)
+    fun peekFieldWord(offset: Int = 0): Int {
+        return if (parseScope.limit - parseScope.position - offset >= 4) {
+            parseScope.buffer.getPackedInt(parseScope.position + offset)
         } else {
-            0L
+            0
         }
     }
 

@@ -98,45 +98,50 @@ object JsonWriteProtocol {
     context(writeScope: JsonWriteScope)
     fun writeRaw(first: Int, second: Short) {
         writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx = writeScope.position+ 4, value = second)
+        writeScope.buffer.setPackedShort(idx = writeScope.position + 4, value = second)
         writeScope.position += 6
     }
 
-    /**
-     * Appends the eight bytes of [value] in little-endian order.
-     * Requires reserved capacity and advances position by eight without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(value: Long) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = value)
+    fun writeRaw(value: Int) {
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = value)
+        writeScope.position += 4
+    }
+
+    context(writeScope: JsonWriteScope)
+    fun writeRaw(value: Short) {
+        writeScope.buffer.setPackedShort(idx = writeScope.position, value = value)
+        writeScope.position += 2
+    }
+
+    context(writeScope: JsonWriteScope)
+    fun writeRaw(first: Int, second: Int) {
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 4, value = second)
         writeScope.position += 8
     }
 
-    /**
-     * Appends eight bytes from [first], then two from [second], each in little-endian order.
-     * Requires reserved capacity and advances position by ten without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Long, second: Short) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx = writeScope.position+ 8, value = second)
+    fun writeRaw(
+        first: Int,
+        second: Int,
+        third: Short,
+    ) {
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 4, value = second)
+        writeScope.buffer.setPackedShort(idx = writeScope.position + 8, value = third)
         writeScope.position += 10
     }
 
-    /**
-     * Appends eight bytes from [first], then four from [second], each in little-endian order.
-     * Requires reserved capacity and advances position by twelve without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Long, second: Int) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = second)
+    fun writeRaw(
+        first: Int,
+        second: Int,
+        third: Int,
+    ) {
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 4, value = second)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = third)
         writeScope.position += 12
     }
 }

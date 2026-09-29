@@ -34,6 +34,34 @@ internal object JsonDecimalDigits {
         return index
     }
 
+    fun readFourDigits(input: MutBytes, index: Int): Int {
+        val word = input.getPackedInt(index)
+        if (((word + 0x46464646) or (word - 0x30303030)) and -0x7f7f7f80 != 0) {
+            return -1
+        }
+        val digits = word - 0x30303030
+        val pairs = (digits * 10 + (digits ushr 8)) and 0x00ff00ff
+        return (pairs * 100 + (pairs ushr 16)) and 0xffff
+    }
+
+    fun decimalSize(value: Int): Int {
+        val number = if (value > 0) {
+            -value
+        } else {
+            value
+        }
+        val digits = if (number > -1000000000) {
+            intDigits(-number)
+        } else {
+            10
+        }
+        return digits + if (value < 0) {
+            1
+        } else {
+            0
+        }
+    }
+
     /**
      * Computes the decimal byte length of [value], including a minus sign when negative, without changing state.
      *

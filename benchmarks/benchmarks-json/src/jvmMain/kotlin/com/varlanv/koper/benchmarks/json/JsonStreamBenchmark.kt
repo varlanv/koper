@@ -7,9 +7,9 @@ import com.varlanv.koper.json.JsonWriteScope
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Utf8Str
+import org.openjdk.jmh.annotations.*
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
-import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])

@@ -8,7 +8,7 @@ import com.varlanv.koper.lang.bin.Bytes
  */
 internal interface JsonSpecialScan {
     /**
-     * Number of bytes inspected by one [specialMask] call, represented by the bits of a [Long].
+     * Number of bytes inspected by one [specialMask] call, represented by the bits of an [Int].
      */
     val laneCount: Int
 
@@ -32,9 +32,9 @@ internal interface JsonSpecialScan {
      * Inspects [laneCount] bytes starting at [start]; the caller must provide a complete lane.
      * Does not modify bytes or parser state.
      *
-     * @return A [Long] mask with bit i set when the byte at start + i is special; zero means none are special.
+     * @return An [Int] mask with bit i set when the byte at start + i is special; zero means none are special.
      */
-    fun specialMask(bytes: Bytes, start: Int): Long
+    fun specialMask(bytes: Bytes, start: Int): Int
 }
 
 /**
@@ -52,12 +52,12 @@ internal object ScalarJsonSpecialScan : JsonSpecialScan {
     override val laneCount: Int = 8
     override val isVector: Boolean = false
 
-    override fun specialMask(bytes: Bytes, start: Int): Long {
-        var mask = 0L
+    override fun specialMask(bytes: Bytes, start: Int): Int {
+        var mask = 0
         for (index in 0 until laneCount) {
             val value = bytes[start + index].toInt() and 255
             if (value == 34 || value == 92 || value < 32) {
-                mask = mask or (1L shl index)
+                mask = mask or (1 shl index)
             }
         }
         return mask
