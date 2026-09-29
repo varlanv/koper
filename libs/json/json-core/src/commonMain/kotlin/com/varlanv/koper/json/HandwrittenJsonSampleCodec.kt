@@ -22,7 +22,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         val maximumBytes = maximumBytes(value)
         JsonWriteProtocol.reserve(maximumBytes)
         JsonWriteProtocol.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
-        IntJsonCodec.write(value.id)
+        IntJsonCodec.writePrimitive(value.id)
         JsonWriteProtocol.writeRaw(0x3a2274786574222cL)
         StringJsonCodec.write(value.text)
         JsonWriteProtocol.writeByte('}'.code)
@@ -47,7 +47,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
                 JsonReadProtocol.nextFieldValue()
                 when (field) {
                     1 -> {
-                        id = IntJsonCodec.read()
+                        id = IntJsonCodec.readPrimitive()
                         seen = seen or 1
                     }
                     2 -> {
