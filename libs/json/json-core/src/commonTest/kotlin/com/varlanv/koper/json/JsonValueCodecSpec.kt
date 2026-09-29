@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Utf8Str
@@ -32,11 +33,7 @@ class JsonValueCodecSpec : BaseSpec({
         bytes.decodeToString() shouldBe expectedJson
 
         for (bufferSize in listOf(1, 32768)) {
-            val reader = JsonReadProtocol(bufferSize.bytes())
-            reader.reset(bytes.asByteSource())
-            reader.nextToken()
-            readerCodec.read(reader) shouldBe value
-            reader.nextToken() shouldBe -1
+            readJson(bytes, bufferSize) { readerCodec.read() } shouldBe value
         }
     }
 
@@ -77,45 +74,34 @@ class JsonValueCodecSpec : BaseSpec({
             "-9223372036854775808" to Long.MIN_VALUE,
         )
         for (bufferSize in listOf(1, 2, 8, 16, 32768)) {
-            val reader = JsonReadProtocol(bufferSize.bytes())
             for ((document, expected) in validInts) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                IntJsonCodec.readPrimitive(reader) shouldBe expected
-                reader.nextToken() shouldBe -1
+                readJson(document.encodeToByteArray(), bufferSize) { IntJsonCodec.readPrimitive() } shouldBe expected
             }
             for ((document, expected) in validLongs) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                LongJsonCodec.readPrimitive(reader) shouldBe expected
-                reader.nextToken() shouldBe -1
+                readJson(document.encodeToByteArray(), bufferSize) { LongJsonCodec.readPrimitive() } shouldBe expected
             }
             for (document in listOf("2147483648", "-2147483649", "01", "1x", "-")) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                shouldThrow<IllegalArgumentException> { IntJsonCodec.readPrimitive(reader) }
+                shouldThrow<IllegalArgumentException> {
+                    readJson(document.encodeToByteArray(), bufferSize) { IntJsonCodec.readPrimitive() }
+                }
             }
             for (document in listOf("9223372036854775808", "-9223372036854775809", "01", "1x", "-")) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                shouldThrow<IllegalArgumentException> { LongJsonCodec.readPrimitive(reader) }
+                shouldThrow<IllegalArgumentException> {
+                    readJson(document.encodeToByteArray(), bufferSize) { LongJsonCodec.readPrimitive() }
+                }
             }
         }
     }
 
     should("read boolean literals across buffer boundaries and reject invalid suffixes") {
         for (bufferSize in listOf(1, 2, 4, 5, 32768)) {
-            val reader = JsonReadProtocol(bufferSize.bytes())
             for ((document, expected) in mapOf("true " to true, "false " to false)) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                BooleanJsonCodec.readPrimitive(reader) shouldBe expected
-                reader.nextToken() shouldBe -1
+                readJson(document.encodeToByteArray(), bufferSize) { BooleanJsonCodec.readPrimitive() } shouldBe expected
             }
             for (document in listOf("tru", "trux", "truex", "fals", "falsx", "falsex")) {
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                shouldThrow<IllegalArgumentException> { BooleanJsonCodec.readPrimitive(reader) }
+                shouldThrow<IllegalArgumentException> {
+                    readJson(document.encodeToByteArray(), bufferSize) { BooleanJsonCodec.readPrimitive() }
+                }
             }
         }
     }
@@ -143,16 +129,10 @@ class JsonValueCodecSpec : BaseSpec({
     should("read object fields in any order and skip unknown values") {
         val bytes = "{\"extra\":[null,{\"nested\":true}],\"text\":\"A\\n\",\"id\":42}".encodeToByteArray()
         for (bufferSize in listOf(1, 32768)) {
-            val reader = JsonReadProtocol(bufferSize.bytes())
-            reader.reset(bytes.asByteSource())
-            reader.nextToken()
-            HandwrittenJsonSampleCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
-            reader.nextToken() shouldBe -1
-
-            reader.reset(bytes.asByteSource())
-            reader.nextToken()
-            HandwrittenJsonSampleJsonCodec.read(reader) shouldBe HandwrittenJsonSample(id = 42, text = "A\n")
-            reader.nextToken() shouldBe -1
+            readJson(bytes, bufferSize) { HandwrittenJsonSampleCodec.read() } shouldBe
+                HandwrittenJsonSample(id = 42, text = "A\n")
+            readJson(bytes, bufferSize) { HandwrittenJsonSampleJsonCodec.read() } shouldBe
+                HandwrittenJsonSample(id = 42, text = "A\n")
         }
     }
 
@@ -180,11 +160,7 @@ class JsonValueCodecSpec : BaseSpec({
 
     should("read generated fields with colliding hashes and a non-ASCII name") {
         val expectedJson = "{\"axx\":1,\"bYx\":2,\"aaaaé\":4}"
-        val reader = JsonReadProtocol(1.bytes())
-        reader.reset(expectedJson.encodeToByteArray().asByteSource())
-        reader.nextToken()
-        val value = GeneratedJsonNamesJsonCodec.read(reader)
-        reader.nextToken() shouldBe -1
+        val value = readJson(expectedJson.encodeToByteArray(), 1) { GeneratedJsonNamesJsonCodec.read() }
         roundTrip(
             writerCodec = GeneratedJsonNamesJsonCodec,
             readerCodec = GeneratedJsonNamesJsonCodec,
@@ -193,10 +169,7 @@ class JsonValueCodecSpec : BaseSpec({
             reserveFromHints = false,
         )
         val bytes = "{\"bYx\":2,\"aaaaé\":4,\"axx\":1}".encodeToByteArray()
-        reader.reset(bytes.asByteSource())
-        reader.nextToken()
-        GeneratedJsonNamesJsonCodec.read(reader) shouldBe value
-        reader.nextToken() shouldBe -1
+        readJson(bytes, 1) { GeneratedJsonNamesJsonCodec.read() } shouldBe value
     }
 
     should("read compact, spaced, escaped, and split long field names") {
@@ -209,11 +182,7 @@ class JsonValueCodecSpec : BaseSpec({
         )
         for (document in documents) {
             for (bufferSize in listOf(1, 8, 16, 32768)) {
-                val reader = JsonReadProtocol(bufferSize.bytes())
-                reader.reset(document.encodeToByteArray().asByteSource())
-                reader.nextToken()
-                GeneratedLongFieldNamesJsonCodec.read(reader) shouldBe value
-                reader.nextToken() shouldBe -1
+                readJson(document.encodeToByteArray(), bufferSize) { GeneratedLongFieldNamesJsonCodec.read() } shouldBe value
             }
         }
     }
@@ -225,10 +194,9 @@ class JsonValueCodecSpec : BaseSpec({
             "{\"seven77\":3,\"eight888\":4,\"sequenceAlpha\":1,\"sequenceBet\":2}",
         )
         for (document in documents) {
-            val reader = JsonReadProtocol()
-            reader.reset(document.encodeToByteArray().asByteSource())
-            reader.nextToken()
-            shouldThrow<IllegalArgumentException> { GeneratedLongFieldNamesJsonCodec.read(reader) }
+            shouldThrow<IllegalArgumentException> {
+                readJson(document.encodeToByteArray(), 32768) { GeneratedLongFieldNamesJsonCodec.read() }
+            }
         }
     }
 
@@ -242,3 +210,20 @@ class JsonValueCodecSpec : BaseSpec({
         )
     }
 })
+
+private fun <T> readJson(
+    bytes: ByteArray,
+    bufferSize: Int,
+    read: context(ByteSource, JsonParseScope) () -> T,
+): T {
+    val input = bytes.asByteSource()
+    val parseScope = JsonParseScope(bufferSize.bytes())
+    return context(input) {
+        context(parseScope) {
+            JsonReadProtocol.nextToken()
+            val value = read(input, parseScope)
+            JsonReadProtocol.nextToken() shouldBe -1
+            value
+        }
+    }
+}
