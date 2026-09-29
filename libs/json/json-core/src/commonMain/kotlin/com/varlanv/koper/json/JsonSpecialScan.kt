@@ -6,6 +6,7 @@ internal expect fun Bytes.getPackedJsonLong(offset: Int): Long
 
 interface JsonSpecialScan {
     val laneCount: Int
+    val isVector: Boolean
 
     fun firstSpecial(
         bytes: Bytes,
@@ -20,6 +21,7 @@ internal expect fun jsonSpecialScan(vectorized: Boolean): JsonSpecialScan
 
 internal object ScalarJsonSpecialScan : JsonSpecialScan {
     override val laneCount: Int = 8
+    override val isVector: Boolean = false
 
     override fun specialMask(bytes: Bytes, start: Int): Long {
         var mask = 0L

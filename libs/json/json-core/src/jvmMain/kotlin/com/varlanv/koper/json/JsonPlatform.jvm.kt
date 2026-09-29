@@ -23,6 +23,7 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
 
     private val species = ByteVector.SPECIES_PREFERRED
     override val laneCount: Int = species.length()
+    override val isVector: Boolean = true
 
     override fun smokeTest(): Boolean {
         val bytes = MutBytes((laneCount + 1).bytes()) { 65 }
