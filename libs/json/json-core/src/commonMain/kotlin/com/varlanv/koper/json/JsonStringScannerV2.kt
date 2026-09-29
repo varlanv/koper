@@ -3,15 +3,13 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.lang.text.Charset
 
 private val scan = jsonSpecialScan(true)
 private val vectorized = scan.isVector
 
 object JsonStringScannerV2 {
-
-    context(input: ByteSource,parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonParseScope)
     fun read() {
         require(parseScope.last == 34) { "Expected JSON string" }
         val start = parseScope.position
@@ -48,14 +46,14 @@ object JsonStringScannerV2 {
         )
         parseScope.position = index
         if (index == parseScope.limit || !readBufferedEscapes()) {
-            readStringToScratch( clear = false)
+            readStringToScratch(false)
         }
         parseScope.scratchBytes = parseScope.scratch
         parseScope.scratchOffset = 0
         parseScope.scratchLength = parseScope.scratchSize
     }
 
-    context(input: ByteSource,parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonParseScope)
     fun readToScratch() {
         readStringToScratch()
         parseScope.scratchBytes = parseScope.scratch
@@ -73,7 +71,7 @@ object JsonStringScannerV2 {
     }
 
     context(parseScope: JsonParseScope)
-    private fun readVectorEscapes( ): Boolean {
+    private fun readVectorEscapes(): Boolean {
         ensureScratch(parseScope.scratchSize + parseScope.limit - parseScope.position)
         var index = parseScope.position
         var size = parseScope.scratchSize
@@ -89,7 +87,7 @@ object JsonStringScannerV2 {
             while (events != 0L) {
                 val special = start + events.countTrailingZeroBits()
                 if (special > index) {
-                    copyRun( output = output, offset = size, start = index, end = special)
+                    copyRun(output = output, offset = size, start = index, end = special)
                     size += special - index
                 }
                 index = special
@@ -108,19 +106,18 @@ object JsonStringScannerV2 {
                     if (parseScope.limit - index < 6) {
                         break@scan
                     }
-                    var codepoint = readHexAt(index = index + 2)
+                    var codepoint = readHexAt(index + 2)
                     var consumed = 6
                     if (codepoint in 0xD800..0xDBFF) {
                         if (parseScope.limit - index < 12) {
                             break@scan
                         }
                         require(
-                            parseScope.buffer[index + 6].toInt() == 92 &&
-                                parseScope.buffer[index + 7].toInt() == 117,
+                            parseScope.buffer[index + 6].toInt() == 92 && parseScope.buffer[index + 7].toInt() == 117,
                         ) {
                             "Expected low surrogate escape"
                         }
-                        val low = readHexAt(index = index + 8)
+                        val low = readHexAt(index + 8)
                         require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
                         codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
                         consumed = 12
@@ -200,19 +197,18 @@ object JsonStringScannerV2 {
                     if (parseScope.limit - index < 6) {
                         break
                     }
-                    var codepoint = readHexAt(index = index + 2)
+                    var codepoint = readHexAt(index + 2)
                     var consumed = 6
                     if (codepoint in 0xD800..0xDBFF) {
                         if (parseScope.limit - index < 12) {
                             break
                         }
                         require(
-                            parseScope.buffer[index + 6].toInt() == 92 &&
-                                parseScope.buffer[index + 7].toInt() == 117,
+                            parseScope.buffer[index + 6].toInt() == 92 && parseScope.buffer[index + 7].toInt() == 117,
                         ) {
                             "Expected low surrogate escape"
                         }
-                        val low = readHexAt(index = index + 8)
+                        val low = readHexAt(index + 8)
                         require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
                         codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
                         consumed = 12
@@ -243,10 +239,8 @@ object JsonStringScannerV2 {
         return false
     }
 
-    context(input: ByteSource,parseScope: JsonParseScope)
-    private fun readStringToScratch(
-        clear: Boolean = true,
-    ) {
+    context(input: ByteSource, parseScope: JsonParseScope)
+    private fun readStringToScratch(clear: Boolean = true) {
         if (clear) {
             parseScope.scratchSize = 0
         }
@@ -290,7 +284,7 @@ object JsonStringScannerV2 {
         }
     }
 
-    context(input: ByteSource,parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonParseScope)
     private fun readEscape() {
         when (val value = JsonReadProtocol.take()) {
             34, 92, 47 -> {
@@ -320,7 +314,9 @@ object JsonStringScannerV2 {
             117 -> {
                 var codepoint = readHex()
                 if (codepoint in 0xD800..0xDBFF) {
-                    require(JsonReadProtocol.take() == 92 && JsonReadProtocol.take() == 117) { "Expected low surrogate escape" }
+                    require(
+                        JsonReadProtocol.take() == 92 && JsonReadProtocol.take() == 117,
+                    ) { "Expected low surrogate escape" }
                     val low = readHex()
                     require(low in 0xDC00..0xDFFF) { "Invalid low surrogate" }
                     codepoint = 0x10000 + ((codepoint - 0xD800) shl 10) + low - 0xDC00
@@ -354,7 +350,7 @@ object JsonStringScannerV2 {
         }
     }
 
-    context(input: ByteSource,parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonParseScope)
     private fun readHex(): Int {
         var result = 0
         repeat(4) {

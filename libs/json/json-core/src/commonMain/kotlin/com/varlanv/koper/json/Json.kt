@@ -5,9 +5,7 @@ import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.ReusableByteArraySink
 import com.varlanv.koper.lang.bin.bytes
 
-class Json(
-    private val writeProtocol: JsonWriteProtocol = JsonWriteProtocol(),
-) {
+class Json(private val writeProtocol: JsonWriteProtocol = JsonWriteProtocol()) {
     fun <T> writeTo(
         sink: ByteSink,
         write: JsonCodec.Write<T>,
@@ -15,10 +13,8 @@ class Json(
     ) {}
 
     fun <T> readFrom(source: ByteSource, readCodec: JsonCodec.Read<T>): T {
-        context(JsonParseScope(10.bytes())) {
-            context(source) {
-                readCodec.read()
-            }
+        JsonParseScope(10.bytes()).scoped(source) {
+            readCodec.read()
         }
         TODO()
     }

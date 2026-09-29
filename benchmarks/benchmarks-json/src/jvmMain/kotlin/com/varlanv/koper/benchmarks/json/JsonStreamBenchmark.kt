@@ -6,9 +6,9 @@ import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Utf8Str
-import org.openjdk.jmh.annotations.*
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
+import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])
@@ -109,15 +109,8 @@ class JsonStreamBenchmark {
         streamOutput = OutputStreamByteSink(output)
         parseScope = JsonParseScope(32.kilobytes())
 
-// todo        check(generatedReadUtf8() == strValue)
-
-        parseScope.scoped(streamInput) {
-            check(JsonReadProtocol.nextToken() == -1)
-        }
-// todo        check(generatedReadMixed() == mixedValue)
-        parseScope.scoped(streamInput) {
-        check(JsonReadProtocol.nextToken() == -1)
-        }
+        check(generatedReadUtf8() == strValue)
+        check(generatedReadMixed() == mixedValue)
         generatedWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
         generatedWriteMixed()
@@ -151,17 +144,17 @@ class JsonStreamBenchmark {
         return output
     }
 
-//    @Benchmark
-//    fun generatedReadUtf8(): JsonStrSample {
-//        input.reset()
-//        parseScope.scoped(streamInput) {
-//            reader.reset(streamInput)
-//            reader.nextToken()
-//            val value = JsonStrSampleJsonCodec.read()
-//            check(reader.nextToken() == -1)
-//        }
-//        return value
-//    }
+    @Benchmark
+    fun generatedReadUtf8(): JsonStrSample {
+        input.reset()
+        lateinit var value: JsonStrSample
+        parseScope.scoped(streamInput) {
+            JsonReadProtocol.nextToken()
+            value = JsonStrSampleJsonCodec.read()
+            check(JsonReadProtocol.nextToken() == -1)
+        }
+        return value
+    }
 
     @Benchmark
     fun generatedWriteMixed(): RecycledOutputStream {
@@ -172,15 +165,17 @@ class JsonStreamBenchmark {
         return output
     }
 
-//    @Benchmark
-//    fun generatedReadMixed(): JsonMixedSample {
-//        input.reset()
-//        reader.reset(streamInput)
-//        reader.nextToken()
-//        val value = JsonMixedSampleJsonCodec.read(reader)
-//        check(reader.nextToken() == -1)
-//        return value
-//    }
+    @Benchmark
+    fun generatedReadMixed(): JsonMixedSample {
+        input.reset()
+        lateinit var value: JsonMixedSample
+        parseScope.scoped(streamInput) {
+            JsonReadProtocol.nextToken()
+            value = JsonMixedSampleJsonCodec.read()
+            check(JsonReadProtocol.nextToken() == -1)
+        }
+        return value
+    }
 
     @Benchmark
     fun idealWriteUtf8(): RecycledOutputStream {

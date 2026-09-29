@@ -33,7 +33,7 @@ class JsonValueCodecSpec : BaseSpec({
         bytes.decodeToString() shouldBe expectedJson
 
         for (bufferSize in listOf(1, 32768)) {
-            readJson(bytes, bufferSize) { readerCodec.read() } shouldBe value
+            readJson(bytes = bytes, bufferSize = bufferSize) { readerCodec.read() } shouldBe value
         }
     }
 
@@ -75,19 +75,31 @@ class JsonValueCodecSpec : BaseSpec({
         )
         for (bufferSize in listOf(1, 2, 8, 16, 32768)) {
             for ((document, expected) in validInts) {
-                readJson(document.encodeToByteArray(), bufferSize) { IntJsonCodec.readPrimitive() } shouldBe expected
+                readJson(
+                    bytes = document.encodeToByteArray(),
+                    bufferSize = bufferSize,
+                ) { IntJsonCodec.readPrimitive() } shouldBe expected
             }
             for ((document, expected) in validLongs) {
-                readJson(document.encodeToByteArray(), bufferSize) { LongJsonCodec.readPrimitive() } shouldBe expected
+                readJson(
+                    bytes = document.encodeToByteArray(),
+                    bufferSize = bufferSize,
+                ) { LongJsonCodec.readPrimitive() } shouldBe expected
             }
             for (document in listOf("2147483648", "-2147483649", "01", "1x", "-")) {
                 shouldThrow<IllegalArgumentException> {
-                    readJson(document.encodeToByteArray(), bufferSize) { IntJsonCodec.readPrimitive() }
+                    readJson(
+                        bytes = document.encodeToByteArray(),
+                        bufferSize = bufferSize,
+                    ) { IntJsonCodec.readPrimitive() }
                 }
             }
             for (document in listOf("9223372036854775808", "-9223372036854775809", "01", "1x", "-")) {
                 shouldThrow<IllegalArgumentException> {
-                    readJson(document.encodeToByteArray(), bufferSize) { LongJsonCodec.readPrimitive() }
+                    readJson(
+                        bytes = document.encodeToByteArray(),
+                        bufferSize = bufferSize,
+                    ) { LongJsonCodec.readPrimitive() }
                 }
             }
         }
@@ -96,11 +108,17 @@ class JsonValueCodecSpec : BaseSpec({
     should("read boolean literals across buffer boundaries and reject invalid suffixes") {
         for (bufferSize in listOf(1, 2, 4, 5, 32768)) {
             for ((document, expected) in mapOf("true " to true, "false " to false)) {
-                readJson(document.encodeToByteArray(), bufferSize) { BooleanJsonCodec.readPrimitive() } shouldBe expected
+                readJson(
+                    bytes = document.encodeToByteArray(),
+                    bufferSize = bufferSize,
+                ) { BooleanJsonCodec.readPrimitive() } shouldBe expected
             }
             for (document in listOf("tru", "trux", "truex", "fals", "falsx", "falsex")) {
                 shouldThrow<IllegalArgumentException> {
-                    readJson(document.encodeToByteArray(), bufferSize) { BooleanJsonCodec.readPrimitive() }
+                    readJson(
+                        bytes = document.encodeToByteArray(),
+                        bufferSize = bufferSize,
+                    ) { BooleanJsonCodec.readPrimitive() }
                 }
             }
         }
@@ -129,9 +147,9 @@ class JsonValueCodecSpec : BaseSpec({
     should("read object fields in any order and skip unknown values") {
         val bytes = "{\"extra\":[null,{\"nested\":true}],\"text\":\"A\\n\",\"id\":42}".encodeToByteArray()
         for (bufferSize in listOf(1, 32768)) {
-            readJson(bytes, bufferSize) { HandwrittenJsonSampleCodec.read() } shouldBe
+            readJson(bytes = bytes, bufferSize = bufferSize) { HandwrittenJsonSampleCodec.read() } shouldBe
                 HandwrittenJsonSample(id = 42, text = "A\n")
-            readJson(bytes, bufferSize) { HandwrittenJsonSampleJsonCodec.read() } shouldBe
+            readJson(bytes = bytes, bufferSize = bufferSize) { HandwrittenJsonSampleJsonCodec.read() } shouldBe
                 HandwrittenJsonSample(id = 42, text = "A\n")
         }
     }
@@ -160,7 +178,10 @@ class JsonValueCodecSpec : BaseSpec({
 
     should("read generated fields with colliding hashes and a non-ASCII name") {
         val expectedJson = "{\"axx\":1,\"bYx\":2,\"aaaaé\":4}"
-        val value = readJson(expectedJson.encodeToByteArray(), 1) { GeneratedJsonNamesJsonCodec.read() }
+        val value = readJson(
+            bytes = expectedJson.encodeToByteArray(),
+            bufferSize = 1,
+        ) { GeneratedJsonNamesJsonCodec.read() }
         roundTrip(
             writerCodec = GeneratedJsonNamesJsonCodec,
             readerCodec = GeneratedJsonNamesJsonCodec,
@@ -169,7 +190,7 @@ class JsonValueCodecSpec : BaseSpec({
             reserveFromHints = false,
         )
         val bytes = "{\"bYx\":2,\"aaaaé\":4,\"axx\":1}".encodeToByteArray()
-        readJson(bytes, 1) { GeneratedJsonNamesJsonCodec.read() } shouldBe value
+        readJson(bytes = bytes, bufferSize = 1) { GeneratedJsonNamesJsonCodec.read() } shouldBe value
     }
 
     should("read compact, spaced, escaped, and split long field names") {
@@ -182,7 +203,10 @@ class JsonValueCodecSpec : BaseSpec({
         )
         for (document in documents) {
             for (bufferSize in listOf(1, 8, 16, 32768)) {
-                readJson(document.encodeToByteArray(), bufferSize) { GeneratedLongFieldNamesJsonCodec.read() } shouldBe value
+                readJson(
+                    bytes = document.encodeToByteArray(),
+                    bufferSize = bufferSize,
+                ) { GeneratedLongFieldNamesJsonCodec.read() } shouldBe value
             }
         }
     }
@@ -195,7 +219,10 @@ class JsonValueCodecSpec : BaseSpec({
         )
         for (document in documents) {
             shouldThrow<IllegalArgumentException> {
-                readJson(document.encodeToByteArray(), 32768) { GeneratedLongFieldNamesJsonCodec.read() }
+                readJson(
+                    bytes = document.encodeToByteArray(),
+                    bufferSize = 32768,
+                ) { GeneratedLongFieldNamesJsonCodec.read() }
             }
         }
     }

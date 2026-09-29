@@ -3,15 +3,14 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSource
 
 object JsonReadProtocol {
-
-//    context(parseScope: JsonParseScope)
-//    fun reset(input: ByteSource) {
-//        this.input = input
-//        parseScope.position = 0
-//        parseScope.limit = 0
-//        last = -1
-//        fieldSize = 0
-//    }
+    //    context(parseScope: JsonParseScope)
+    //    fun reset(input: ByteSource) {
+    //        this.input = input
+    //        parseScope.position = 0
+    //        parseScope.limit = 0
+    //        last = -1
+    //        fieldSize = 0
+    //    }
 
     context(input: ByteSource, parseScope: JsonParseScope)
     fun nextToken(): Int {
@@ -92,9 +91,7 @@ object JsonReadProtocol {
     fun nextFieldOrEnd(): Int {
         val index = parseScope.position
         val limit = parseScope.limit
-        if (limit - index >= 2 &&
-            parseScope.buffer[index].toInt() == 44 &&
-            parseScope.buffer[index + 1].toInt() == 34
+        if (limit - index >= 2 && parseScope.buffer[index].toInt() == 44 && parseScope.buffer[index + 1].toInt() == 34
         ) {
             parseScope.position = index + 2
             parseScope.last = 34
@@ -274,13 +271,13 @@ object JsonReadProtocol {
     internal fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
-                    value == 32 ||
-                    value == 9 ||
-                    value == 10 ||
-                    value == 13 ||
-                    value == 44 ||
-                    value == 93 ||
-                    value == 125,
+                value == 32 ||
+                value == 9 ||
+                value == 10 ||
+                value == 13 ||
+                value == 44 ||
+                value == 93 ||
+                value == 125,
         ) { "Invalid JSON value suffix" }
     }
 
