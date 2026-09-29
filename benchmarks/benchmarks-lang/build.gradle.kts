@@ -26,7 +26,7 @@ private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.configureFast() = be
 
 
 private fun kotlinx.benchmark.gradle.BenchmarkConfiguration.configureSlow() = benchConf {
-    warmups = 3
+    warmups = 5
     iterations = 5
     iterationTime = 500
     iterationTimeUnit = "ms"
@@ -84,6 +84,11 @@ benchmark {
             include(".*KotlinInstantBenchmark.*")
             configureSlow()
             advanced("jvmForks", 2)
+        }
+        register("scratch") {
+            include(".*ScratchBenchmark.*")
+            configureSlow()
+            advanced("jvmForks", 1)
         }
     }
 }
