@@ -12,7 +12,7 @@ object JsonReadProtocol {
     //        fieldSize = 0
     //    }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun nextToken(): Int {
         var value = take()
         while (value == 32 || value == 9 || value == 10 || value == 13) value = take()
@@ -20,7 +20,7 @@ object JsonReadProtocol {
         return value
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun nextFieldValue() {
         val index = parseScope.position
         if (parseScope.limit - index >= 2 && parseScope.buffer[index].toInt() == 58) {
@@ -35,7 +35,7 @@ object JsonReadProtocol {
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     fun peekFieldWord(): Long {
         return if (parseScope.limit - parseScope.position >= 8) {
             parseScope.buffer.getPackedLong(parseScope.position)
@@ -44,7 +44,7 @@ object JsonReadProtocol {
         }
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     fun consumeField(length: Int): Boolean {
         val position = parseScope.position
         if (parseScope.limit - position <= length || parseScope.buffer[position + length].toInt() != 34) {
@@ -54,7 +54,7 @@ object JsonReadProtocol {
         return true
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     fun fieldMatches(expected: ByteArray): Boolean {
         val start = parseScope.position
         if (parseScope.limit - start <= expected.size) {
@@ -68,12 +68,12 @@ object JsonReadProtocol {
         return parseScope.buffer[start + expected.size].toInt() == 34
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun consumeMatchedFieldColon(length: Int) {
         nextValue(parseScope.position + length + 2)
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun consumeFieldColon(length: Int): Boolean {
         val limit = parseScope.limit
         val position = parseScope.position
@@ -87,7 +87,7 @@ object JsonReadProtocol {
         return true
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun nextFieldOrEnd(): Int {
         val index = parseScope.position
         val limit = parseScope.limit
@@ -112,7 +112,7 @@ object JsonReadProtocol {
         return field
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun readField(): Int {
         require(parseScope.last == 34) { "Expected JSON field name" }
         val start = parseScope.position
@@ -142,7 +142,7 @@ object JsonReadProtocol {
         return hash
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     fun fieldEquals(expected: ByteArray): Boolean {
         if (parseScope.fieldSize != expected.size) {
             return false
@@ -153,12 +153,12 @@ object JsonReadProtocol {
         return true
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun skipValue() {
         skipValue(0)
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun skipValue(depth: Int) {
         require(depth <= 128) { "JSON nesting limit exceeded" }
         when (parseScope.last) {
@@ -220,7 +220,7 @@ object JsonReadProtocol {
         }
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun skipNumber() {
         var digit = if (parseScope.last == 45) {
             take()
@@ -262,7 +262,7 @@ object JsonReadProtocol {
         requireDelimiter(digit)
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun readLiteral(tail: String) {
         for (char in tail) require(take() == char.code) { "Invalid JSON literal" }
         requireDelimiter(peek())
@@ -281,7 +281,7 @@ object JsonReadProtocol {
         ) { "Invalid JSON value suffix" }
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     internal fun take(): Int {
         val value = peek()
         if (value >= 0) {
@@ -290,7 +290,7 @@ object JsonReadProtocol {
         return value
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun nextValue(index: Int) {
         parseScope.position = index
         if (index < parseScope.limit) {
@@ -304,7 +304,7 @@ object JsonReadProtocol {
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     internal fun peek(): Int {
         if (parseScope.position == parseScope.limit && !refill()) {
             return -1
@@ -312,7 +312,7 @@ object JsonReadProtocol {
         return parseScope.buffer[parseScope.position].toInt() and 255
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     internal fun refill(): Boolean {
         parseScope.position = 0
         parseScope.limit = input.readAtMostTo(sink = parseScope.buffer, offset = 0, length = parseScope.buffer.size)

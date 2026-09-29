@@ -241,10 +241,10 @@ class JsonValueCodecSpec : BaseSpec({
 private fun <T> readJson(
     bytes: ByteArray,
     bufferSize: Int,
-    read: context(ByteSource, JsonParseScope) () -> T,
+    read: context(ByteSource, JsonReadScope) () -> T,
 ): T {
     val input = bytes.asByteSource()
-    val parseScope = JsonParseScope(bufferSize.bytes())
+    val parseScope = JsonReadScope(bufferSize.bytes())
     return context(input) {
         context(parseScope) {
             JsonReadProtocol.nextToken()

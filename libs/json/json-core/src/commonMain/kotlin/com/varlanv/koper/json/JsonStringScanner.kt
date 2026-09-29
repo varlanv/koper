@@ -6,7 +6,7 @@ import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.text.Charset
 
 object JsonStringScanner {
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun read() {
         require(parseScope.last == 34) { "Expected JSON string" }
         val start = parseScope.position
@@ -50,7 +50,7 @@ object JsonStringScanner {
         parseScope.scratchLength = parseScope.scratchSize
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     fun readToScratch() {
         readStringToScratch()
         parseScope.scratchBytes = parseScope.scratch
@@ -58,7 +58,7 @@ object JsonStringScanner {
         parseScope.scratchLength = parseScope.scratchSize
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun readBufferedEscapes(): Boolean {
         return if (isVectorized && parseScope.limit - parseScope.position >= jsonScanner.laneCount) {
             readVectorEscapes()
@@ -67,7 +67,7 @@ object JsonStringScanner {
         }
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun readVectorEscapes(): Boolean {
         ensureScratch(parseScope.scratchSize + parseScope.limit - parseScope.position)
         var index = parseScope.position
@@ -152,7 +152,7 @@ object JsonStringScanner {
         return readScalarEscapes()
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun copyRun(
         output: MutBytes,
         offset: Int,
@@ -172,7 +172,7 @@ object JsonStringScanner {
         }
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun readScalarEscapes(): Boolean {
         ensureScratch(parseScope.scratchSize + parseScope.limit - parseScope.position)
         var index = parseScope.position
@@ -236,7 +236,7 @@ object JsonStringScanner {
         return false
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun readStringToScratch(clear: Boolean = true) {
         if (clear) {
             parseScope.scratchSize = 0
@@ -281,7 +281,7 @@ object JsonStringScanner {
         }
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun readEscape() {
         when (val value = JsonReadProtocol.take()) {
             34, 92, 47 -> {
@@ -330,7 +330,7 @@ object JsonStringScanner {
         }
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun readHexAt(index: Int): Int {
         return (hexDigit(parseScope.buffer[index].toInt() and 255) shl 12) or
             (hexDigit(parseScope.buffer[index + 1].toInt() and 255) shl 8) or
@@ -347,7 +347,7 @@ object JsonStringScanner {
         }
     }
 
-    context(input: ByteSource, parseScope: JsonParseScope)
+    context(input: ByteSource, parseScope: JsonReadScope)
     private fun readHex(): Int {
         var result = 0
         repeat(4) {
@@ -363,7 +363,7 @@ object JsonStringScanner {
         return result
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun append(value: Byte) {
         if (parseScope.scratchSize == parseScope.scratch.size) {
             ensureScratch(parseScope.scratchSize + 1)
@@ -371,7 +371,7 @@ object JsonStringScanner {
         parseScope.scratch[parseScope.scratchSize++] = value
     }
 
-    context(parseScope: JsonParseScope)
+    context(parseScope: JsonReadScope)
     private fun ensureScratch(size: Int) {
         if (size > parseScope.scratch.size) {
             parseScope.scratch = parseScope.scratch.copyOf(maxOf(size, parseScope.scratch.size * 2))

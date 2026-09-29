@@ -1,7 +1,7 @@
 package com.varlanv.koper.benchmarks.json
 
-import com.varlanv.koper.json.JsonParseScope
 import com.varlanv.koper.json.JsonReadProtocol
+import com.varlanv.koper.json.JsonReadScope
 import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
@@ -32,7 +32,7 @@ class JsonStreamBenchmark {
     private lateinit var output: RecycledOutputStream
     private lateinit var streamOutput: OutputStreamByteSink
     private lateinit var writer: JsonWriteProtocol
-    private lateinit var parseScope: JsonParseScope
+    private lateinit var parseScope: JsonReadScope
 
     @Setup
     fun setup() {
@@ -107,7 +107,7 @@ class JsonStreamBenchmark {
         streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
-        parseScope = JsonParseScope(32.kilobytes())
+        parseScope = JsonReadScope(32.kilobytes())
 
         check(generatedReadUtf8() == strValue)
         check(generatedReadMixed() == mixedValue)

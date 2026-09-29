@@ -14,7 +14,7 @@ class Json(private val writeProtocol: JsonWriteProtocol = JsonWriteProtocol()) {
     }
 
     fun <T> readFrom(source: ByteSource, readCodec: JsonCodec.Read<T>): T {
-        JsonParseScope(10.bytes()).scoped(source) {
+        JsonReadScope(10.bytes()).scoped(source) {
             readCodec.read()
         }
         TODO()

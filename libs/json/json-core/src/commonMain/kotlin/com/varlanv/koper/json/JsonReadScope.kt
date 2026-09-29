@@ -5,7 +5,7 @@ import com.varlanv.koper.lang.bin.DataSize
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 
-class JsonParseScope(bufferSize: DataSize) {
+class JsonReadScope(bufferSize: DataSize) {
     init {
         require(bufferSize.bytes > 0)
     }
@@ -36,7 +36,7 @@ class JsonParseScope(bufferSize: DataSize) {
         field = buffer
     }
 
-    inline fun scoped(input: ByteSource, block: context(ByteSource, JsonParseScope) () -> Unit) {
+    inline fun scoped(input: ByteSource, block: context(ByteSource, JsonReadScope) () -> Unit) {
         try {
             block(input, this)
         } finally {

@@ -252,7 +252,7 @@ private fun generateSource(
     }
     if (read) {
         appendLine()
-        appendLine("    context(input: $binType.ByteSource, parseScope: $jsonType.JsonParseScope)")
+        appendLine("    context(input: $binType.ByteSource, parseScope: $jsonType.JsonReadScope)")
         appendLine("    override fun read(): $classType {")
         appendLine("        require(parseScope.last == 123) { \"Expected JSON object\" }")
         fields.forEachIndexed { index, field ->
