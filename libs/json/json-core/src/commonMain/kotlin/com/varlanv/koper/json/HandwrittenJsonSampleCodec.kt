@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.serde.De
 import com.varlanv.koper.serde.Ser
 
@@ -25,37 +26,37 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         writer.writeByte('}'.code)
     }
 
-    context(parseScope: JsonParseScope)
-    override fun read(reader: JsonReadProtocol): HandwrittenJsonSample {
-        require(reader.token == '{'.code) { "Expected JSON object" }
+    context(input: ByteSource, parseScope: JsonParseScope)
+    override fun read(): HandwrittenJsonSample {
+        require(parseScope.last == '{'.code) { "Expected JSON object" }
         var id = 0
         var text: String? = null
         var seen = 0
-        var token = reader.nextToken()
+        var token = JsonReadProtocol.nextToken()
         if (token != '}'.code) {
             while (true) {
                 require(token == '"'.code) { "Expected JSON field name" }
-                val hash = reader.readField()
+                val hash = JsonReadProtocol.readField()
                 val field = when (hash) {
-                    3355 if reader.fieldEquals(idName) -> 1
-                    3556653 if reader.fieldEquals(textName) -> 2
+                    3355 if JsonReadProtocol.fieldEquals(idName) -> 1
+                    3556653 if JsonReadProtocol.fieldEquals(textName) -> 2
                     else -> 0
                 }
-                reader.nextFieldValue()
+                JsonReadProtocol.nextFieldValue()
                 when (field) {
                     1 -> {
-                        id = IntJsonCodec.read(reader)
+                        id = IntJsonCodec.read()
                         seen = seen or 1
                     }
                     2 -> {
-                        text = StringJsonCodec.read(reader)
+                        text = StringJsonCodec.read()
                         seen = seen or 2
                     }
                     else -> {
-                        reader.skipValue()
+                        JsonReadProtocol.skipValue()
                     }
                 }
-                token = reader.nextFieldOrEnd()
+                token = JsonReadProtocol.nextFieldOrEnd()
                 if (token == '}'.code) {
                     break
                 }

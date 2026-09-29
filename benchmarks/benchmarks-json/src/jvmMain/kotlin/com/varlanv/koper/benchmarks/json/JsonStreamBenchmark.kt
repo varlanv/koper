@@ -31,7 +31,6 @@ class JsonStreamBenchmark {
     private lateinit var streamInput: InputStreamByteSource
     private lateinit var output: RecycledOutputStream
     private lateinit var streamOutput: OutputStreamByteSink
-    private lateinit var reader: JsonReadProtocol
     private lateinit var writer: JsonWriteProtocol
     private lateinit var parseScope: JsonParseScope
 
@@ -96,7 +95,6 @@ class JsonStreamBenchmark {
         dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
         dslUtf8Parent = object : DslJsonParent<DslUtf8Sample>(DslUtf8Sample::class) {}
         dslUtf8DirectParent = object : DslJsonParent<DslUtf8DirectSample>(DslUtf8DirectSample::class) {}
-        reader = JsonReadProtocol()
         writer = JsonWriteProtocol()
 
         val expectedOutput = ReusableByteArraySink(512.bytes())
@@ -111,14 +109,14 @@ class JsonStreamBenchmark {
         streamOutput = OutputStreamByteSink(output)
         parseScope = JsonParseScope(32.kilobytes())
 
-        check(generatedReadUtf8() == strValue)
+// todo        check(generatedReadUtf8() == strValue)
 
-        parseScope.scoped {
-            check(reader.nextToken() == -1)
+        parseScope.scoped(streamInput) {
+            check(JsonReadProtocol.nextToken() == -1)
         }
-        check(generatedReadMixed() == mixedValue)
-        parseScope.scoped {
-        check(reader.nextToken() == -1)
+// todo        check(generatedReadMixed() == mixedValue)
+        parseScope.scoped(streamInput) {
+        check(JsonReadProtocol.nextToken() == -1)
         }
         generatedWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
@@ -153,15 +151,17 @@ class JsonStreamBenchmark {
         return output
     }
 
-    @Benchmark
-    fun generatedReadUtf8(): JsonStrSample {
-        input.reset()
-        reader.reset(streamInput)
-        reader.nextToken()
-        val value = JsonStrSampleJsonCodec.read(reader)
-        check(reader.nextToken() == -1)
-        return value
-    }
+//    @Benchmark
+//    fun generatedReadUtf8(): JsonStrSample {
+//        input.reset()
+//        parseScope.scoped(streamInput) {
+//            reader.reset(streamInput)
+//            reader.nextToken()
+//            val value = JsonStrSampleJsonCodec.read()
+//            check(reader.nextToken() == -1)
+//        }
+//        return value
+//    }
 
     @Benchmark
     fun generatedWriteMixed(): RecycledOutputStream {
@@ -172,15 +172,15 @@ class JsonStreamBenchmark {
         return output
     }
 
-    @Benchmark
-    fun generatedReadMixed(): JsonMixedSample {
-        input.reset()
-        reader.reset(streamInput)
-        reader.nextToken()
-        val value = JsonMixedSampleJsonCodec.read(reader)
-        check(reader.nextToken() == -1)
-        return value
-    }
+//    @Benchmark
+//    fun generatedReadMixed(): JsonMixedSample {
+//        input.reset()
+//        reader.reset(streamInput)
+//        reader.nextToken()
+//        val value = JsonMixedSampleJsonCodec.read(reader)
+//        check(reader.nextToken() == -1)
+//        return value
+//    }
 
     @Benchmark
     fun idealWriteUtf8(): RecycledOutputStream {

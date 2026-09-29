@@ -151,6 +151,8 @@ private fun generateSource(
     }
     val codecType = "com.varlanv.koper.json.JsonCodec"
     val jsonType = "com.varlanv.koper.json"
+    val binType = "com.varlanv.koper.lang.bin"
+    val readProtocol = "$jsonType.JsonReadProtocol"
     val write = shape.annotations.isSer
     val read = shape.annotations.isDe
     val interfaces = buildList {
@@ -176,7 +178,7 @@ private fun generateSource(
         } else {
             "read"
         }
-        appendLine("${indent}_field$index = $jsonType.${field.type.codec}.$method(reader)")
+        appendLine("${indent}_field$index = $jsonType.${field.type.codec}.$method()")
         appendLine("${indent}_seen${index / 64} = _seen${index / 64} or (1L shl ${index % 64})")
     }
 
@@ -250,9 +252,9 @@ private fun generateSource(
     }
     if (read) {
         appendLine()
-        appendLine("    context(parseScope: com.varlanv.koper.json.JsonParseScope)")
-        appendLine("    override fun read(reader: $jsonType.JsonReadProtocol): $classType {")
-        appendLine("        require(reader.token == 123) { \"Expected JSON object\" }")
+        appendLine("    context(input: $binType.ByteSource, parseScope: $jsonType.JsonParseScope)")
+        appendLine("    override fun read(): $classType {")
+        appendLine("        require(parseScope.last == 123) { \"Expected JSON object\" }")
         fields.forEachIndexed { index, field ->
             val initial = when (field.type) {
                 FieldType.INT -> "Int = 0"
@@ -265,12 +267,12 @@ private fun generateSource(
         }
         val groupCount = (fields.size + 63) / 64
         repeat(groupCount) { appendLine("        var _seen$it = 0L") }
-        appendLine("        var _token = reader.nextToken()")
+        appendLine("        var _token = $readProtocol.nextToken()")
         appendLine("        if (_token != 125) {")
         appendLine("            while (true) {")
         appendLine("                require(_token == 34) { \"Expected JSON field name\" }")
         if (fastFields.isNotEmpty()) {
-            appendLine("                val _word = reader.peekFieldWord()")
+            appendLine("                val _word = $readProtocol.peekFieldWord()")
         }
         appendLine("                when {")
         fastFields.forEach { (index, field) ->
@@ -278,16 +280,16 @@ private fun generateSource(
             val compactMatch = if (nameLength <= 6) {
                 packedWordMatch(field.nameBytes + byteArrayOf(34, 58))
             } else if (nameLength == 7) {
-                "${packedWordMatch(field.nameBytes + byteArrayOf(34))} && reader.consumeFieldColon($nameLength)"
+                "${packedWordMatch(field.nameBytes + byteArrayOf(34))} && $readProtocol.consumeFieldColon($nameLength)"
             } else if (nameLength == 8) {
-                "${packedWordMatch(field.nameBytes)} && reader.consumeFieldColon($nameLength)"
+                "${packedWordMatch(field.nameBytes)} && $readProtocol.consumeFieldColon($nameLength)"
             } else {
                 "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && " +
-                    "reader.fieldMatches(_fieldName$index) && reader.consumeFieldColon($nameLength)"
+                    "$readProtocol.fieldMatches(_fieldName$index) && $readProtocol.consumeFieldColon($nameLength)"
             }
             appendLine("                    $compactMatch -> {")
             if (nameLength <= 6) {
-                appendLine("                        reader.consumeMatchedFieldColon($nameLength)")
+                appendLine("                        $readProtocol.consumeMatchedFieldColon($nameLength)")
             }
             appendFieldRead(index = index, indent = "                        ")
             appendLine("                    }")
@@ -299,30 +301,30 @@ private fun generateSource(
             } else if (nameLength == 8) {
                 packedWordMatch(field.nameBytes)
             } else {
-                "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && reader.fieldMatches(_fieldName$index)"
+                "${packedWordMatch(field.nameBytes.copyOfRange(0, 8))} && $readProtocol.fieldMatches(_fieldName$index)"
             }
-            appendLine("                    $nameMatch && reader.consumeField($nameLength) -> {")
-            appendLine("                        reader.nextFieldValue()")
+            appendLine("                    $nameMatch && $readProtocol.consumeField($nameLength) -> {")
+            appendLine("                        $readProtocol.nextFieldValue()")
             appendFieldRead(index = index, indent = "                        ")
             appendLine("                    }")
         }
         appendLine("                    else -> {")
-        appendLine("                        val _hash = reader.readField()")
+        appendLine("                        val _hash = $readProtocol.readField()")
         appendLine("                        when (_hash) {")
         fields.forEachIndexed { index, field ->
-            appendLine("                            ${field.hash} if reader.fieldEquals(_fieldName$index) -> {")
-            appendLine("                                reader.nextFieldValue()")
+            appendLine("                            ${field.hash} if $readProtocol.fieldEquals(_fieldName$index) -> {")
+            appendLine("                                $readProtocol.nextFieldValue()")
             appendFieldRead(index = index, indent = "                                ")
             appendLine("                            }")
         }
         appendLine("                            else -> {")
-        appendLine("                                reader.nextFieldValue()")
-        appendLine("                                reader.skipValue()")
+        appendLine("                                $readProtocol.nextFieldValue()")
+        appendLine("                                $readProtocol.skipValue()")
         appendLine("                            }")
         appendLine("                        }")
         appendLine("                    }")
         appendLine("                }")
-        appendLine("                _token = reader.nextFieldOrEnd()")
+        appendLine("                _token = $readProtocol.nextFieldOrEnd()")
         appendLine("                if (_token == 125) break")
         appendLine("            }")
         appendLine("        }")

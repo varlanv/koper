@@ -36,9 +36,9 @@ class JsonParseScope(bufferSize: DataSize) {
         field = buffer
     }
 
-    inline fun scoped(block: context(JsonParseScope) () -> Unit) {
+    inline fun scoped(input: ByteSource, block: context(ByteSource,JsonParseScope) () -> Unit) {
         try {
-            block(this)
+            block(input,this)
         } finally {
             reset()
         }
