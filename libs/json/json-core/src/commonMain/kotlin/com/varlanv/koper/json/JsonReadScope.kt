@@ -23,24 +23,7 @@ class JsonReadScope(bufferSize: DataSize) {
     var scratchOffset = 0
     var scratchLength = 0
 
-    @PublishedApi
-    internal fun reset() {
-        position = 0
-        limit = 0
-        scratchSize = 0
-        scratchOffset = 0
-        scratchLength = 0
-        fieldOffset = 0
-        fieldSize = 0
-        last = -1
-        field = buffer
-    }
-
-    inline fun scoped(input: ByteSource, block: context(ByteSource, JsonReadScope) () -> Unit) {
-        try {
-            block(input, this)
-        } finally {
-            reset()
-        }
+    inline fun <T> scoped(input: ByteSource, block: context(ByteSource, JsonReadScope) () -> T): T {
+        return block(input, this)
     }
 }

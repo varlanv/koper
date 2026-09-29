@@ -11,13 +11,11 @@ import kotlinx.benchmark.State
  */
 @State(Scope.Benchmark)
 class ScratchBenchmark {
-
     @Setup
     fun setup() {
     }
 
     @Benchmark
     fun scratch() {
-
     }
 }

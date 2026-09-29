@@ -1,10 +1,14 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.BufferAllocator
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.bin.kilobytes
 
-class Json {
+val GlobalJson = Json()
+
+class Json(private val allocator: BufferAllocator = BufferAllocator(128.kilobytes())) {
     fun <T> writeTo(
         sink: ByteSink,
         writeCodec: JsonCodec.Write<T>,
@@ -16,10 +20,11 @@ class Json {
     }
 
     fun <T> readFrom(source: ByteSource, readCodec: JsonCodec.Read<T>): T {
-        JsonReadScope(10.bytes()).scoped(source) {
-            readCodec.read()
+        return allocator.use { buffer ->
+            JsonReadScope(128.bytes()).scoped(source) {
+                readCodec.read()
+            }
         }
-        TODO()
     }
 }
 
