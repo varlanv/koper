@@ -17,14 +17,14 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         size = JsonValueSize.FromValue<HandwrittenJsonSample> { value -> maximumBytes(value) },
     )
 
-    context(sink: ByteSink,writeScope: JsonWriteScope)
+    context(sink: ByteSink, writeScope: JsonWriteScope)
     override fun write(value: HandwrittenJsonSample) {
         val maximumBytes = maximumBytes(value)
         JsonWriteProtocol.reserve(maximumBytes)
         JsonWriteProtocol.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
-        IntJsonCodec.write(value = value.id)
+        IntJsonCodec.write(value.id)
         JsonWriteProtocol.writeRaw(0x3a2274786574222cL)
-        StringJsonCodec.write(value = value.text)
+        StringJsonCodec.write(value.text)
         JsonWriteProtocol.writeByte('}'.code)
     }
 

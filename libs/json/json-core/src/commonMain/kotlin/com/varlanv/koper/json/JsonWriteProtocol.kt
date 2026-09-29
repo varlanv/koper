@@ -6,7 +6,6 @@ import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
 
 object JsonWriteProtocol {
-
     context(sink: ByteSink, writeScope: JsonWriteScope)
     fun flush() {
         if (writeScope.position != 0) {
@@ -68,7 +67,7 @@ object JsonWriteProtocol {
     context(writeScope: JsonWriteScope)
     fun writeRaw(first: Long, second: Short) {
         writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx =writeScope. position+ 8, value = second)
+        writeScope.buffer.setPackedShort(idx = writeScope.position+ 8, value = second)
         writeScope.position += 10
     }
 

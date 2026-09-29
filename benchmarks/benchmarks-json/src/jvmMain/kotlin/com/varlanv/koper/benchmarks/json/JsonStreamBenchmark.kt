@@ -100,7 +100,7 @@ class JsonStreamBenchmark {
 
         val expectedOutput = ReusableByteArraySink(512.bytes())
         writeScope.scoped(expectedOutput) {
-            JsonStrSampleJsonCodec.write(value = strValue)
+            JsonStrSampleJsonCodec.write(strValue)
             JsonWriteProtocol.flush()
         }
         val bytes = expectedOutput.useBytes { data, length -> data.copyOf(length) }
@@ -141,7 +141,7 @@ class JsonStreamBenchmark {
     fun generatedWriteUtf8(): RecycledOutputStream {
         output.reset()
         writeScope.scoped(streamOutput) {
-            JsonStrSampleJsonCodec.write(value = strValue)
+            JsonStrSampleJsonCodec.write(strValue)
             JsonWriteProtocol.flush()
         }
         return output
@@ -163,7 +163,7 @@ class JsonStreamBenchmark {
     fun generatedWriteMixed(): RecycledOutputStream {
         output.reset()
         writeScope.scoped(streamOutput) {
-            JsonMixedSampleJsonCodec.write(value = mixedValue)
+            JsonMixedSampleJsonCodec.write(mixedValue)
             JsonWriteProtocol.flush()
         }
         return output

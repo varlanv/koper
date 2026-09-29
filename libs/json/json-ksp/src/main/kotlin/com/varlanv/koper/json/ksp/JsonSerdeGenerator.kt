@@ -370,7 +370,11 @@ private fun generateSource(
     appendLine("}")
 }
 
-private fun StringBuilder.appendPackedWrites(bytes: ByteArray, indent: String, writeProtocol: String) {
+private fun StringBuilder.appendPackedWrites(
+    bytes: ByteArray,
+    indent: String,
+    writeProtocol: String,
+) {
     var index = 0
     while (index < bytes.size) {
         val remaining = bytes.size - index

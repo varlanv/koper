@@ -17,18 +17,18 @@ class JsonValueCodecSpec : BaseSpec({
         reserveFromHints: Boolean = true,
     ) {
         val output = ReusableByteArraySink(512.bytes())
-        val writer = JsonWriteProtocol()
-        writer.reset(output)
-        if (reserveFromHints) {
-            val maximumBytes = when (val size = writerCodec.hints.size) {
-                is JsonValueSize.Static -> size.maximumBytes
-                is JsonValueSize.FromValue -> size.maximumBytes(value)
-                JsonValueSize.Dynamic -> error("This test requires a bounded codec")
+        JsonWriteScope().scoped(output) {
+            if (reserveFromHints) {
+                val maximumBytes = when (val size = writerCodec.hints.size) {
+                    is JsonValueSize.Static -> size.maximumBytes
+                    is JsonValueSize.FromValue -> size.maximumBytes(value)
+                    JsonValueSize.Dynamic -> error("This test requires a bounded codec")
+                }
+                JsonWriteProtocol.reserve(maximumBytes)
             }
-            writer.reserve(maximumBytes)
+            writerCodec.write(value)
+            JsonWriteProtocol.flush()
         }
-        writerCodec.write(writer = writer, value = value)
-        writer.flush()
         val bytes = output.toByteArray()
         bytes.decodeToString() shouldBe expectedJson
 

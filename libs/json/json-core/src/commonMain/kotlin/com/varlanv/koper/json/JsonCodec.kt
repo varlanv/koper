@@ -16,16 +16,9 @@ import kotlin.Int
 import kotlin.Long
 import kotlin.String
 import kotlin.code
-import kotlin.collections.minusAssign
-import kotlin.collections.plus
-import kotlin.collections.plusAssign
-import kotlin.collections.set
-import kotlin.plus
 import kotlin.require
-import kotlin.sequences.plus
 import kotlin.text.encodeToByteArray
 import kotlin.text.iterator
-import kotlin.text.set
 
 object JsonCodec {
     class Hints<T>(
@@ -78,7 +71,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Int) = writePrimitive(value = value)
+    override fun write(value: Int) = writePrimitive(value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Int = readPrimitive()
@@ -124,7 +117,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Long) = writePrimitive(value = value)
+    override fun write(value: Long) = writePrimitive(value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Long = readPrimitive()
@@ -242,7 +235,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
     private val falseBytes = "false".encodeToByteArray().asReadonly()
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Boolean) = writePrimitive(value = value)
+    override fun write(value: Boolean) = writePrimitive(value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Boolean = readPrimitive()
@@ -372,7 +365,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Utf8Str) = writePrimitive(value = value)
+    override fun write(value: Utf8Str) = writePrimitive(value)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Utf8Str = readPrimitive()
@@ -395,12 +388,7 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         position += special - slice.offset
         if (special < end) {
             position =
-                JsonStringEscapes.writeUtf8Escaped(
-                    bytes = input,
-                    start = special,
-                    end = end,
-                    targetStart = position,
-                )
+                JsonStringEscapes.writeUtf8Escaped(bytes = input, start = special, end = end, targetStart = position)
         }
         output[position++] = '"'.code.toByte()
         writeScope.position = position
