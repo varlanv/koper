@@ -4,8 +4,6 @@ import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
-import java.lang.invoke.MethodHandles
-import java.nio.ByteOrder
 
 class IdealJsonReader(
     bufferSize: DataSize = 32.kilobytes(),
@@ -124,7 +122,7 @@ class IdealJsonReader(
 
     fun peekFieldWord(): Long {
         return if (limit - position >= 8) {
-            longView.get(buffer, position) as Long
+            buffer.getPackedLong(position)
         } else {
             0L
         }
@@ -395,7 +393,7 @@ class IdealJsonReader(
     }
 
     private fun readEightDigits(index: Int): Long {
-        val word = longView.get(buffer, index) as Long
+        val word = buffer.getPackedLong(index)
         if (((word + 0x4646464646464646L) or (word - 0x3030303030303030L)) and -0x7f7f7f7f7f7f7f80L != 0L) {
             return -1L
         }
@@ -483,14 +481,14 @@ class IdealJsonReader(
         }
         return when (last) {
             116 -> {
-                require((intView.get(buffer, position) as Int) and 0xffffff == 0x657572) { "Invalid JSON literal" }
+                require(buffer.getPackedInt(position) and 0xffffff == 0x657572) { "Invalid JSON literal" }
                 position += 3
                 requireDelimiter(buffer[position].toInt() and 255)
                 true
             }
 
             102 -> {
-                require(intView.get(buffer, position) as Int == 0x65736c61) { "Invalid JSON literal" }
+                require(buffer.getPackedInt(position) == 0x65736c61) { "Invalid JSON literal" }
                 position += 4
                 requireDelimiter(buffer[position].toInt() and 255)
                 false
@@ -715,8 +713,8 @@ class IdealJsonReader(
         end: Int,
     ) {
         if (end - start <= 8 && start <= buffer.size - 8 && offset <= output.size - 8) {
-            val word = longView.get(buffer, start) as Long
-            longView.set(output, offset, word)
+            val word = buffer.getPackedLong(start)
+            output.setPackedLong(idx = offset, value = word)
         } else {
             buffer.copyInto(destination = output, destinationOffset = offset, startIndex = start, endIndex = end)
         }
@@ -970,7 +968,7 @@ class IdealJsonReader(
 
     private fun refill(): Boolean {
         position = 0
-        Bytes.unsafe { useInternal(buffer.asReadonly()) { input.read(it) } }
+        limit = Bytes.unsafe { useInternal(buffer.asReadonly()) { input.read(it) } }
         if (limit <= 0) {
             if (limit == 0) {
                 val value = input.read()
@@ -988,7 +986,5 @@ class IdealJsonReader(
 
     private companion object {
         val swarNumbers = System.getProperty("ideal.swar.numbers", "true").toBoolean()
-        val longView = MethodHandles.byteArrayViewVarHandle(LongArray::class.java, ByteOrder.LITTLE_ENDIAN)
-        val intView = MethodHandles.byteArrayViewVarHandle(IntArray::class.java, ByteOrder.LITTLE_ENDIAN)
     }
 }

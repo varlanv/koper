@@ -112,36 +112,36 @@ class JsonStreamBenchmark {
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
 
-        check(generatedUtf8Read() == strValue)
+        check(generatedReadUtf8() == strValue)
         check(reader.nextToken() == -1)
-        check(generatedMixedRead() == mixedValue)
+        check(generatedReadMixed() == mixedValue)
         check(reader.nextToken() == -1)
-        generatedUtf8Write()
+        generatedWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
-        generatedMixedWrite()
+        generatedWriteMixed()
         check(output.toByteArray().contentEquals(arr))
-        check(idealUtf8Read() == strValue)
-        check(mixedIdealRead() == mixedValue)
-        idealUtf8Write()
+        check(idealReadUtf8() == strValue)
+        check(mixedReadIdeal() == mixedValue)
+        idealWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
-        mixedIdealWrite()
+        mixedWriteIdeal()
         check(output.toByteArray().contentEquals(arr))
-        check(dslStringRead() == dslStringValue)
-        check(dslMixedRead() == dslMixedValue)
-        check(dslUtf8Read() == dslUtf8Value)
-        check(dslUtf8DirectRead() == dslUtf8DirectValue)
-        dslStringWrite()
+        check(dslReadString() == dslStringValue)
+        check(dslReadMixed() == dslMixedValue)
+        check(dslReadUtf8() == dslUtf8Value)
+        check(dslReadDirectUtf8() == dslUtf8DirectValue)
+        dslWriteString()
         check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
-        dslMixedWrite()
+        dslWriteMixed()
         check(MixedJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == mixedValue)
-        dslUtf8Write()
+        dslWriteUtf8()
         check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
-        dslUtf8DirectWrite()
+        dslWriteDirectUtf8()
         check(IdealJsonUtf8Codec.readVectorFromStream(ByteArrayInputStream(output.toByteArray())) == strValue)
     }
 
     @Benchmark
-    fun generatedUtf8Write(): RecycledOutputStream {
+    fun generatedWriteUtf8(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
         JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
@@ -150,7 +150,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun generatedUtf8Read(): JsonStrSample {
+    fun generatedReadUtf8(): JsonStrSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
@@ -160,7 +160,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun generatedMixedWrite(): RecycledOutputStream {
+    fun generatedWriteMixed(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
         JsonMixedSampleJsonCodec.write(writer = writer, value = mixedValue)
@@ -169,7 +169,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun generatedMixedRead(): JsonMixedSample {
+    fun generatedReadMixed(): JsonMixedSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
@@ -179,79 +179,79 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun idealUtf8Write(): RecycledOutputStream {
+    fun idealWriteUtf8(): RecycledOutputStream {
         output.reset()
         IdealJsonUtf8Codec.writeVectorToStream(value = strValue, output = output)
         return output
     }
 
     @Benchmark
-    fun idealUtf8Read(): JsonStrSample {
+    fun idealReadUtf8(): JsonStrSample {
         input.reset()
         return IdealJsonUtf8Codec.readVectorFromStream(input)
     }
 
     @Benchmark
-    fun mixedIdealWrite(): RecycledOutputStream {
+    fun mixedWriteIdeal(): RecycledOutputStream {
         output.reset()
         MixedJsonUtf8Codec.writeVectorToStream(value = mixedValue, output = output)
         return output
     }
 
     @Benchmark
-    fun mixedIdealRead(): JsonMixedSample {
+    fun mixedReadIdeal(): JsonMixedSample {
         input.reset()
         return MixedJsonUtf8Codec.readVectorFromStream(input)
     }
 
     @Benchmark
-    fun dslStringWrite(): RecycledOutputStream {
+    fun dslWriteString(): RecycledOutputStream {
         output.reset()
         JsonV2.writeToStream(parent = dslStringParent, value = dslStringValue, stream = output)
         return output
     }
 
     @Benchmark
-    fun dslStringRead(): DslStringSample {
+    fun dslReadString(): DslStringSample {
         input.reset()
         return JsonV2.readFromStream(parent = dslStringParent, stream = input)
     }
 
     @Benchmark
-    fun dslMixedWrite(): RecycledOutputStream {
+    fun dslWriteMixed(): RecycledOutputStream {
         output.reset()
         JsonV2.writeToStream(parent = dslMixedParent, value = dslMixedValue, stream = output)
         return output
     }
 
     @Benchmark
-    fun dslMixedRead(): DslMixedSample {
+    fun dslReadMixed(): DslMixedSample {
         input.reset()
         return JsonV2.readFromStream(parent = dslMixedParent, stream = input)
     }
 
     @Benchmark
-    fun dslUtf8Write(): RecycledOutputStream {
+    fun dslWriteUtf8(): RecycledOutputStream {
         output.reset()
         JsonV2.writeToStream(parent = dslUtf8Parent, value = dslUtf8Value, stream = output)
         return output
     }
 
     @Benchmark
-    fun dslUtf8Read(): DslUtf8Sample {
+    fun dslReadUtf8(): DslUtf8Sample {
         input.reset()
         return JsonV2.readFromStream(parent = dslUtf8Parent, stream = input)
     }
 
     @Benchmark
-    fun dslUtf8DirectWrite(): RecycledOutputStream {
+    fun dslWriteDirectUtf8(): RecycledOutputStream {
         output.reset()
         JsonV2.writeToStream(parent = dslUtf8DirectParent, value = dslUtf8DirectValue, stream = output)
         return output
     }
 
     @Benchmark
-    fun dslUtf8DirectRead(): DslUtf8DirectSample {
+    fun dslReadDirectUtf8(): DslUtf8DirectSample {
         input.reset()
         return JsonV2.readFromStream(parent = dslUtf8DirectParent, stream = input)
     }

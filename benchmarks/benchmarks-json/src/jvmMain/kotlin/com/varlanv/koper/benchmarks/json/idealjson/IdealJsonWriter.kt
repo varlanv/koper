@@ -3,11 +3,10 @@ package com.varlanv.koper.benchmarks.json
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.bin.getPackedLong
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import java.io.OutputStream
-import java.lang.invoke.MethodHandles
-import java.nio.ByteOrder
 
 class IdealJsonWriter(private val vectorized: Boolean = false) {
     private var buffer = MutBytes(512.bytes())
@@ -73,51 +72,51 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
 
     fun writeRaw(first: Int, second: Short) {
         reserve(6)
-        intView.set(buffer, position, first)
-        shortView.set(buffer, position + 4, second)
+        buffer.setPackedInt(idx = position, value = first)
+        buffer.setPackedShort(idx = position + 4, value = second)
         position += 6
     }
 
     fun writeRaw(value: Long) {
         reserve(8)
-        longView.set(buffer, position, value)
+        buffer.setPackedLong(idx = position, value = value)
         position += 8
     }
 
     fun writeRaw(first: Long, second: Short) {
         reserve(10)
-        longView.set(buffer, position, first)
-        shortView.set(buffer, position + 8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedShort(idx = position + 8, value = second)
         position += 10
     }
 
     fun writeRaw(first: Long, second: Int) {
         reserve(12)
-        longView.set(buffer, position, first)
-        intView.set(buffer, position + 8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedInt(idx = position + 8, value = second)
         position += 12
     }
 
     fun writeRawReserved(first: Int, second: Short) {
-        intView.set(buffer, position, first)
-        shortView.set(buffer, position + 4, second)
+        buffer.setPackedInt(idx = position, value = first)
+        buffer.setPackedShort(idx = position + 4, value = second)
         position += 6
     }
 
     fun writeRawReserved(value: Long) {
-        longView.set(buffer, position, value)
+        buffer.setPackedLong(idx = position, value = value)
         position += 8
     }
 
     fun writeRawReserved(first: Long, second: Short) {
-        longView.set(buffer, position, first)
-        shortView.set(buffer, position + 8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedShort(idx = position + 8, value = second)
         position += 10
     }
 
     fun writeRawReserved(first: Long, second: Int) {
-        longView.set(buffer, position, first)
-        intView.set(buffer, position + 8, second)
+        buffer.setPackedLong(idx = position, value = first)
+        buffer.setPackedInt(idx = position + 8, value = second)
         position += 12
     }
 
@@ -146,7 +145,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val quotient = number / 1000
             val digits = triplets[(quotient * 1000 - number).toInt()]
             index -= 3
-            shortView.set(buffer, index, digits.toShort())
+            buffer.setPackedShort(idx = index, value = digits.toShort())
             buffer[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -182,7 +181,7 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val quotient = number / 1000
             val digits = triplets[quotient * 1000 - number]
             index -= 3
-            shortView.set(buffer, index, digits.toShort())
+            buffer.setPackedShort(idx = index, value = digits.toShort())
             buffer[index + 2] = (digits ushr 16).toByte()
             number = quotient
         }
@@ -346,10 +345,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             if (pair.toInt() == 0) {
                 buffer[position++] = char.toByte()
             } else {
-                shortView.set(buffer, position, pair)
+                buffer.setPackedShort(idx = position, value = pair)
                 position += 2
                 if (pair == unicodePair) {
-                    intView.set(buffer, position, unicodeTails[char])
+                    buffer.setPackedInt(idx = position, value = unicodeTails[char])
                     position += 4
                 }
             }
@@ -370,11 +369,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
     }
 
     fun writeBooleanObjectEndReserved(value: Boolean) {
-        longView.set(buffer, position, 0x657669746361222cL)
-        longView.set(
-            buffer,
-            position + 8,
-            if (value) {
+        buffer.setPackedLong(idx = position, value = 0x657669746361222cL)
+        buffer.setPackedLong(
+            idx = position + 8,
+            value = if (value) {
                 0x007d657572743a22L
             } else {
                 0x7d65736c61663a22L
@@ -437,8 +435,8 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                     val length = special - index
                     if (length != 0) {
                         if (length <= 8 && index <= bytes.size - 8) {
-                            val word = longView.get(bytes, index) as Long
-                            longView.set(target, offset, word)
+                            val word = bytes.getPackedLong(index)
+                            target.setPackedLong(idx = offset, value = word)
                         } else {
                             bytes.copyInto(
                                 destination = target,
@@ -451,10 +449,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
                     }
                     val b = bytes[special].toInt() and 255
                     val escaped = escapePairs[b]
-                    shortView.set(target, offset, escaped)
+                    target.setPackedShort(idx = offset, value = escaped)
                     offset += 2
                     if (escaped == unicodePair) {
-                        intView.set(target, offset, unicodeTails[b])
+                        target.setPackedInt(idx = offset, value = unicodeTails[b])
                         offset += 4
                     }
                     index = special + 1
@@ -476,10 +474,10 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
             val b = bytes[index++].toInt() and 0xFF
             val escaped = escapePairs[b]
             if (escaped.toInt() != 0) {
-                shortView.set(target, offset, escaped)
+                target.setPackedShort(idx = offset, value = escaped)
                 offset += 2
                 if (escaped == unicodePair) {
-                    intView.set(target, offset, unicodeTails[b])
+                    target.setPackedInt(idx = offset, value = unicodeTails[b])
                     offset += 4
                 }
             } else {
@@ -493,9 +491,6 @@ class IdealJsonWriter(private val vectorized: Boolean = false) {
         val triplets = IntArray(1000) {
             ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
         }
-        val longView = MethodHandles.byteArrayViewVarHandle(LongArray::class.java, ByteOrder.LITTLE_ENDIAN)
-        val shortView = MethodHandles.byteArrayViewVarHandle(ShortArray::class.java, ByteOrder.LITTLE_ENDIAN)
-        val intView = MethodHandles.byteArrayViewVarHandle(IntArray::class.java, ByteOrder.LITTLE_ENDIAN)
         const val unicodePair: Short = 0x755c
         val unicodeTails = IntArray(32) { value ->
             0x3030 or (hex[value ushr 4].code shl 16) or (hex[value and 15].code shl 24)
