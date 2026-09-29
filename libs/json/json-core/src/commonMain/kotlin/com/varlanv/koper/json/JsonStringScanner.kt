@@ -18,20 +18,20 @@ internal class JsonStringScanner(val vectorized: Boolean) {
 
     fun read(reader: JsonReadProtocol) {
         require(reader.token == 34) { "Expected JSON string" }
-        val start = reader.position
+        val start = reader.parseScope.position
         var index = if (vectorized) {
             scan.firstSpecial(
                 bytes = Bytes(reader.buffer),
                 start = start,
-                end = reader.limit,
+                end = reader.parseScope.limit,
             )
         } else {
             start
         }
-        while (index < reader.limit) {
+        while (index < reader.parseScope.limit) {
             val value = reader.buffer[index].toInt() and 255
             if (value == 34) {
-                reader.position = index + 1
+                reader.parseScope.position = index + 1
                 bytes = reader.buffer
                 offset = start
                 length = index - start
@@ -45,8 +45,8 @@ internal class JsonStringScanner(val vectorized: Boolean) {
         scratchSize = index - start
         ensureScratch(scratchSize)
         reader.buffer.copyInto(destination = scratch, destinationOffset = 0, startIndex = start, endIndex = index)
-        reader.position = index
-        if (index == reader.limit || !readBufferedEscapes(reader)) {
+        reader.parseScope.position = index
+        if (index == reader.parseScope.limit || !readBufferedEscapes(reader)) {
             readStringToScratch(reader = reader, clear = false)
         }
         bytes = scratch
@@ -62,7 +62,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
     }
 
     private fun readBufferedEscapes(reader: JsonReadProtocol): Boolean {
-        return if (vectorized && reader.limit - reader.position >= scan.laneCount) {
+        return if (vectorized && reader.parseScope.limit - reader.parseScope.position >= scan.laneCount) {
             readVectorEscapes(reader)
         } else {
             readScalarEscapes(reader)
@@ -70,12 +70,12 @@ internal class JsonStringScanner(val vectorized: Boolean) {
     }
 
     private fun readVectorEscapes(reader: JsonReadProtocol): Boolean {
-        ensureScratch(scratchSize + reader.limit - reader.position)
-        var index = reader.position
+        ensureScratch(scratchSize + reader.parseScope.limit - reader.parseScope.position)
+        var index = reader.parseScope.position
         var size = scratchSize
         val output = scratch
         val width = scan.laneCount
-        scan@ while (reader.limit - index >= width) {
+        scan@ while (reader.parseScope.limit - index >= width) {
             val start = index
             val end = start + width
             var events = scan.specialMask(
@@ -91,23 +91,23 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 index = special
                 val value = reader.buffer[index].toInt() and 255
                 if (value == 34) {
-                    reader.position = index + 1
+                    reader.parseScope.position = index + 1
                     scratchSize = size
                     return true
                 }
                 require(value == 92) { "Unescaped control character" }
-                if (reader.limit - index < 2) {
+                if (reader.parseScope.limit - index < 2) {
                     break@scan
                 }
                 val escaped = reader.buffer[index + 1].toInt() and 255
                 if (escaped == 117) {
-                    if (reader.limit - index < 6) {
+                    if (reader.parseScope.limit - index < 6) {
                         break@scan
                     }
                     var codepoint = readHexAt(reader = reader, index = index + 2)
                     var consumed = 6
                     if (codepoint in 0xD800..0xDBFF) {
-                        if (reader.limit - index < 12) {
+                        if (reader.parseScope.limit - index < 12) {
                             break@scan
                         }
                         require(reader.buffer[index + 6].toInt() == 92 && reader.buffer[index + 7].toInt() == 117) {
@@ -146,7 +146,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 index = end
             }
         }
-        reader.position = index
+        reader.parseScope.position = index
         scratchSize = size
         return readScalarEscapes(reader)
     }
@@ -167,30 +167,30 @@ internal class JsonStringScanner(val vectorized: Boolean) {
     }
 
     private fun readScalarEscapes(reader: JsonReadProtocol): Boolean {
-        ensureScratch(scratchSize + reader.limit - reader.position)
-        var index = reader.position
+        ensureScratch(scratchSize + reader.parseScope.limit - reader.parseScope.position)
+        var index = reader.parseScope.position
         var size = scratchSize
         val output = scratch
-        while (index < reader.limit) {
+        while (index < reader.parseScope.limit) {
             val value = reader.buffer[index].toInt() and 255
             if (value == 34) {
-                reader.position = index + 1
+                reader.parseScope.position = index + 1
                 scratchSize = size
                 return true
             }
             require(value >= 32) { "Unescaped control character" }
             if (value == 92) {
-                if (index + 1 == reader.limit) {
+                if (index + 1 == reader.parseScope.limit) {
                     break
                 }
                 if (reader.buffer[index + 1].toInt() == 117) {
-                    if (reader.limit - index < 6) {
+                    if (reader.parseScope.limit - index < 6) {
                         break
                     }
                     var codepoint = readHexAt(reader = reader, index = index + 2)
                     var consumed = 6
                     if (codepoint in 0xD800..0xDBFF) {
-                        if (reader.limit - index < 12) {
+                        if (reader.parseScope.limit - index < 12) {
                             break
                         }
                         require(reader.buffer[index + 6].toInt() == 92 && reader.buffer[index + 7].toInt() == 117) {
@@ -222,7 +222,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                 index++
             }
         }
-        reader.position = index
+        reader.parseScope.position = index
         scratchSize = size
         return false
     }
@@ -235,17 +235,17 @@ internal class JsonStringScanner(val vectorized: Boolean) {
             scratchSize = 0
         }
         while (true) {
-            val start = reader.position
+            val start = reader.parseScope.position
             var end = if (vectorized) {
                 scan.firstSpecial(
                     bytes = Bytes(reader.buffer),
                     start = start,
-                    end = reader.limit,
+                    end = reader.parseScope.limit,
                 )
             } else {
                 start
             }
-            while (end < reader.limit) {
+            while (end < reader.parseScope.limit) {
                 val value = reader.buffer[end].toInt() and 255
                 if (value == 34 || value == 92 || value < 32) {
                     break
@@ -262,7 +262,7 @@ internal class JsonStringScanner(val vectorized: Boolean) {
                     endIndex = end,
                 )
                 scratchSize += size
-                reader.position = end
+                reader.parseScope.position = end
             }
             val value = reader.take()
             when {

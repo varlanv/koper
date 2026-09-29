@@ -48,5 +48,13 @@ benchmark {
             iterationTimeUnit = "s"
             advanced("jvmForks", 1)
         }
+        register("jsonGenerated") {
+            include(".*JsonStreamBenchmark.generated*")
+            warmups = 3
+            iterations = 5
+            iterationTime = 1
+            iterationTimeUnit = "s"
+            advanced("jvmForks", 1)
+        }
     }
 }

@@ -4,13 +4,13 @@ import com.varlanv.koper.lang.bin.Bytes
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
 
-object VectorJsonScan {
+object  VectorJsonScan {
     private val species = ByteVector.SPECIES_PREFERRED
     private val swarEnabled = java.lang.Boolean.getBoolean("ideal.swar.scan")
     val laneCount: Int = species.length()
 
     fun specialMask(bytes: Bytes, start: Int): Long {
-        val vector = initVector(bytes = bytes, start = start)
+        val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
         return vector
             .compare(VectorOperators.EQ, 34.toByte())
             .or(vector.compare(VectorOperators.EQ, 92.toByte()))
@@ -26,7 +26,7 @@ object VectorJsonScan {
         var index = start
         val vectorEnd = end - laneCount
         while (index <= vectorEnd) {
-            val vector = initVector(bytes = bytes, start = index)
+            val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, index) } }
             val special = vector
                 .compare(VectorOperators.EQ, 34.toByte())
                 .or(vector.compare(VectorOperators.EQ, 92.toByte()))
@@ -50,9 +50,4 @@ object VectorJsonScan {
         }
         return end
     }
-
-    private fun initVector(
-        bytes: Bytes,
-        start: Int,
-    ): ByteVector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
 }

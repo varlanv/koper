@@ -34,6 +34,12 @@ fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity
 
 fun Bytes.slice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
 
+fun Bytes.getPackedLong(idx: Int): Long = bytes.getPackedLong(idx)
+
+fun Bytes.getPackedInt(idx: Int): Int = bytes.getPackedInt(idx)
+
+fun Bytes.getPackedShort(idx: Int): Short = bytes.getPackedShort(idx)
+
 fun ByteArray.asReadonly(): Bytes = Bytes(MutBytes(this))
 
 fun ByteArray.asMut(): MutBytes = MutBytes(this)

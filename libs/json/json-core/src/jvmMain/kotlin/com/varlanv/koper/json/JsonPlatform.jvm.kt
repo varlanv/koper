@@ -4,11 +4,8 @@ import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
-import com.varlanv.koper.lang.longViewHandle
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
-
-internal actual fun Bytes.getPackedJsonLong(offset: Int): Long = longViewHandle.get(this, offset) as Long
 
 internal actual fun jsonSpecialScan(vectorized: Boolean): JsonSpecialScan = if (vectorized) {
     VectorApi.tryLoad { VectorJsonSpecialScan } ?: ScalarJsonSpecialScan

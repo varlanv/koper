@@ -1,6 +1,7 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.getPackedLong
 
 internal object JsonStringEscapes {
     const val unicodePair: Short = 0x755c
@@ -52,7 +53,7 @@ internal object JsonStringEscapes {
                 if (special > index) {
                     val length = special - index
                     if (length <= 8 && index <= bytes.size - 8) {
-                        val word = bytes.getPackedJsonLong(index)
+                        val word = bytes.getPackedLong(index)
                         target.setPackedLong(idx = offset, value = word)
                     } else {
                         bytes.copyInto(

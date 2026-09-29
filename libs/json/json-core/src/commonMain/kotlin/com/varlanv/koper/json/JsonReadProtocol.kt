@@ -10,8 +10,7 @@ class JsonReadProtocol(
     internal val stringScanner = JsonStringScanner(vectorized)
     internal val buffer = MutBytes(ByteArray(bufferSize.also { require(it > 0) }))
     private lateinit var input: ByteSource
-    internal var position = 0
-    internal var limit = 0
+    internal val parseScope = JsonParseScope()
     private var last = -1
     private var field = buffer
     private var fieldOffset = 0
@@ -21,8 +20,8 @@ class JsonReadProtocol(
 
     fun reset(input: ByteSource) {
         this.input = input
-        position = 0
-        limit = 0
+        parseScope.position = 0
+        parseScope.limit = 0
         last = -1
         fieldSize = 0
     }
@@ -35,11 +34,11 @@ class JsonReadProtocol(
     }
 
     fun nextFieldValue() {
-        val index = position
-        if (limit - index >= 2 && buffer[index].toInt() == 58) {
+        val index = parseScope.position
+        if (parseScope.limit - index >= 2 && buffer[index].toInt() == 58) {
             val value = buffer[index + 1].toInt() and 255
             if (value > 32) {
-                position = index + 2
+                parseScope.position = index + 2
                 last = value
                 return
             }
@@ -49,24 +48,25 @@ class JsonReadProtocol(
     }
 
     fun peekFieldWord(): Long {
-        return if (limit - position >= 8) {
-            buffer.getPackedLong(position)
+        return if (parseScope.limit - parseScope.position >= 8) {
+            buffer.getPackedLong(parseScope.position)
         } else {
             0L
         }
     }
 
     fun consumeField(length: Int): Boolean {
-        if (limit - position <= length || buffer[position + length].toInt() != 34) {
+        val position = parseScope.position
+        if (parseScope.limit - position <= length || buffer[position + length].toInt() != 34) {
             return false
         }
-        position += length + 1
+        parseScope.position = position + length + 1
         return true
     }
 
     fun fieldMatches(expected: ByteArray): Boolean {
-        val start = position
-        if (limit - start <= expected.size) {
+        val start = parseScope.position
+        if (parseScope.limit - start <= expected.size) {
             return false
         }
         for (index in expected.indices) {
@@ -78,10 +78,12 @@ class JsonReadProtocol(
     }
 
     fun consumeMatchedFieldColon(length: Int) {
-        nextValue(position + length + 2)
+        nextValue(parseScope.position + length + 2)
     }
 
     fun consumeFieldColon(length: Int): Boolean {
+        val limit = parseScope.limit
+        val position = parseScope.position
         if (limit - position <= length + 1 ||
             buffer[position + length].toInt() != 34 ||
             buffer[position + length + 1].toInt() != 58
@@ -93,14 +95,15 @@ class JsonReadProtocol(
     }
 
     fun nextFieldOrEnd(): Int {
-        val index = position
+        val index = parseScope.position
+        val limit = parseScope.limit
         if (limit - index >= 2 && buffer[index].toInt() == 44 && buffer[index + 1].toInt() == 34) {
-            position = index + 2
+            parseScope.position = index + 2
             last = 34
             return 34
         }
         if (index < limit && buffer[index].toInt() == 125) {
-            position = index + 1
+            parseScope.position = index + 1
             last = 125
             return 125
         }
@@ -116,16 +119,16 @@ class JsonReadProtocol(
 
     fun readField(): Int {
         require(last == 34) { "Expected JSON field name" }
-        val start = position
+        val start = parseScope.position
         var index = start
         var hash = 0
-        while (index < limit) {
+        while (index < parseScope.limit) {
             val value = buffer[index].toInt() and 255
             if (value == 34) {
                 fieldSize = index - start
                 field = buffer
                 fieldOffset = start
-                position = index + 1
+                parseScope.position = index + 1
                 return hash
             }
             if (value == 92 || value < 32) {
@@ -225,33 +228,34 @@ class JsonReadProtocol(
             last
         }
         require(digit in 48..57) { "Expected JSON number" }
+
         if (digit == 48) {
             digit = peek()
             require(digit !in 48..57) { "Leading zero in JSON number" }
         } else {
             digit = peek()
             while (digit in 48..57) {
-                position++
+                parseScope.position++
                 digit = peek()
             }
         }
         if (digit == 46) {
-            position++
+            parseScope.position++
             require(peek() in 48..57) { "Expected fraction digits" }
             do {
-                position++
+                parseScope.position++
                 digit = peek()
             } while (digit in 48..57)
         }
         if (digit == 101 || digit == 69) {
-            position++
+            parseScope.position++
             digit = peek()
             if (digit == 43 || digit == 45) {
-                position++
+                parseScope.position++
             }
             require(peek() in 48..57) { "Expected exponent digits" }
             do {
-                position++
+                parseScope.position++
                 digit = peek()
             } while (digit in 48..57)
         }
@@ -279,17 +283,17 @@ class JsonReadProtocol(
     internal fun take(): Int {
         val value = peek()
         if (value >= 0) {
-            position++
+            parseScope.position++
         }
         return value
     }
 
     private fun nextValue(index: Int) {
-        position = index
-        if (index < limit) {
+        parseScope.position = index
+        if (index < parseScope.limit) {
             val value = buffer[index].toInt() and 255
             if (value > 32) {
-                position = index + 1
+                parseScope.position = index + 1
                 last = value
                 return
             }
@@ -298,18 +302,18 @@ class JsonReadProtocol(
     }
 
     internal fun peek(): Int {
-        if (position == limit && !refill()) {
+        if (parseScope.position == parseScope.limit && !refill()) {
             return -1
         }
-        return buffer[position].toInt() and 255
+        return buffer[parseScope.position].toInt() and 255
     }
 
     internal fun refill(): Boolean {
-        position = 0
-        limit = input.readAtMostTo(sink = buffer, offset = 0, length = buffer.size)
-        if (limit <= 0) {
-            check(limit != 0) { "ByteSource returned zero bytes for a non-empty read" }
-            limit = 0
+        parseScope.position = 0
+        parseScope.limit = input.readAtMostTo(sink = buffer, offset = 0, length = buffer.size)
+        if (parseScope.limit <= 0) {
+            check(parseScope.limit != 0) { "ByteSource returned zero bytes for a non-empty read" }
+            parseScope.limit = 0
             return false
         }
         return true

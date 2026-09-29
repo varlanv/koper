@@ -2,8 +2,6 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
 
-internal expect fun Bytes.getPackedJsonLong(offset: Int): Long
-
 interface JsonSpecialScan {
     val laneCount: Int
     val isVector: Boolean

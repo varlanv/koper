@@ -112,13 +112,13 @@ class JsonStreamBenchmark {
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
 
-        check(utf8Read() == strValue)
+        check(generatedUtf8Read() == strValue)
         check(reader.nextToken() == -1)
-        check(mixedRead() == mixedValue)
+        check(generatedMixedRead() == mixedValue)
         check(reader.nextToken() == -1)
-        utf8Write()
+        generatedUtf8Write()
         check(output.toByteArray().contentEquals(arr))
-        mixedWrite()
+        generatedMixedWrite()
         check(output.toByteArray().contentEquals(arr))
         check(idealUtf8Read() == strValue)
         check(mixedIdealRead() == mixedValue)
@@ -141,7 +141,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun utf8Write(): RecycledOutputStream {
+    fun generatedUtf8Write(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
         JsonStrSampleJsonCodec.write(writer = writer, value = strValue)
@@ -150,7 +150,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun utf8Read(): JsonStrSample {
+    fun generatedUtf8Read(): JsonStrSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
@@ -160,7 +160,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun mixedWrite(): RecycledOutputStream {
+    fun generatedMixedWrite(): RecycledOutputStream {
         output.reset()
         writer.reset(streamOutput)
         JsonMixedSampleJsonCodec.write(writer = writer, value = mixedValue)
@@ -169,7 +169,7 @@ class JsonStreamBenchmark {
     }
 
     @Benchmark
-    fun mixedRead(): JsonMixedSample {
+    fun generatedMixedRead(): JsonMixedSample {
         input.reset()
         reader.reset(streamInput)
         reader.nextToken()
