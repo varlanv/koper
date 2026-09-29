@@ -25,6 +25,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         writer.writeByte('}'.code)
     }
 
+    context(parseScope: JsonParseScope)
     override fun read(reader: JsonReadProtocol): HandwrittenJsonSample {
         require(reader.token == '{'.code) { "Expected JSON object" }
         var id = 0

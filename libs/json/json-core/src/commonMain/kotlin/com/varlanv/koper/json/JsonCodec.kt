@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.asReadonly
@@ -31,7 +32,8 @@ object JsonCodec {
     interface Read<T> {
         val hints: Hints<T>
 
-        fun read(reader: JsonReadProtocol): T
+        context(input: ByteSource,parseScope: JsonParseScope)
+        fun read(): T
     }
 
     interface Write<T> {
@@ -58,10 +60,12 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
 
     override fun write(writer: JsonWriteProtocol, value: Int) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Int = readPrimitive(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    override fun read(): Int = readPrimitive()
 
-    fun readPrimitive(reader: JsonReadProtocol): Int {
-        val value = LongJsonCodec.readPrimitive(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    fun readPrimitive(): Int {
+        val value = LongJsonCodec.readPrimitive()
         require(value in Int.MIN_VALUE..Int.MAX_VALUE) { "Integer overflow" }
         return value.toInt()
     }
@@ -100,7 +104,8 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
 
     override fun write(writer: JsonWriteProtocol, value: Long) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Long = readPrimitive(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    override fun read(): Long = readPrimitive()
 
     fun writePrimitive(writer: JsonWriteProtocol, value: Long) {
         val output = writer.buffer
@@ -126,12 +131,13 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         writer.position = end
     }
 
-    fun readPrimitive(reader: JsonReadProtocol): Long {
-        val negative = reader.token == 45
+    context(input: ByteSource,parseScope: JsonParseScope)
+    fun readPrimitive(): Long {
+        val negative = parseScope.last == 45
         val digit = if (negative) {
-            reader.take()
+            JsonReadProtocol.take()
         } else {
-            reader.token
+            parseScope.last
         }
         require(digit in 48..57) { "Expected JSON integer" }
         val minimum = if (negative) {
@@ -142,10 +148,10 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         val multiplyMinimum = minimum / 10
         var result = -(digit - 48).toLong()
         val leadingZero = digit == 48
-        var index = reader.parseScope.position
-        val input = reader.parseScope.buffer
+        var index = parseScope.position
+        val input = parseScope.buffer
         while (true) {
-            while (reader.parseScope.limit - index >= 8) {
+            while (parseScope.limit - index >= 8) {
                 val number = readEightDigits(input = input, index = index)
                 if (number < 0) {
                     break
@@ -156,15 +162,15 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
                 require(result >= minimum + number) { "Integer overflow" }
                 result -= number
                 index += 8
-                if (index < reader.parseScope.limit && (input[index].toInt() and 255) !in 48..57) {
+                if (index < parseScope.limit && (input[index].toInt() and 255) !in 48..57) {
                     break
                 }
             }
-            while (index < reader.parseScope.limit) {
+            while (index < parseScope.limit) {
                 val next = input[index].toInt() and 255
                 if (next !in 48..57) {
-                    reader.parseScope.position = index
-                    reader.requireDelimiter(next)
+                    parseScope.position = index
+                    JsonReadProtocol.requireDelimiter(next)
                     return if (negative) {
                         result
                     } else {
@@ -179,8 +185,8 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
                 result -= number
                 index++
             }
-            reader.parseScope.position = index
-            if (!reader.refill()) {
+            parseScope.position = index
+            if (!JsonReadProtocol.refill()) {
                 return if (negative) {
                     result
                 } else {
@@ -214,7 +220,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
 
     override fun write(writer: JsonWriteProtocol, value: Boolean) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Boolean = readPrimitive(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    override fun read(): Boolean = readPrimitive()
 
     fun writePrimitive(writer: JsonWriteProtocol, value: Boolean) {
         writer.writeRaw(
@@ -226,34 +233,35 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         )
     }
 
-    fun readPrimitive(reader: JsonReadProtocol): Boolean {
-        val index = reader.parseScope.position
-        val available = reader.parseScope.limit - index
-        if (reader.token == 116 && available >= 4) {
-            val word = reader.parseScope.buffer.getPackedInt(index)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    fun readPrimitive(): Boolean {
+        val index = parseScope.position
+        val available = parseScope.limit - index
+        if (parseScope.last == 116 && available >= 4) {
+            val word = parseScope.buffer.getPackedInt(index)
             if (word and 0x00ffffff == 0x00657572) {
-                reader.requireDelimiter(word ushr 24)
-                reader.parseScope.position = index + 3
+                JsonReadProtocol.requireDelimiter(word ushr 24)
+                parseScope.position = index + 3
                 return true
             }
             throw IllegalArgumentException("Invalid JSON literal")
         }
-        if (reader.token == 102 && available >= 5) {
-            if (reader.parseScope.buffer.getPackedInt(index) == 0x65736c61) {
-                reader.requireDelimiter(reader.parseScope.buffer[index + 4].toInt() and 255)
-                reader.parseScope.position = index + 4
+        if (parseScope.last == 102 && available >= 5) {
+            if (parseScope.buffer.getPackedInt(index) == 0x65736c61) {
+                JsonReadProtocol.requireDelimiter(parseScope.buffer[index + 4].toInt() and 255)
+                parseScope.position = index + 4
                 return false
             }
             throw IllegalArgumentException("Invalid JSON literal")
         }
-        val value = when (reader.token) {
+        val value = when (parseScope.last) {
             116 -> {
-                readTail(reader = reader, tail = "rue")
+                readTail(tail = "rue")
                 true
             }
 
             102 -> {
-                readTail(reader = reader, tail = "alse")
+                readTail(tail = "alse")
                 false
             }
 
@@ -261,13 +269,14 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
                 throw IllegalArgumentException("Expected JSON boolean")
             }
         }
-        reader.requireDelimiter(reader.peek())
+        JsonReadProtocol.requireDelimiter(JsonReadProtocol.peek())
         return value
     }
 
-    private fun readTail(reader: JsonReadProtocol, tail: String) {
+    context(input: ByteSource,parseScope: JsonParseScope)
+    private fun readTail(tail: String) {
         for (char in tail) {
-            require(reader.take() == char.code) { "Invalid JSON literal" }
+            require(JsonReadProtocol.take() == char.code) { "Invalid JSON literal" }
         }
     }
 }
@@ -318,13 +327,13 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
         writer.position = position
     }
 
-    override fun read(reader: JsonReadProtocol): String {
-        val scanner = reader.parseScope.stringScanner
-        scanner.read(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    override fun read(): String {
+        JsonStringScannerV2.read()
         return Charset.Utf8.allocateString(
-            bytes = Bytes(scanner.bytes),
-            offset = scanner.offset,
-            len = scanner.length,
+            bytes = parseScope.scratchBytes.asReadonly(),
+            offset = parseScope.scratchOffset,
+            len = parseScope.scratchLength,
         )
     }
 }
@@ -338,7 +347,8 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
 
     override fun write(writer: JsonWriteProtocol, value: Utf8Str) = writePrimitive(writer = writer, value = value)
 
-    override fun read(reader: JsonReadProtocol): Utf8Str = readPrimitive(reader)
+    context(input: ByteSource,parseScope: JsonParseScope)
+    override fun read(): Utf8Str = readPrimitive()
 
     fun writePrimitive(writer: JsonWriteProtocol, value: Utf8Str) {
         val slice = value.slice
@@ -369,13 +379,13 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
         writer.position = position
     }
 
-    fun readPrimitive(reader: JsonReadProtocol): Utf8Str {
-        val scanner = reader.parseScope.stringScanner
-        scanner.read(reader)
-        if (scanner.length == 0) {
+    context(input: ByteSource,parseScope: JsonParseScope)
+    fun readPrimitive(): Utf8Str {
+        JsonStringScannerV2.read()
+        if (parseScope.scratchLength == 0) {
             return Utf8Str.empty
         }
-        val bytes = scanner.bytes.copyOfRange(from = scanner.offset, to = scanner.offset + scanner.length)
+        val bytes = parseScope.scratchBytes.copyOfRange(from = parseScope.scratchOffset, to = parseScope.scratchOffset + parseScope.scratchLength)
         return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
     }
 }

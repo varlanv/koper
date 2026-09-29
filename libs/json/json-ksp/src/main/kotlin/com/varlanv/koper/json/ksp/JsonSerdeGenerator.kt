@@ -250,6 +250,7 @@ private fun generateSource(
     }
     if (read) {
         appendLine()
+        appendLine("    context(parseScope: com.varlanv.koper.json.JsonParseScope)")
         appendLine("    override fun read(reader: $jsonType.JsonReadProtocol): $classType {")
         appendLine("        require(reader.token == 123) { \"Expected JSON object\" }")
         fields.forEachIndexed { index, field ->

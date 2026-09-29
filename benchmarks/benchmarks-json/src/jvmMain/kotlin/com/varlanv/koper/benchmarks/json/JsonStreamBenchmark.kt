@@ -1,13 +1,14 @@
 package com.varlanv.koper.benchmarks.json
 
+import com.varlanv.koper.json.JsonParseScope
 import com.varlanv.koper.json.JsonReadProtocol
 import com.varlanv.koper.json.JsonWriteProtocol
 import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.lang.text.Utf8Str
+import org.openjdk.jmh.annotations.*
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
-import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 @Fork(value = 1, jvmArgsAppend = ["--add-modules=jdk.incubator.vector", "-Dkoper.lang.utf8.vector.enabled=true"])
@@ -32,6 +33,7 @@ class JsonStreamBenchmark {
     private lateinit var streamOutput: OutputStreamByteSink
     private lateinit var reader: JsonReadProtocol
     private lateinit var writer: JsonWriteProtocol
+    private lateinit var parseScope: JsonParseScope
 
     @Setup
     fun setup() {
@@ -107,11 +109,17 @@ class JsonStreamBenchmark {
         streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
+        parseScope = JsonParseScope(32.kilobytes())
 
         check(generatedReadUtf8() == strValue)
-        check(reader.nextToken() == -1)
+
+        parseScope.scoped {
+            check(reader.nextToken() == -1)
+        }
         check(generatedReadMixed() == mixedValue)
+        parseScope.scoped {
         check(reader.nextToken() == -1)
+        }
         generatedWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
         generatedWriteMixed()
