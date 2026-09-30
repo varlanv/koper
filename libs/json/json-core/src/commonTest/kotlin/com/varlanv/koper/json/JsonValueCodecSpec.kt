@@ -18,16 +18,18 @@ class JsonValueCodecSpec : BaseSpec({
     ) {
         val output = ReusableByteArraySink(512.bytes())
         JsonWriteScope().scoped(output) {
+            var position = 0
             if (reserveFromHints) {
                 val maximumBytes = when (val size = writerCodec.hints.size) {
                     is JsonValueSize.Static -> size.maximumBytes
                     is JsonValueSize.FromValue -> size.maximumBytes(value)
                     JsonValueSize.Dynamic -> error("This test requires a bounded codec")
                 }
-                JsonWriteProtocol.reserve(maximumBytes)
+                position = JsonWriteProtocol.reserve(size = maximumBytes, position = position)
             }
-            writerCodec.write(value)
-            JsonWriteProtocol.flush()
+            position = writerCodec.write(value = value, position = position)
+            position shouldBe expectedJson.encodeToByteArray().size
+            JsonWriteProtocol.flush(position) shouldBe 0
         }
         val bytes = output.toByteArray()
         bytes.decodeToString() shouldBe expectedJson
@@ -63,6 +65,45 @@ class JsonValueCodecSpec : BaseSpec({
             value = Utf8Str.allocateFromString(string = "é\n"),
             expectedJson = "\"é\\n\"",
         )
+    }
+
+    should("chain writes at explicit positions and restart after reservation flushes") {
+        val output = ReusableByteArraySink(1.bytes())
+        val scope = JsonWriteScope(16.bytes())
+        scope.scoped(output) {
+            var position = JsonWriteProtocol.reserve(size = 16, position = 0)
+            JsonWriteProtocol.writeRaw(value = 0x34333231, position = position)
+            position += 4
+            position = BooleanJsonCodec.writePrimitive(value = true, position = position)
+            position shouldBe 8
+            position = JsonWriteProtocol.reserve(size = 8, position = position)
+            position shouldBe 8
+            position = StringJsonCodec.write(value = "ABCD", position = position)
+            position shouldBe 14
+            position = JsonWriteProtocol.reserve(size = 32, position = position)
+            position shouldBe 0
+            position = Utf8StrJsonCodec.writePrimitive(
+                value = Utf8Str.allocateFromString(string = "é\n"),
+                position = position,
+            )
+            position shouldBe 6
+            position = IntJsonCodec.writePrimitive(value = -12, position = position)
+            position shouldBe 9
+            position = LongJsonCodec.writePrimitive(value = 34L, position = position)
+            position shouldBe 11
+            position = BooleanJsonCodec.writePrimitive(value = false, position = position)
+            position shouldBe 16
+            JsonWriteProtocol.flush(position) shouldBe 0
+        }
+        output.toByteArray().decodeToString() shouldBe "1234true\"ABCD\"\"é\\n\"-1234false"
+        scope.scoped(output) {
+            var position = JsonWriteProtocol.reserve(size = 3, position = 0)
+            JsonWriteProtocol.writeByte(value = '!'.code, position = position)
+            position++
+            position = IntJsonCodec.writePrimitive(value = 56, position = position)
+            JsonWriteProtocol.flush(position) shouldBe 0
+        }
+        output.toByteArray().decodeToString() shouldBe "1234true\"ABCD\"\"é\\n\"-1234false!56"
     }
 
     should("write signed integers at every decimal boundary") {

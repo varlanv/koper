@@ -188,18 +188,28 @@ class PackedJsonBytesSpec : BaseSpec({
     should("write packed fragments with negative Int words in little-endian order") {
         val output = ReusableByteArraySink(1.bytes())
         JsonWriteScope().scoped(output) {
-            JsonWriteProtocol.reserve(42)
-            JsonWriteProtocol.writeRaw(value = 0xffeeddccu.toInt())
-            JsonWriteProtocol.writeRaw(value = 0xbbaa.toShort())
-            JsonWriteProtocol.writeRaw(first = 0xffeeddccu.toInt(), second = 0xbbaa.toShort())
-            JsonWriteProtocol.writeRaw(first = 0xffeeddccu.toInt(), second = 0x99887766u.toInt())
+            val position = JsonWriteProtocol.reserve(size = 42, position = 0)
+            JsonWriteProtocol.writeRaw(value = 0xffeeddccu.toInt(), position = position)
+            JsonWriteProtocol.writeRaw(value = 0xbbaa.toShort(), position = position + 4)
+            JsonWriteProtocol.writeRaw(first = 0xffeeddccu.toInt(), second = 0xbbaa.toShort(), position = position + 6)
+            JsonWriteProtocol.writeRaw(
+                first = 0xffeeddccu.toInt(),
+                second = 0x99887766u.toInt(),
+                position = position + 12,
+            )
             JsonWriteProtocol.writeRaw(
                 first = 0xffeeddccu.toInt(),
                 second = 0x99887766u.toInt(),
                 third = 0x5544.toShort(),
+                position = position + 20,
             )
-            JsonWriteProtocol.writeRaw(first = 0xffeeddccu.toInt(), second = 0x99887766u.toInt(), third = 0x55443322)
-            JsonWriteProtocol.flush()
+            JsonWriteProtocol.writeRaw(
+                first = 0xffeeddccu.toInt(),
+                second = 0x99887766u.toInt(),
+                third = 0x55443322,
+                position = position + 30,
+            )
+            JsonWriteProtocol.flush(position + 42)
         }
         output.toByteArray().map { it.toInt() and 255 } shouldBe
             listOf(

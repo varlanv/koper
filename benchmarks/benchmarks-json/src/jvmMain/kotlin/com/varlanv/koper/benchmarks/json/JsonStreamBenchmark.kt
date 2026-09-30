@@ -66,8 +66,8 @@ class JsonStreamBenchmark {
 
         val expectedOutput = ReusableByteArraySink(512.bytes())
         writeScope.scoped(expectedOutput) {
-            JsonStrSampleJsonCodec.write(strValue)
-            JsonWriteProtocol.flush()
+            val position = JsonStrSampleJsonCodec.write(value = strValue, position = 0)
+            JsonWriteProtocol.flush(position)
         }
         val bytes = expectedOutput.useBytes { data, length -> data.copyOf(length) }
         val arr = Bytes.unsafe { useInternal(bytes) { it } }
@@ -89,8 +89,8 @@ class JsonStreamBenchmark {
     fun generatedWriteUtf8(): RecycledOutputStream {
         output.reset()
         writeScope.scoped(streamOutput) {
-            JsonStrSampleJsonCodec.write(strValue)
-            JsonWriteProtocol.flush()
+            val position = JsonStrSampleJsonCodec.write(value = strValue, position = 0)
+            JsonWriteProtocol.flush(position)
         }
         return output
     }
@@ -123,8 +123,8 @@ class JsonStreamBenchmark {
     fun generatedWriteString(): RecycledOutputStream {
         output.reset()
         writeScope.scoped(streamOutput) {
-            JsonStringSampleJsonCodec.write(stringValue)
-            JsonWriteProtocol.flush()
+            val position = JsonStringSampleJsonCodec.write(value = stringValue, position = 0)
+            JsonWriteProtocol.flush(position)
         }
         return output
     }

@@ -261,9 +261,9 @@ internal object JsonStringScanner {
      */
     private fun readHex(bytes: MutBytes, index: Int): Int {
         return (hexDigit(bytes[index].toInt() and 255) shl 12) or
-                (hexDigit(bytes[index + 1].toInt() and 255) shl 8) or
-                (hexDigit(bytes[index + 2].toInt() and 255) shl 4) or
-                hexDigit(bytes[index + 3].toInt() and 255)
+            (hexDigit(bytes[index + 1].toInt() and 255) shl 8) or
+            (hexDigit(bytes[index + 2].toInt() and 255) shl 4) or
+            hexDigit(bytes[index + 3].toInt() and 255)
     }
 
     /**

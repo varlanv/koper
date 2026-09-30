@@ -76,7 +76,7 @@ object JsonCodec {
          * @return [Unit] after writing the value into the output state.
          */
         context(sink: ByteSink, writeScope: JsonWriteScope)
-        fun write(value: T)
+        fun write(value: T, position: Int): Int
     }
 }
 
@@ -109,7 +109,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Int) = writePrimitive(value)
+    override fun write(value: Int, position: Int) = writePrimitive(value = value, position = position)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Int = readPrimitive()
@@ -179,9 +179,9 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
     }
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Int) {
+    fun writePrimitive(value: Int, position: Int): Int {
         val output = writeScope.buffer
-        val end = writeScope.position + JsonDecimalDigits.decimalSize(value)
+        val end = position + JsonDecimalDigits.decimalSize(value)
         var index = end
         var number = if (value > 0) {
             -value
@@ -200,7 +200,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
         if (value < 0) {
             output[index - 1] = '-'.code.toByte()
         }
-        writeScope.position = end
+        return end
     }
 }
 
@@ -212,15 +212,15 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Long) = writePrimitive(value)
+    override fun write(value: Long, position: Int): Int = writePrimitive(value = value, position = position)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Long = readPrimitive()
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Long) {
+    fun writePrimitive(value: Long, position: Int): Int {
         val output = writeScope.buffer
-        val end = writeScope.position + JsonDecimalDigits.decimalSize(value)
+        val end = position + JsonDecimalDigits.decimalSize(value)
         var index = end
         var number = if (value > 0) {
             -value
@@ -239,7 +239,7 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
         if (value < 0) {
             output[index - 1] = '-'.code.toByte()
         }
-        writeScope.position = end
+        return end
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
@@ -320,19 +320,20 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
     val falseBytes = "false".encodeToByteArray().asReadonly()
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Boolean) = writePrimitive(value)
+    override fun write(value: Boolean, position: Int): Int = writePrimitive(value = value, position = position)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Boolean = readPrimitive()
 
     context(writeScope: JsonWriteScope)
-    inline fun writePrimitive(value: Boolean) {
-        JsonWriteProtocol.writeRaw(
+    inline fun writePrimitive(value: Boolean, position: Int): Int {
+        return position + JsonWriteProtocol.writeRaw(
             bytes = if (value) {
                 trueBytes
             } else {
                 falseBytes
             },
+            position = position,
         )
     }
 
@@ -395,10 +396,10 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: String) {
+    override fun write(value: String, position: Int): Int {
         val output = writeScope.buffer
-        var position = writeScope.position
-        output[position++] = '"'.code.toByte()
+        var pos = position
+        output[pos++] = '"'.code.toByte()
         var index = 0
         while (index <= value.length - 4) {
             val first = value[index].code
@@ -407,14 +408,14 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             val fourth = value[index + 3].code
             if ((first or second or third or fourth) >= 128 ||
                 (JsonStringEscapes.escapePairs[first].toInt() or
-                        JsonStringEscapes.escapePairs[second].toInt() or
-                        JsonStringEscapes.escapePairs[third].toInt() or
-                        JsonStringEscapes.escapePairs[fourth].toInt()) != 0
+                    JsonStringEscapes.escapePairs[second].toInt() or
+                    JsonStringEscapes.escapePairs[third].toInt() or
+                    JsonStringEscapes.escapePairs[fourth].toInt()) != 0
             ) {
                 break
             }
-            output.setPackedInt(idx = position, value = first or (second shl 8) or (third shl 16) or (fourth shl 24))
-            position += 4
+            output.setPackedInt(idx = pos, value = first or (second shl 8) or (third shl 16) or (fourth shl 24))
+            pos += 4
             index += 4
         }
         while (index < value.length) {
@@ -422,13 +423,13 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             if (char < 128) {
                 val pair = JsonStringEscapes.escapePairs[char]
                 if (pair == zeroShort) {
-                    output[position++] = char.toByte()
+                    output[pos++] = char.toByte()
                 } else {
-                    output.setPackedShort(idx = position, value = pair)
-                    position += 2
+                    output.setPackedShort(idx = pos, value = pair)
+                    pos += 2
                     if (pair == JsonStringEscapes.unicodePair) {
-                        output.setPackedInt(idx = position, value = JsonStringEscapes.unicodeTails[char])
-                        position += 4
+                        output.setPackedInt(idx = pos, value = JsonStringEscapes.unicodeTails[char])
+                        pos += 4
                     }
                 }
                 index++
@@ -440,7 +441,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 } else {
                     char
                 }
-                Charset.Utf8.encodeCodepointInline(codepoint) { output[position++] = it }
+                Charset.Utf8.encodeCodepointInline(codepoint) { output[pos++] = it }
                 index = if (codepoint > 0xFFFF) {
                     index + 2
                 } else {
@@ -448,8 +449,8 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 }
             }
         }
-        output[position++] = '"'.code.toByte()
-        writeScope.position = position
+        output[pos++] = '"'.code.toByte()
+        return pos
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)
@@ -473,33 +474,27 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
     )
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    override fun write(value: Utf8Str) = writePrimitive(value)
+    override fun write(value: Utf8Str, position: Int): Int = writePrimitive(value = value, position = position)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): Utf8Str = readPrimitive()
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Utf8Str) {
+    fun writePrimitive(value: Utf8Str, position: Int): Int {
         val slice = value.slice
         val input = slice.bytes
         val end = slice.offset + slice.len
         val special = jsonScanner.firstSpecial(bytes = input, start = slice.offset, end = end)
         val output = writeScope.buffer
-        var position = writeScope.position
-        output[position++] = '"'.code.toByte()
-        input.copyInto(
-            destination = output,
-            destinationOffset = position,
-            startIndex = slice.offset,
-            endIndex = special,
-        )
-        position += special - slice.offset
+        var pos = position
+        output[pos++] = '"'.code.toByte()
+        input.copyInto(destination = output, destinationOffset = pos, startIndex = slice.offset, endIndex = special)
+        pos += special - slice.offset
         if (special < end) {
-            position =
-                JsonStringEscapes.writeUtf8Escaped(bytes = input, start = special, end = end, targetStart = position)
+            pos = JsonStringEscapes.writeUtf8Escaped(bytes = input, start = special, end = end, targetStart = pos)
         }
-        output[position++] = '"'.code.toByte()
-        writeScope.position = position
+        output[pos++] = '"'.code.toByte()
+        return pos
     }
 
     context(input: ByteSource, parseScope: JsonReadScope)

@@ -31,7 +31,7 @@ class Json(private val allocator: BufferAllocator = BufferAllocator(16.kilobytes
         value: T,
     ) {
         JsonWriteScope().scoped(sink) {
-            writeCodec.write(value)
+            writeCodec.write(value = value, position = 0)
         }
     }
 

@@ -220,18 +220,19 @@ private fun generateSource(
     if (write) {
         appendLine()
         appendLine("    context(sink: $binType.ByteSink, writeScope: $jsonType.JsonWriteScope)")
-        appendLine("    override fun write(value: $classType) {")
+        appendLine("    override fun write(value: $classType, position: Int): Int {")
         appendLine(
-            "        $writeProtocol.reserve(${
+            "        var pos = $writeProtocol.reserve(size = ${
             if (variableFields.isEmpty()) {
                 "$fixedMaximum"
             } else {
                 "maximumBytes(value)"
             }
-            })",
+            }, position = position)",
         )
         if (fields.isEmpty()) {
-            appendLine("        $writeProtocol.writeByte(123)")
+            appendLine("        $writeProtocol.writeByte(123, position = pos)")
+            appendLine("        pos++")
         }
         for (field in fields) {
             appendPackedWrites(bytes = field.prefix, indent = "        ", writeProtocol = writeProtocol)
@@ -240,9 +241,12 @@ private fun generateSource(
             } else {
                 "write"
             }
-            appendLine("        $jsonType.${field.type.codec}.$method(value.${identifier(field.name)})")
+            appendLine(
+                "        pos = $jsonType.${field.type.codec}.$method(value.${identifier(field.name)}, position = pos)",
+            )
         }
-        appendLine("        $writeProtocol.writeByte(125)")
+        appendLine("        $writeProtocol.writeByte(125, position = pos)")
+        appendLine("        return pos + 1")
         appendLine("    }")
         if (variableFields.isNotEmpty()) {
             appendLine()
@@ -394,13 +398,18 @@ private fun StringBuilder.appendPackedWrites(
     var index = 0
     while (index < bytes.size) {
         val remaining = bytes.size - index
+        val position = if (index == 0) {
+            "pos"
+        } else {
+            "pos + $index"
+        }
         when {
             remaining >= 12 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
                         "second = ${
                         packedInt(bytes = bytes, start = index + 4)
-                        }, third = ${packedInt(bytes = bytes, start = index + 8)})",
+                        }, third = ${packedInt(bytes = bytes, start = index + 8)}, position = $position)",
                 )
                 index += 12
             }
@@ -410,7 +419,7 @@ private fun StringBuilder.appendPackedWrites(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
                         "second = ${
                         packedInt(bytes = bytes, start = index + 4)
-                        }, third = ${packedShort(bytes = bytes, start = index + 8)})",
+                        }, third = ${packedShort(bytes = bytes, start = index + 8)}, position = $position)",
                 )
                 index += 10
             }
@@ -418,7 +427,7 @@ private fun StringBuilder.appendPackedWrites(
             remaining >= 8 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
-                        "second = ${packedInt(bytes = bytes, start = index + 4)})",
+                        "second = ${packedInt(bytes = bytes, start = index + 4)}, position = $position)",
                 )
                 index += 8
             }
@@ -426,27 +435,38 @@ private fun StringBuilder.appendPackedWrites(
             remaining >= 6 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
-                        "second = ${packedShort(bytes = bytes, start = index + 4)})",
+                        "second = ${packedShort(bytes = bytes, start = index + 4)}, position = $position)",
                 )
                 index += 6
             }
 
             remaining >= 4 -> {
-                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedInt(bytes = bytes, start = index)})")
+                appendLine(
+                    "${indent}$writeProtocol.writeRaw(value = ${packedInt(
+                        bytes = bytes,
+                        start = index,
+                    )}, position = $position)",
+                )
                 index += 4
             }
 
             remaining >= 2 -> {
-                appendLine("${indent}$writeProtocol.writeRaw(value = ${packedShort(bytes = bytes, start = index)})")
+                appendLine(
+                    "${indent}$writeProtocol.writeRaw(value = ${packedShort(
+                        bytes = bytes,
+                        start = index,
+                    )}, position = $position)",
+                )
                 index += 2
             }
 
             else -> {
-                appendLine("${indent}$writeProtocol.writeByte(${bytes[index].toInt() and 255})")
+                appendLine("${indent}$writeProtocol.writeByte(${bytes[index].toInt() and 255}, position = $position)")
                 index++
             }
         }
     }
+    appendLine("${indent}pos += ${bytes.size}")
 }
 
 private fun packedShort(bytes: ByteArray, start: Int): String =

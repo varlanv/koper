@@ -18,10 +18,10 @@ class JsonWriteScope(bufferSize: DataSize = 512.bytes()) {
      */
     var buffer = bufferSize.allocate()
 
-    /**
-     * Exclusive end of pending output bytes in [buffer].
-     */
-    var position = 0
+    //    /**
+    //     * Exclusive end of pending output bytes in [buffer].
+    //     */
+    //    var position = 0
 
     /**
      * Discards pending output by setting position to zero. Retains the allocation and does not write to the sink.
@@ -30,7 +30,7 @@ class JsonWriteScope(bufferSize: DataSize = 512.bytes()) {
      */
     @PublishedApi
     internal fun reset() {
-        position = 0
+        //        position = 0
     }
 
     /**

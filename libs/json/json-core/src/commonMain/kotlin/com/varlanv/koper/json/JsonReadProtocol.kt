@@ -364,13 +364,13 @@ object JsonReadProtocol {
     internal fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
-                    value == 32 ||
-                    value == 9 ||
-                    value == 10 ||
-                    value == 13 ||
-                    value == 44 ||
-                    value == 93 ||
-                    value == 125,
+                value == 32 ||
+                value == 9 ||
+                value == 10 ||
+                value == 13 ||
+                value == 44 ||
+                value == 93 ||
+                value == 125,
         ) { "Invalid JSON value suffix" }
     }
 

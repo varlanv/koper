@@ -68,7 +68,15 @@ benchmark {
         register("jsonGeneratedRead") {
             include(".*JsonStreamBenchmark\\.generatedRead.*")
             warmups = 5
-            iterations = 5
+            iterations = 3
+            iterationTime = 1
+            iterationTimeUnit = "s"
+            advanced("jvmForks", 1)
+        }
+        register("jsonGeneratedWrite") {
+            include(".*JsonStreamBenchmark\\.generatedWrite.*")
+            warmups = 5
+            iterations = 3
             iterationTime = 1
             iterationTimeUnit = "s"
             advanced("jvmForks", 1)

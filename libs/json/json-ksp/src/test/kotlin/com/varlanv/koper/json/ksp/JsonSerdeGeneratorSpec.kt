@@ -32,6 +32,8 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                     class Outer { @com.varlanv.koper.serde.Ser class Nested(val value: kotlin.Int) }
                     @com.varlanv.koper.serde.Ser private class PrivateType(val value: kotlin.Int)
                     @com.varlanv.koper.serde.Ser class WriteOnly(val value: kotlin.Int)
+                    @com.varlanv.koper.serde.Ser class Empty
+                    @com.varlanv.koper.serde.Ser class LongPrefix(val abcdefghijklmnopqrstuvwx: kotlin.Int)
                     @com.varlanv.koper.serde.De class ReadOnly(value: kotlin.Int)
                     @com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class EscapedName(val `a"b`: kotlin.Int)
                     """
@@ -93,6 +95,21 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             val readOnly = output.resolve("kotlin/ReadOnlyJsonCodec.kt").readText()
             writeOnly.contains("JsonCodec.Write<") shouldBe true
             writeOnly.contains("JsonCodec.Read<") shouldBe false
+            writeOnly.contains("override fun write(value: `WriteOnly`, position: Int): Int") shouldBe true
+            writeOnly.contains(
+                "pos = com.varlanv.koper.json.IntJsonCodec.writePrimitive(value.`value`, position = pos)",
+            ) shouldBe true
+            writeOnly.contains("writeScope.position") shouldBe false
+            writeOnly.contains("return pos + 1") shouldBe true
+            val empty = output.resolve("kotlin/EmptyJsonCodec.kt").readText()
+            empty.contains("reserve(size = 2, position = position)") shouldBe true
+            empty.contains("writeByte(123, position = pos)") shouldBe true
+            empty.contains("pos++") shouldBe true
+            empty.contains("writeByte(125, position = pos)") shouldBe true
+            val longPrefix = output.resolve("kotlin/LongPrefixJsonCodec.kt").readText()
+            longPrefix.contains("position = pos + 12") shouldBe true
+            longPrefix.contains("position = pos + 24") shouldBe true
+            longPrefix.contains("pos += 28") shouldBe true
             readOnly.contains("JsonCodec.Read<") shouldBe true
             readOnly.contains("JsonCodec.Write<") shouldBe false
             val manyFields = output.resolve("kotlin/ManyFieldsJsonCodec.kt").readText()
