@@ -247,16 +247,21 @@ private fun generateSource(
         if (variableFields.isNotEmpty()) {
             appendLine()
             appendLine("    private fun maximumBytes(value: $classType): Int {")
-            appendLine("        var size = $fixedMaximum")
-            for (field in variableFields) {
+            appendLine("        var length = 0")
+            val maximumStringLength = (Int.MAX_VALUE - fixedMaximum) / 6
+            for ((index, field) in variableFields.withIndex()) {
                 val length = if (field.type == FieldType.STRING) {
                     "value.${identifier(field.name)}.length"
                 } else {
                     "value.${identifier(field.name)}.byteLen"
                 }
-                appendLine("        size = $writeProtocol.addStringSize(size, $length)")
+                appendLine("        val length$index = $length")
+                appendLine(
+                    "        require(length$index <= $maximumStringLength - length) { \"JSON reservation is too large\" }",
+                )
+                appendLine("        length += length$index")
             }
-            appendLine("        return size")
+            appendLine("        return $fixedMaximum + length * 6")
             appendLine("    }")
         }
     }

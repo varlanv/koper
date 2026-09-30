@@ -113,8 +113,8 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                 Regex("[0-9]L\\b").containsMatchIn(source) shouldBe false
             }
             val supportedTypes = output.resolve("kotlin/SupportedTypesJsonCodec.kt").readText()
-            supportedTypes.contains("addStringSize(size, value.`s`.length)") shouldBe true
-            supportedTypes.contains("addStringSize(size, value.`u`.byteLen)") shouldBe true
+            supportedTypes.contains("val length0 = value.`s`.length") shouldBe true
+            supportedTypes.contains("val length1 = value.`u`.byteLen") shouldBe true
             val escapedNameSource = output.resolve("kotlin/EscapedNameJsonCodec.kt").readText()
             escapedNameSource.contains("byteArrayOf(97, 34, 98)") shouldBe true
             escapedNameSource.contains("reader.consumeMatchedFieldColon") shouldBe false
