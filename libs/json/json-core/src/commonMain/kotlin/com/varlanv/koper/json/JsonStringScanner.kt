@@ -2,6 +2,7 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.text.Charset
 
 /**
@@ -71,8 +72,8 @@ internal object JsonStringScanner {
                 bytes = Bytes(bytes),
                 start = start,
             )
-            while (events != 0L) {
-                val special = start + events.countTrailingZeroBits()
+            while (events.hasEvents()) {
+                val special = start + events.firstEvent()
                 if (decode) {
                     output = copyRun(bytes = bytes, outputPosition = output, start = index, end = special)
                 }
@@ -96,7 +97,7 @@ internal object JsonStringScanner {
                 if (consumed >= width) {
                     break
                 }
-                events = events and (-1L shl consumed)
+                events = events.clearBefore(consumed)
             }
             if (index < end) {
                 if (decode) {
@@ -166,9 +167,16 @@ internal object JsonStringScanner {
     ): Int {
         val size = end - start
         if (size != 0 && outputPosition != start) {
-            if (size <= 8 && start <= bytes.size - 8 && outputPosition <= end - 8) {
-                val word = bytes.getPackedLong(start)
-                bytes.setPackedLong(idx = outputPosition, value = word)
+            if (size <= jsonPackedByteCount &&
+                start <= bytes.size - jsonPackedByteCount &&
+                outputPosition <= end - jsonPackedByteCount
+            ) {
+                jsonCopyPackedBytes(
+                    source = bytes.asReadonly(),
+                    target = bytes,
+                    sourceOffset = start,
+                    targetOffset = outputPosition,
+                )
             } else {
                 bytes.copyInto(
                     destination = bytes,

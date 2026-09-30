@@ -55,8 +55,8 @@ The handwritten codecs in `benchmarks/benchmarks-json` are the performance refer
   demonstrates the all-bounded case; a case with bounded and unbounded fields still needs to be implemented and measured.
 - For strings, budget the worst-case escaped size: `2 + 6 * String.length` or `2 + 6 * Utf8Str.bytes.len` including
   quotes. Control bytes can expand to six ASCII bytes. Add fixed punctuation, field names, numeric maxima, and booleans
-  to the object bound. Do the arithmetic in `Long`, then check the supported `Int`/buffer limit before converting.
-  `MixedJsonUtf8Codec` uses `87L + 6L * symbol.length + 6L * text.bytes.len` for its exact shape.
+  to the object bound. Use checked `Int` arithmetic for buffer sizing: `JsonWriteProtocol.addStringSize` checks the
+  remaining capacity before multiplying and accumulating each string bound. Runtime size calculation does not need `Long`.
 - `IdealJsonWriter.reserveObject` ensures contiguous capacity before the reserved write methods. `writeRawReserved`,
   `writeLongReserved`, `writeIntReserved`, `writeStringReserved`, and `writeUtf8Reserved` then avoid repeated capacity
   checks. Their callers must prove the reservation covers every byte; these methods do not check it. The mixed sample codec
@@ -81,7 +81,9 @@ The handwritten codecs in `benchmarks/benchmarks-json` are the performance refer
 
 - Use existing KMP utilities: `lang/bin/Bytes.kt` for byte slices and packed stores, `lang/text/Strings.kt` and
   `Charsets.kt` for UTF-8, and `json-core/PackedJsonBytes.kt` plus platform `JsonPlatform.*.kt` for JSON word loads and
-  special-byte scanning. Do not copy the JVM-only vector implementation into common code.
+  special-byte scanning. Packed field words and scan masks use primitive `Long` on JVM and primitive `Int` on JS;
+  generated constants and required-field masks use `Int`. Int codecs accumulate and size values with `Int` arithmetic.
+  Do not copy the JVM-only vector implementation into common code.
 - For reusable performance utilities that are not unique to JSON encoding, consider putting them in `lang` module and
   testing/benchmarking separately.
 

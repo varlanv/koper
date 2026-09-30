@@ -34,6 +34,25 @@ internal object JsonDecimalDigits {
         return index
     }
 
+    /** Computes the decimal byte length using Int arithmetic, including Int.MIN_VALUE. */
+    fun decimalSize(value: Int): Int {
+        val number = if (value > 0) {
+            -value
+        } else {
+            value
+        }
+        val digits = if (number > -1000000000) {
+            intDigits(-number)
+        } else {
+            10
+        }
+        return digits + if (value < 0) {
+            1
+        } else {
+            0
+        }
+    }
+
     /**
      * Computes the decimal byte length of [value], including a minus sign when negative, without changing state.
      *

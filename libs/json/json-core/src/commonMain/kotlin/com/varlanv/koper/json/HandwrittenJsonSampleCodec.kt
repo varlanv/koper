@@ -23,7 +23,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         JsonWriteProtocol.reserve(maximumBytes)
         JsonWriteProtocol.writeRaw(first = 0x6469227b.toInt(), second = 0x3a22.toShort())
         IntJsonCodec.writePrimitive(value.id)
-        JsonWriteProtocol.writeRaw(0x3a2274786574222cL)
+        JsonWriteProtocol.writeRaw(first = 0x6574222c, second = 0x3a227478)
         StringJsonCodec.write(value.text)
         JsonWriteProtocol.writeByte('}'.code)
     }
@@ -68,5 +68,7 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         return HandwrittenJsonSample(id = id, text = text ?: error("Missing text"))
     }
 
-    private fun maximumBytes(value: HandwrittenJsonSample): Int = 28 + value.text.length * 6
+    private fun maximumBytes(
+        value: HandwrittenJsonSample,
+    ): Int = JsonWriteProtocol.addStringSize(maximumBytes = 28, length = value.text.length)
 }

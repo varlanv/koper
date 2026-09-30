@@ -44,17 +44,11 @@ object JsonWriteProtocol {
         }
     }
 
-    /**
-     * Validates a [Long] reservation and delegates to the [Int] capacity reservation.
-     * May flush pending output and replace the buffer; does not occupy the reserved space.
-     *
-     * @return [Unit] with at least [size] bytes available for appending.
-     * @throws IllegalArgumentException If [size] is negative or exceeds Int.MAX_VALUE.
-     */
-    context(sink: ByteSink, writeScope: JsonWriteScope)
-    fun reserve(size: Long) {
-        require(size in 0L..Int.MAX_VALUE.toLong()) { "JSON reservation is too large" }
-        reserve(size.toInt())
+    /** Adds a worst-case escaped string length to an existing bound, rejecting Int overflow. */
+    fun addStringSize(maximumBytes: Int, length: Int): Int {
+        require(maximumBytes >= 0 && length >= 0) { "Negative JSON size" }
+        require(length <= (Int.MAX_VALUE - maximumBytes) / 6) { "JSON reservation is too large" }
+        return maximumBytes + length * 6
     }
 
     /**
@@ -98,45 +92,52 @@ object JsonWriteProtocol {
     context(writeScope: JsonWriteScope)
     fun writeRaw(first: Int, second: Short) {
         writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx = writeScope.position+ 4, value = second)
+        writeScope.buffer.setPackedShort(idx = writeScope.position + 4, value = second)
         writeScope.position += 6
     }
 
-    /**
-     * Appends the eight bytes of [value] in little-endian order.
-     * Requires reserved capacity and advances position by eight without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
+    /** Appends four little-endian bytes without reserving or flushing output. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(value: Long) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = value)
+    fun writeRaw(value: Int) {
+        writeScope.buffer.setPackedInt(idx = writeScope.position, value = value)
+        writeScope.position += 4
+    }
+
+    /** Appends two little-endian bytes without reserving or flushing output. */
+    context(writeScope: JsonWriteScope)
+    fun writeRaw(value: Short) {
+        writeScope.buffer.setPackedShort(idx = writeScope.position, value = value)
+        writeScope.position += 2
+    }
+
+    /** Appends eight little-endian bytes with the platform's packed stores. Requires reserved capacity. */
+    context(writeScope: JsonWriteScope)
+    fun writeRaw(first: Int, second: Int) {
+        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
         writeScope.position += 8
     }
 
-    /**
-     * Appends eight bytes from [first], then two from [second], each in little-endian order.
-     * Requires reserved capacity and advances position by ten without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
+    /** Appends ten little-endian bytes. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Long, second: Short) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx = writeScope.position+ 8, value = second)
+    fun writeRaw(
+        first: Int,
+        second: Int,
+        third: Short,
+    ) {
+        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
+        writeScope.buffer.setPackedShort(idx = writeScope.position + 8, value = third)
         writeScope.position += 10
     }
 
-    /**
-     * Appends eight bytes from [first], then four from [second], each in little-endian order.
-     * Requires reserved capacity and advances position by twelve without reserving or flushing output.
-     *
-     * @return [Unit] after appending the packed bytes.
-     */
+    /** Appends twelve little-endian bytes. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Long, second: Int) {
-        writeScope.buffer.setPackedLong(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = second)
+    fun writeRaw(
+        first: Int,
+        second: Int,
+        third: Int,
+    ) {
+        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
+        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = third)
         writeScope.position += 12
     }
 }

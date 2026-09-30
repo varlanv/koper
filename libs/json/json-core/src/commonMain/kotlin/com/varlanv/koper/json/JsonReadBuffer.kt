@@ -119,8 +119,13 @@ internal object JsonReadBuffer {
             if (parseScope.limit == parseScope.buffer.size) {
                 val capacity = parseScope.buffer.size
                 check(capacity < Int.MAX_VALUE) { "JSON buffer capacity exhausted" }
-                parseScope.buffer =
-                    parseScope.buffer.copyOf((capacity.toLong() * 2).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                parseScope.buffer = parseScope.buffer.copyOf(
+                    if (capacity <= Int.MAX_VALUE / 2) {
+                        capacity * 2
+                    } else {
+                        Int.MAX_VALUE
+                    },
+                )
             }
             require(appendInput()) { "Unterminated JSON string" }
         }

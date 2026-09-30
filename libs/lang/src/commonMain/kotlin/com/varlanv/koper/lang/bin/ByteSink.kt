@@ -50,11 +50,16 @@ class ReusableByteArraySink(initialCapacity: DataSize) : ByteSink {
         if (additionalBytes <= bytes.size - position) {
             return
         }
-        val requiredCapacity = position.toLong() + additionalBytes
-        if (requiredCapacity > Int.MAX_VALUE) {
+        if (additionalBytes > Int.MAX_VALUE - position) {
             error("Required buffer capacity exceeds Int.MAX_VALUE")
         }
-        val newCapacity = maxOf(requiredCapacity, bytes.size.toLong() * 2).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val requiredCapacity = position + additionalBytes
+        val doubledCapacity = if (bytes.size <= Int.MAX_VALUE / 2) {
+            bytes.size * 2
+        } else {
+            Int.MAX_VALUE
+        }
+        val newCapacity = maxOf(requiredCapacity, doubledCapacity)
         bytes = bytes.copyOf(newCapacity)
     }
 }

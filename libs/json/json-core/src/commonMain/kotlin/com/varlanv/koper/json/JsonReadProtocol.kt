@@ -44,19 +44,21 @@ object JsonReadProtocol {
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
-    /**
-     * Inspects eight buffered bytes starting at position without advancing or refilling input.
-     *
-     * @return A [Long] with bytes packed in little-endian order, or zero if fewer than eight bytes remain.
-     */
+    /** Peeks at the platform field word without advancing or refilling input. */
     context(parseScope: JsonReadScope)
-    fun peekFieldWord(): Long {
-        return if (parseScope.limit - parseScope.position >= 8) {
-            parseScope.buffer.getPackedLong(parseScope.position)
-        } else {
-            0L
-        }
-    }
+    fun peekFieldWord(): JsonFieldWord = jsonPeekFieldHead(
+        bytes = parseScope.buffer,
+        position = parseScope.position,
+        limit = parseScope.limit,
+    )
+
+    /** Peeks at the second JS word; JVM already cached all eight bytes in the first word. */
+    context(parseScope: JsonReadScope)
+    fun peekFieldWordTail(): JsonFieldWord = jsonPeekFieldTail(
+        bytes = parseScope.buffer,
+        position = parseScope.position,
+        limit = parseScope.limit,
+    )
 
     /**
      * Consumes [length] field-name bytes and their buffered closing quote after the caller has matched the name.

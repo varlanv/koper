@@ -1,7 +1,6 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.getPackedLong
 
 /**
  * Escape tables and buffered UTF-8 string output. Helpers write string contents without surrounding quotes.
@@ -57,13 +56,17 @@ internal object JsonStringEscapes {
             val blockStart = index
             val blockEnd = blockStart + width
             var events = jsonScanner.specialMask(bytes = bytes, start = blockStart)
-            while (events != 0L) {
-                val special = blockStart + events.countTrailingZeroBits()
+            while (events.hasEvents()) {
+                val special = blockStart + events.firstEvent()
                 if (special > index) {
                     val length = special - index
-                    if (length <= 8 && index <= bytes.size - 8) {
-                        val word = bytes.getPackedLong(index)
-                        target.setPackedLong(idx = offset, value = word)
+                    if (length <= jsonPackedByteCount && index <= bytes.size - jsonPackedByteCount) {
+                        jsonCopyPackedBytes(
+                            source = bytes,
+                            target = target,
+                            sourceOffset = index,
+                            targetOffset = offset,
+                        )
                     } else {
                         bytes.copyInto(
                             destination = target,
@@ -83,7 +86,7 @@ internal object JsonStringEscapes {
                     offset += 4
                 }
                 index = special + 1
-                events = events and (events - 1)
+                events = events.dropFirstEvent()
             }
             if (index < blockEnd) {
                 bytes.copyInto(

@@ -32,7 +32,7 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
         ) == (1L shl special)
     }
 
-    override fun specialMask(bytes: Bytes, start: Int): Long {
+    override fun specialMask(bytes: Bytes, start: Int): JsonScanMask {
         val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
         return vector
             .compare(VectorOperators.EQ, 34.toByte())

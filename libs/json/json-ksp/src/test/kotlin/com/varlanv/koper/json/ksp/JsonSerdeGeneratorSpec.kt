@@ -35,7 +35,10 @@ class JsonSerdeGeneratorSpec : BaseSpec({
                     @com.varlanv.koper.serde.De class ReadOnly(value: kotlin.Int)
                     @com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class EscapedName(val `a"b`: kotlin.Int)
                     """
-                    .trimIndent(),
+                    .trimIndent() +
+                    "\n@com.varlanv.koper.serde.Ser @com.varlanv.koper.serde.De class ManyFields(" +
+                    (0..64).joinToString { "val field$it: kotlin.Int" } +
+                    ")",
             )
 
             val logger = RecordingLogger()
@@ -92,6 +95,26 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             writeOnly.contains("JsonCodec.Read<") shouldBe false
             readOnly.contains("JsonCodec.Read<") shouldBe true
             readOnly.contains("JsonCodec.Write<") shouldBe false
+            val manyFields = output.resolve("kotlin/ManyFieldsJsonCodec.kt").readText()
+            manyFields.contains("var _seen0 = 0") shouldBe true
+            manyFields.contains("var _seen1 = 0") shouldBe true
+            manyFields.contains("var _seen2 = 0") shouldBe true
+            manyFields.contains("_seen0 = _seen0 or (1 shl 31)") shouldBe true
+            manyFields.contains("_seen1 = _seen1 or (1 shl 31)") shouldBe true
+            manyFields.contains("_seen2 = _seen2 or (1 shl 0)") shouldBe true
+            manyFields.contains("require(_seen0 == -1)") shouldBe true
+            manyFields.contains("require(_seen1 == -1)") shouldBe true
+            manyFields.contains("require(_seen2 == 1)") shouldBe true
+            manyFields.contains("peekFieldWordTail()") shouldBe true
+            manyFields.contains("jsonFieldWordMatches(") shouldBe true
+            for (source in listOf(writeOnly, readOnly, manyFields)) {
+                source.contains("uL.toLong()") shouldBe false
+                source.contains("1L shl") shouldBe false
+                Regex("[0-9]L\\b").containsMatchIn(source) shouldBe false
+            }
+            val supportedTypes = output.resolve("kotlin/SupportedTypesJsonCodec.kt").readText()
+            supportedTypes.contains("addStringSize(size, value.`s`.length)") shouldBe true
+            supportedTypes.contains("addStringSize(size, value.`u`.byteLen)") shouldBe true
             val escapedNameSource = output.resolve("kotlin/EscapedNameJsonCodec.kt").readText()
             escapedNameSource.contains("byteArrayOf(97, 34, 98)") shouldBe true
             escapedNameSource.contains("reader.consumeMatchedFieldColon") shouldBe false
