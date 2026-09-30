@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 import java.util.*
@@ -13,14 +15,14 @@ actual fun Bytes.mismatch(
 @JvmInline
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual value class Bytes actual constructor(@PublishedApi internal actual val bytes: MutBytes) {
-    actual val size: Int
-        get() = bytes.size
+    actual inline val size: Int
+        get() = bytes.impl.size
 
-    internal val unsafeInternal: ByteArray get() = bytes.impl
+    internal inline val unsafeInternal: ByteArray get() = bytes.impl
 
-    actual operator fun get(idx: Int): Byte = bytes[idx]
+    actual inline operator fun get(idx: Int): Byte = bytes[idx]
 
-    actual fun copyInto(
+    actual inline fun copyInto(
         destination: MutBytes,
         destinationOffset: Int,
         startIndex: Int,
@@ -38,7 +40,7 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         }
     }
 
-    actual fun asList(): List<Byte> = bytes.impl.asList()
+    actual inline fun asList(): List<Byte> = bytes.impl.asList()
 
     class Unsafe internal constructor() {
         inline fun <R> useInternal(bytes: Bytes, block: (ByteArray) -> R): R {

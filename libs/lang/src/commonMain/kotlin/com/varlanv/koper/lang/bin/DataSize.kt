@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 import com.varlanv.koper.lang.math.addExact
@@ -6,10 +8,10 @@ import kotlin.jvm.JvmInline
 import kotlin.math.abs
 
 @JvmInline
-value class DataSize internal constructor(val bytes: Int) {
-    operator fun plus(bytes: Int): DataSize = DataSize(this.bytes.addExact(bytes))
+value class DataSize @PublishedApi internal constructor(val bytes: Int) {
+    inline operator fun plus(bytes: Int): DataSize = DataSize(this.bytes.addExact(bytes))
 
-    operator fun plus(other: DataSize): DataSize = DataSize(this.bytes.addExact(other.bytes))
+    inline operator fun plus(other: DataSize): DataSize = DataSize(this.bytes.addExact(other.bytes))
 
     override fun toString(): String {
         val magnitude = abs(bytes.toLong())
@@ -27,7 +29,7 @@ value class DataSize internal constructor(val bytes: Int) {
         return "$readable ($bytes B)"
     }
 
-    fun allocate(): MutBytes = MutBytes(this)
+    inline  fun allocate(): MutBytes = MutBytes(this)
 
     private fun format(magnitude: Long, unit: Int): String {
         // Round to thousandths, with ties away from zero.
@@ -57,14 +59,16 @@ value class DataSize internal constructor(val bytes: Int) {
     }
 }
 
-private const val KIB = 1024
-private const val MIB = KIB * 1024
-private const val GIB = MIB * 1024
+@PublishedApi internal  const val KIB = 1024
 
-fun Int.bytes() = DataSize(this)
+@PublishedApi internal const val MIB = KIB * 1024
 
-fun Int.kilobytes() = DataSize(this.multiplyExact(KIB))
+@PublishedApi internal  const val GIB = MIB * 1024
 
-fun Int.megabytes() = DataSize(this.multiplyExact(MIB))
+inline fun Int.bytes() = DataSize(this)
 
-fun Int.gigabytes() = DataSize(this.multiplyExact(GIB))
+inline fun Int.kilobytes() = DataSize(this.multiplyExact(KIB))
+
+inline fun Int.megabytes() = DataSize(this.multiplyExact(MIB))
+
+inline fun Int.gigabytes() = DataSize(this.multiplyExact(GIB))

@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 import com.varlanv.koper.lang.VectorApi
@@ -7,11 +9,11 @@ import com.varlanv.koper.lang.shortViewHandle
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"]) internal actual typealias BytesImpl = ByteArray
 
-actual fun BytesImpl.size(): Int = size
+actual inline fun BytesImpl.size(): Int = size
 
-actual operator fun BytesImpl.get(idx: Int): Byte = get(idx)
+actual inline operator fun BytesImpl.get(idx: Int): Byte = get(idx)
 
-actual operator fun BytesImpl.set(idx: Int, value: Byte) = set(idx, value)
+actual inline operator fun BytesImpl.set(idx: Int, value: Byte) = set(idx, value)
 
 @JvmInline
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
@@ -23,27 +25,27 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
     actual constructor(dataSize: DataSize) : this(ByteArray(dataSize.bytes))
 
-    actual fun getPackedLong(idx: Int): Long = longViewHandle.get(impl, idx) as Long
+    actual inline fun getPackedLong(idx: Int): Long = longViewHandle.get(impl, idx) as Long
 
-    actual fun setPackedLong(idx: Int, value: Long) {
+    actual inline fun setPackedLong(idx: Int, value: Long) {
         longViewHandle.set(impl, idx, value)
     }
 
-    actual fun getPackedInt(idx: Int): Int = intViewHandle.get(impl, idx) as Int
+    actual inline fun getPackedInt(idx: Int): Int = intViewHandle.get(impl, idx) as Int
 
-    actual fun setPackedInt(idx: Int, value: Int) {
+    actual inline fun setPackedInt(idx: Int, value: Int) {
         intViewHandle.set(impl, idx, value)
     }
 
-    actual fun setPackedShort(idx: Int, value: Short) {
+    actual inline fun setPackedShort(idx: Int, value: Short) {
         shortViewHandle.set(impl, idx, value)
     }
 
-    actual fun getPackedShort(idx: Int): Short = shortViewHandle.get(impl, idx) as Short
+    actual inline fun getPackedShort(idx: Int): Short = shortViewHandle.get(impl, idx) as Short
 
-    actual operator fun get(idx: Int): Byte = impl[idx]
+    actual inline operator fun get(idx: Int): Byte = impl[idx]
 
-    actual operator fun set(idx: Int, value: Byte) {
+    actual inline operator fun set(idx: Int, value: Byte) {
         impl[idx] = value
     }
 
@@ -63,7 +65,7 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
     actual inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) = impl.forEachIndexed(block)
 
-    actual fun copyInto(
+    actual inline fun copyInto(
         destination: MutBytes,
         destinationOffset: Int,
         startIndex: Int,
@@ -73,9 +75,9 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         System.arraycopy(impl, startIndex, destination.impl, destinationOffset, endIndex - startIndex)
     }
 
-    actual fun copyOf(newCapacity: Int): MutBytes = MutBytes(impl.copyOf(newCapacity))
+    actual inline fun copyOf(newCapacity: Int): MutBytes = MutBytes(impl.copyOf(newCapacity))
 
-    actual fun copyOfRange(from: Int, to: Int): MutBytes = MutBytes(impl.copyOfRange(from, to))
+    actual inline fun copyOfRange(from: Int, to: Int): MutBytes = MutBytes(impl.copyOfRange(from, to))
 
     actual companion object {
         actual val empty: MutBytes = MutBytes(ByteArray(0))
@@ -89,6 +91,6 @@ actual value class MutBytes @PublishedApi internal actual constructor(
             return MutBytes(arr)
         }
 
-        actual operator fun invoke(array: ByteArray): MutBytes = MutBytes(array)
+        actual inline operator fun invoke(array: ByteArray): MutBytes = MutBytes(array)
     }
 }

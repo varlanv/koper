@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 expect fun Bytes.mismatch(
@@ -10,41 +12,41 @@ expect fun Bytes.mismatch(
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
-    val size: Int
+    inline val size: Int
 
-    operator fun get(idx: Int): Byte
+    inline operator fun get(idx: Int): Byte
 
-    fun copyInto(
+    inline fun copyInto(
         destination: MutBytes,
         destinationOffset: Int = 0,
         startIndex: Int = 0,
         endIndex: Int = size,
     )
 
-    fun asList(): List<Byte>
+    inline fun asList(): List<Byte>
 
     companion object {
-        val empty: Bytes
+        inline val empty: Bytes
     }
 }
 
-fun Bytes.isEmpty(): Boolean = size == 0
+inline fun Bytes.isEmpty(): Boolean = size == 0
 
-fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).asReadonly()
+inline fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).asReadonly()
 
-fun Bytes.slice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
+inline fun Bytes.slice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
 
-fun Bytes.getPackedLong(idx: Int): Long = bytes.getPackedLong(idx)
+inline fun Bytes.getPackedLong(idx: Int): Long = bytes.getPackedLong(idx)
 
-fun Bytes.getPackedInt(idx: Int): Int = bytes.getPackedInt(idx)
+inline fun Bytes.getPackedInt(idx: Int): Int = bytes.getPackedInt(idx)
 
-fun Bytes.getPackedShort(idx: Int): Short = bytes.getPackedShort(idx)
+inline fun Bytes.getPackedShort(idx: Int): Short = bytes.getPackedShort(idx)
 
-fun ByteArray.asReadonly(): Bytes = Bytes(MutBytes(this))
+inline fun ByteArray.asReadonly(): Bytes = Bytes(MutBytes(this))
 
-fun ByteArray.asMut(): MutBytes = MutBytes(this)
+inline fun ByteArray.asMut(): MutBytes = MutBytes(this)
 
-fun Bytes.equals(
+inline fun Bytes.equals(
     aFromIndex: Int,
     aToIndex: Int,
     b: Bytes,
@@ -58,7 +60,7 @@ fun Bytes.equals(
     bToIndex = bToIndex,
 ) < 0
 
-fun Bytes.containsNeedle(
+inline fun Bytes.containsNeedle(
     needle: Bytes,
     fromIndex: Int = 0,
 ): Boolean = indexOfNeedle(needle = needle, fromIndex = fromIndex) != -1
@@ -90,7 +92,7 @@ fun Bytes.indexOfNeedle(needle: Bytes, fromIndex: Int): Int {
     return -1
 }
 
-fun Bytes.startsWith(
+inline fun Bytes.startsWith(
     prefix: Bytes,
     offset: Int = 0,
 ): Boolean = offset >= 0 &&

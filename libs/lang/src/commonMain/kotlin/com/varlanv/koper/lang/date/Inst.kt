@@ -111,10 +111,6 @@ value class Inst internal constructor(val millis: Long) : Comparable<Inst> {
     }
 }
 
-fun interface CurrentTime {
-    operator fun invoke(): Inst
-}
-
 object InstSerializer : KSerializer<Inst> {
     override val descriptor = PrimitiveSerialDescriptor("Inst", PrimitiveKind.LONG)
 

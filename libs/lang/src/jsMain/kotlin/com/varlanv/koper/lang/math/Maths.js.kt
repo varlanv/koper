@@ -1,6 +1,6 @@
 package com.varlanv.koper.lang.math
 
-actual fun Long.addExact(other: Long): Long {
+actual  fun Long.addExact(other: Long): Long {
     val result = this + other
 
     if (((this xor result) and (other xor result)) < 0L) {
@@ -10,7 +10,7 @@ actual fun Long.addExact(other: Long): Long {
     return result
 }
 
-actual fun Int.addExact(other: Int): Int {
+actual  fun Int.addExact(other: Int): Int {
     val result = this + other
 
     if (((this xor result) and (other xor result)) < 0) {
@@ -20,7 +20,7 @@ actual fun Int.addExact(other: Int): Int {
     return result
 }
 
-actual fun Int.multiplyExact(other: Int): Int {
+actual  fun Int.multiplyExact(other: Int): Int {
     val result = this * other
 
     // If both |x| and |y| < 2^15, multiplication cannot overflow Int.
@@ -68,7 +68,7 @@ actual fun Long.multiplyExact(other: Long): Long {
     return result
 }
 
-actual fun Long.subtractExact(other: Long): Long {
+actual  fun Long.subtractExact(other: Long): Long {
     val result = this - other
     // Overflow: operands have different signs, and result changed our sign.
     if (((this xor other) and (this xor result)) < 0L) {

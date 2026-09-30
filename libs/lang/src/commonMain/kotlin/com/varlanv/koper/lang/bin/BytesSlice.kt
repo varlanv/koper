@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 class BytesSlice(
@@ -9,17 +11,17 @@ class BytesSlice(
         require(offset >= 0 && len >= 0 && offset <= bytes.size - len)
     }
 
-    fun getPackedInt(idx: Int): Int {
+    inline fun getPackedInt(idx: Int): Int {
         require(idx >= offset && idx <= offset + len - Int.SIZE_BYTES)
         return bytes.bytes.getPackedInt(idx)
     }
 
-    fun getPackedLong(idx: Int): Long {
+    inline    fun getPackedLong(idx: Int): Long {
         require(idx >= offset && idx <= offset + len - Long.SIZE_BYTES)
         return bytes.bytes.getPackedLong(idx)
     }
 
-    fun getPackedShort(idx: Int): Short {
+    inline fun getPackedShort(idx: Int): Short {
         require(idx >= offset && idx <= offset + len - Short.SIZE_BYTES)
         return bytes.bytes.getPackedShort(idx)
     }
@@ -38,9 +40,9 @@ class BytesSlice(
         }
     }
 
-    operator fun get(idx: Int): Byte {
+    inline operator fun get(idx: Int): Byte {
         require(idx >= offset && idx < offset + len)
-        return bytes.bytes[idx]
+        return bytes.bytes.impl[idx]
     }
 
     override fun equals(other: Any?): Boolean =

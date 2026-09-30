@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
 import org.khronos.webgl.ArrayBuffer
@@ -6,46 +8,46 @@ import org.khronos.webgl.Uint8Array
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"]) internal actual typealias BytesImpl = DataView
 
-actual fun BytesImpl.size(): Int = byteLength
+actual inline fun BytesImpl.size(): Int = byteLength
 
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
 actual value class MutBytes @PublishedApi internal actual constructor(
     @PublishedApi internal actual val impl: BytesImpl,
 ) {
-    actual val size: Int
+    actual inline val size: Int
         get() = impl.byteLength
 
     actual constructor(dataSize: DataSize) : this(DataView(buffer = ArrayBuffer(dataSize.bytes)))
     constructor(arrayBuffer: ArrayBuffer) : this(DataView(buffer = arrayBuffer))
 
-    actual fun getPackedLong(idx: Int): Long {
+    actual inline fun getPackedLong(idx: Int): Long {
         val low = impl.getInt32(byteOffset = idx, littleEndian = true).toLong() and 0xffffffffL
         val high = impl.getInt32(byteOffset = idx + 4, littleEndian = true).toLong()
         return low or (high shl 32)
     }
 
-    actual fun setPackedLong(idx: Int, value: Long) {
+    actual inline fun setPackedLong(idx: Int, value: Long) {
         impl.setInt32(byteOffset = idx, value = value.toInt(), littleEndian = true)
         impl.setInt32(byteOffset = idx + 4, value = (value ushr 32).toInt(), littleEndian = true)
     }
 
-    actual fun getPackedInt(idx: Int): Int = impl.getInt32(byteOffset = idx, littleEndian = true)
+    actual inline fun getPackedInt(idx: Int): Int = impl.getInt32(byteOffset = idx, littleEndian = true)
 
-    actual fun setPackedInt(idx: Int, value: Int) {
+    actual inline fun setPackedInt(idx: Int, value: Int) {
         impl.setInt32(byteOffset = idx, value = value, littleEndian = true)
     }
 
-    actual fun setPackedShort(idx: Int, value: Short) {
+    actual inline fun setPackedShort(idx: Int, value: Short) {
         impl.setInt16(byteOffset = idx, value = value, littleEndian = true)
     }
 
-    actual fun getPackedShort(idx: Int): Short = impl.getInt16(byteOffset = idx, littleEndian = true)
+    actual inline fun getPackedShort(idx: Int): Short = impl.getInt16(byteOffset = idx, littleEndian = true)
 
-    actual operator fun get(idx: Int): Byte = impl.getInt8(idx)
+    actual inline operator fun get(idx: Int): Byte = impl.getInt8(idx)
 
-    actual operator fun set(idx: Int, value: Byte) = impl.setInt8(byteOffset = idx, value = value)
+    actual inline operator fun set(idx: Int, value: Byte) = impl.setInt8(byteOffset = idx, value = value)
 
-    actual fun hash(offset: Int, length: Int): Int {
+    actual inline fun hash(offset: Int, length: Int): Int {
         if (offset < 0 || length < 0 || offset > size - length) {
             throw IndexOutOfBoundsException()
         }
@@ -82,7 +84,7 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         }
     }
 
-    actual fun copyInto(
+    actual inline fun copyInto(
         destination: MutBytes,
         destinationOffset: Int,
         startIndex: Int,
@@ -108,13 +110,13 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         )
     }
 
-    actual fun copyOf(newCapacity: Int): MutBytes {
+    actual inline fun copyOf(newCapacity: Int): MutBytes {
         val copy = ArrayBuffer(newCapacity)
         Uint8Array(buffer = copy).set(Uint8Array(buffer = impl.buffer))
         return MutBytes(DataView(buffer = copy))
     }
 
-    actual fun copyOfRange(from: Int, to: Int): MutBytes {
+    actual inline fun copyOfRange(from: Int, to: Int): MutBytes {
         require(from <= to)
         if (from < 0 || to > size) {
             throw IndexOutOfBoundsException()
@@ -139,7 +141,7 @@ actual value class MutBytes @PublishedApi internal actual constructor(
             return MutBytes(view)
         }
 
-        actual operator fun invoke(
+        actual inline operator fun invoke(
             array: ByteArray,
         ): MutBytes = MutBytes(DataView(buffer = array.unsafeCast<Uint8Array>().buffer))
     }

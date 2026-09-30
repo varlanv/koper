@@ -1,8 +1,10 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.bin
 
-actual operator fun BytesImpl.get(idx: Int): Byte = getInt8(idx)
+actual inline operator fun BytesImpl.get(idx: Int): Byte = getInt8(idx)
 
-actual operator fun BytesImpl.set(idx: Int, value: Byte) {
+actual inline operator fun BytesImpl.set(idx: Int, value: Byte) {
     setInt8(byteOffset = idx, value = value)
 }
 
@@ -59,12 +61,12 @@ actual fun Bytes.mismatch(
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual value class Bytes actual constructor(@PublishedApi internal actual val bytes: MutBytes) {
-    actual val size: Int
+    actual inline val size: Int
         get() = bytes.size
 
-    actual operator fun get(idx: Int): Byte = bytes[idx]
+    actual inline operator fun get(idx: Int): Byte = bytes[idx]
 
-    actual fun copyInto(
+    actual inline fun copyInto(
         destination: MutBytes,
         destinationOffset: Int,
         startIndex: Int,
@@ -76,12 +78,12 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         endIndex = endIndex,
     )
 
-    actual fun asList(): List<Byte> {
+    actual inline fun asList(): List<Byte> {
         return Array(size) { idx -> bytes[idx] }.asList()
     }
 
     actual companion object {
-        actual val empty: Bytes
+        actual inline val empty: Bytes
             get() = Bytes(MutBytes.empty)
     }
 }

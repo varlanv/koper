@@ -2,29 +2,35 @@ package com.varlanv.koper.lang.bin
 
 import kotlin.jvm.JvmInline
 
+@Suppress("NOTHING_TO_INLINE")
 @JvmInline
 value class MutBytesSlice @PublishedApi internal constructor(@PublishedApi internal val delegate: BytesSlice) {
-    fun setPackedLong(idx: Int, value: Long) {
+    inline  fun setPackedLong(idx: Int, value: Long) {
         require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Long.SIZE_BYTES)
         delegate.bytes.bytes.setPackedLong(idx = idx, value = value)
     }
 
-    fun setPackedInt(idx: Int, value: Int) {
+    inline fun setPackedInt(idx: Int, value: Int) {
         require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Int.SIZE_BYTES)
         delegate.bytes.bytes.setPackedInt(idx = idx, value = value)
     }
 
-    fun setPackedShort(idx: Int, value: Short) {
+    inline fun setPackedShort(idx: Int, value: Short) {
         require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Short.SIZE_BYTES)
         delegate.bytes.bytes.setPackedShort(idx = idx, value = value)
     }
 
-    operator fun set(idx: Int, value: Byte) {
+    inline  operator fun set(idx: Int, value: Byte) {
         require(idx >= delegate.offset && idx < delegate.offset + delegate.len)
-        delegate.bytes.bytes[idx] = value
+        delegate.bytes.bytes.impl[idx] = value
     }
 
-    fun copyFrom(
+    inline  operator fun get(idx: Int): Byte {
+        require(idx >= delegate.offset && idx < delegate.offset + delegate.len)
+        return delegate.bytes.bytes.impl[idx]
+    }
+
+    inline   fun copyFrom(
         source: Bytes,
         sourceOffset: Int = 0,
         sourceLength: Int = source.size - sourceOffset,
