@@ -3,7 +3,9 @@ package com.varlanv.koper.lang.text
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asMut
 import com.varlanv.koper.lang.bin.asReadonly
+import com.varlanv.koper.lang.bin.slice
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint16Array
 import org.khronos.webgl.Uint8Array
@@ -122,7 +124,7 @@ private fun encodeUtf8(
         Charset.Utf8.encodeCodepointInline(cp) { result[position++] = it }
     }
 
-    return BytesSlice(bytes = MutBytes(result).asReadonly(), offset = 0, len = result.size)
+    return result.asMut().asReadonly().slice( offset = 0, len = result.size)
 }
 
 actual fun Charset.allocateString(
