@@ -400,6 +400,23 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
         var position = writeScope.position
         output[position++] = '"'.code.toByte()
         var index = 0
+        while (index <= value.length - 4) {
+            val first = value[index].code
+            val second = value[index + 1].code
+            val third = value[index + 2].code
+            val fourth = value[index + 3].code
+            if ((first or second or third or fourth) >= 128 ||
+                (JsonStringEscapes.escapePairs[first].toInt() or
+                    JsonStringEscapes.escapePairs[second].toInt() or
+                    JsonStringEscapes.escapePairs[third].toInt() or
+                    JsonStringEscapes.escapePairs[fourth].toInt()) != 0
+            ) {
+                break
+            }
+            output.setPackedInt(idx = position, value = first or (second shl 8) or (third shl 16) or (fourth shl 24))
+            position += 4
+            index += 4
+        }
         while (index < value.length) {
             val char = value[index].code
             if (char < 128) {

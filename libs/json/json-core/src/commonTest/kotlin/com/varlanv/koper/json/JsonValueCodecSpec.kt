@@ -164,11 +164,40 @@ class JsonValueCodecSpec : BaseSpec({
             val text = "\"" + (0..31).joinToString("") { "a".repeat(runSize) + it.toChar() } + "é😃\\end"
             val expected = kotlinx.serialization.json.JsonPrimitive(text).toString()
             roundTrip(
+                writerCodec = StringJsonCodec,
+                readerCodec = StringJsonCodec,
+                value = text,
+                expectedJson = expected,
+            )
+            roundTrip(
                 writerCodec = Utf8StrJsonCodec,
                 readerCodec = Utf8StrJsonCodec,
                 value = Utf8Str.allocateFromString(string = text),
                 expectedJson = expected,
             )
+        }
+    }
+
+    should("write strings around packed ASCII boundaries") {
+        for (length in 0..32) {
+            val text = "aB3~\u007f".repeat(7).take(length)
+            roundTrip(
+                writerCodec = StringJsonCodec,
+                readerCodec = StringJsonCodec,
+                value = text,
+                expectedJson = kotlinx.serialization.json.JsonPrimitive(text).toString(),
+            )
+        }
+        for (prefixLength in 0..7) {
+            for (special in listOf("\"", "\\", "\n", "\u0000", "\u0080", "é", "日", "🙂")) {
+                val text = "a".repeat(prefixLength) + special + "BCDEFGHIJ"
+                roundTrip(
+                    writerCodec = StringJsonCodec,
+                    readerCodec = StringJsonCodec,
+                    value = text,
+                    expectedJson = kotlinx.serialization.json.JsonPrimitive(text).toString(),
+                )
+            }
         }
     }
 
