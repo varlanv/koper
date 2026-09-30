@@ -4,6 +4,7 @@ import com.varlanv.koper.lang.VectorApi
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.bin.getPackedLong
 import jdk.incubator.vector.ByteVector
 import jdk.incubator.vector.VectorOperators
 
@@ -53,6 +54,13 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
                 return index + mask.countTrailingZeroBits()
             }
             index += laneCount
+        }
+        while (index <= end - 8) {
+            val events = jsonSpecialEvents(bytes.getPackedLong(index))
+            if (events != 0L) {
+                return index + (events.countTrailingZeroBits() ushr 3)
+            }
+            index += 8
         }
         while (index < end) {
             val value = bytes[index].toInt() and 255

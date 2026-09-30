@@ -101,3 +101,27 @@ internal actual inline fun jsonWritePackedBytes(
     target.setPackedInt(idx = offset, value = low)
     target.setPackedInt(idx = offset + 4, value = high)
 }
+
+internal actual inline fun jsonPackedSpecialMask(bytes: Bytes, start: Int): JsonScanMask {
+    val word = bytes.getPackedInt(start)
+    val low = 0x7f7f7f7f
+    val high = -0x7f7f7f80
+    val quote = word xor 0x22222222
+    val slash = word xor 0x5c5c5c5c
+    val quotes = (((quote and low) + low) or quote or low).inv() and high
+    val slashes = (((slash and low) + low) or slash or low).inv() and high
+    val controls = (word or ((word and low) + 0x60606060)).inv() and high
+    val events = quotes or slashes or controls
+    return ((events ushr 7) * 0x01020408) ushr 24
+}
+
+internal actual inline fun jsonCopyPackedRun(
+    source: Bytes,
+    target: MutBytes,
+    blockStart: Int,
+    sourceOffset: Int,
+    targetOffset: Int,
+) {
+    val word = source.getPackedInt(blockStart) ushr ((sourceOffset - blockStart) * 8)
+    target.setPackedInt(idx = targetOffset, value = word)
+}

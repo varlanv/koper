@@ -49,19 +49,13 @@ internal expect fun jsonSpecialScan(vectorized: Boolean): JsonSpecialScan
  * Scalar backend for [JsonSpecialScan]; its read-only methods follow the interface contracts.
  */
 internal object ScalarJsonSpecialScan : JsonSpecialScan {
-    override val laneCount: Int = 8
+    override val laneCount: Int = jsonPackedByteCount
     override val isVector: Boolean = false
 
-    override fun specialMask(bytes: Bytes, start: Int): JsonScanMask {
-        var mask = jsonEmptyScanMask()
-        for (index in 0 until laneCount) {
-            val value = bytes[start + index].toInt() and 255
-            if (value == 34 || value == 92 || value < 32) {
-                mask = mask.withBit(index)
-            }
-        }
-        return mask
-    }
+    override fun specialMask(
+        bytes: Bytes,
+        start: Int,
+    ): JsonScanMask = jsonPackedSpecialMask(bytes = bytes, start = start)
 
     override fun firstSpecial(
         bytes: Bytes,
@@ -69,6 +63,13 @@ internal object ScalarJsonSpecialScan : JsonSpecialScan {
         end: Int,
     ): Int {
         var index = start
+        while (index <= end - laneCount) {
+            val mask = specialMask(bytes = bytes, start = index)
+            if (mask.hasEvents()) {
+                return index + mask.firstEvent()
+            }
+            index += laneCount
+        }
         while (index < end) {
             val value = bytes[index].toInt() and 255
             if (value == 34 || value == 92 || value < 32) {

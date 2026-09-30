@@ -113,6 +113,78 @@ class PackedJsonBytesSpec : BaseSpec({
         }
     }
 
+    should("classify adjacent bytes without marking neighboring ordinary bytes") {
+        val scanner = ScalarJsonSpecialScan
+        val input = MutBytes(ByteArray(scanner.laneCount + 2) { 65 })
+        for (first in 0..255) {
+            for (second in 0..255) {
+                val lane = (first + second) % (scanner.laneCount - 1)
+                input[lane + 1] = first.toByte()
+                input[lane + 2] = second.toByte()
+                var expected = jsonEmptyScanMask()
+                if (first < 32 || first == 34 || first == 92) {
+                    expected = expected.withBit(lane)
+                }
+                if (second < 32 || second == 34 || second == 92) {
+                    expected = expected.withBit(lane + 1)
+                }
+                scanner.specialMask(
+                    bytes = Bytes(input),
+                    start = 1,
+                ) shouldBe expected
+                input[lane + 1] = 65
+                input[lane + 2] = 65
+            }
+        }
+    }
+
+    should("scan only the supplied slice across complete words and tails") {
+        for (scanner in listOf(ScalarJsonSpecialScan, jsonScanner)) {
+            for (length in 0..scanner.laneCount * 2 + 1) {
+                val input = MutBytes(ByteArray(length + 4) { 34 })
+                for (index in 1..length) input[index] = 65
+                scanner.firstSpecial(
+                    bytes = Bytes(input),
+                    start = 1,
+                    end = length + 1,
+                ) shouldBe length + 1
+                for (special in 1..length) {
+                    input[special] = 34
+                    scanner.firstSpecial(
+                        bytes = Bytes(input),
+                        start = 1,
+                        end = length + 1,
+                    ) shouldBe special
+                    input[special] = 65
+                }
+            }
+        }
+    }
+
+    should("escape complete packed blocks without reading outside the input") {
+        for (length in 1..jsonPackedByteCount * 3 + 1) {
+            for (special in 0 until length) {
+                val chars = CharArray(length) { 'a' }
+                chars[0] = '"'
+                chars[special] = '\n'
+                chars[length - 1] = '\u0000'
+                val text = chars.concatToString()
+                val input = Bytes(MutBytes(text.encodeToByteArray()))
+                val output = MutBytes(ByteArray(length * 6 + 2) { 127 })
+                val end = JsonStringEscapes.writeUtf8EscapedPacked(
+                    bytes = input,
+                    target = output,
+                    start = 0,
+                    end = input.size,
+                    targetStart = 1,
+                )
+                val actual = (1 until end).map { output[it] }.toByteArray().decodeToString()
+                actual shouldBe kotlinx.serialization.json.JsonPrimitive(text).toString().drop(1).dropLast(1)
+                output[0] shouldBe 127.toByte()
+            }
+        }
+    }
+
     should("write packed fragments with negative Int words in little-endian order") {
         val output = ReusableByteArraySink(1.bytes())
         JsonWriteScope().scoped(output) {

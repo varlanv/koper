@@ -1,6 +1,7 @@
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.bin.MutBytes
 
 /**
  * Escape tables and buffered UTF-8 string output. Helpers write string contents without surrounding quotes.
@@ -49,6 +50,15 @@ internal object JsonStringEscapes {
         targetStart: Int,
     ): Int {
         val target = writeScope.buffer
+        if (!jsonScanner.isVector) {
+            return writeUtf8EscapedPacked(
+                bytes = bytes,
+                target = target,
+                start = start,
+                end = end,
+                targetStart = targetStart,
+            )
+        }
         var index = start
         var offset = targetStart
         val width = jsonScanner.laneCount
@@ -76,6 +86,71 @@ internal object JsonStringEscapes {
                         )
                     }
                     offset += length
+                }
+                val value = bytes[special].toInt() and 255
+                val escaped = escapePairs[value]
+                target.setPackedShort(idx = offset, value = escaped)
+                offset += 2
+                if (escaped == unicodePair) {
+                    target.setPackedInt(idx = offset, value = unicodeTails[value])
+                    offset += 4
+                }
+                index = special + 1
+                events = events.dropFirstEvent()
+            }
+            if (index < blockEnd) {
+                bytes.copyInto(
+                    destination = target,
+                    destinationOffset = offset,
+                    startIndex = index,
+                    endIndex = blockEnd,
+                )
+                offset += blockEnd - index
+            }
+            index = blockEnd
+        }
+        while (index < end) {
+            val value = bytes[index++].toInt() and 255
+            val escaped = escapePairs[value]
+            if (escaped.toInt() != 0) {
+                target.setPackedShort(idx = offset, value = escaped)
+                offset += 2
+                if (escaped == unicodePair) {
+                    target.setPackedInt(idx = offset, value = unicodeTails[value])
+                    offset += 4
+                }
+            } else {
+                target[offset++] = value.toByte()
+            }
+        }
+        return offset
+    }
+
+    internal fun writeUtf8EscapedPacked(
+        bytes: Bytes,
+        target: MutBytes,
+        start: Int,
+        end: Int,
+        targetStart: Int,
+    ): Int {
+        var index = start
+        var offset = targetStart
+        val width = jsonPackedByteCount
+        while (index <= end - width) {
+            val blockStart = index
+            val blockEnd = blockStart + width
+            var events = jsonPackedSpecialMask(bytes = bytes, start = blockStart)
+            while (events.hasEvents()) {
+                val special = blockStart + events.firstEvent()
+                if (special > index) {
+                    jsonCopyPackedRun(
+                        source = bytes,
+                        target = target,
+                        blockStart = blockStart,
+                        sourceOffset = index,
+                        targetOffset = offset,
+                    )
+                    offset += special - index
                 }
                 val value = bytes[special].toInt() and 255
                 val escaped = escapePairs[value]

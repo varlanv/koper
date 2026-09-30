@@ -72,3 +72,13 @@ internal expect inline fun jsonWritePackedBytes(
     low: Int,
     high: Int,
 )
+
+internal expect inline fun jsonPackedSpecialMask(bytes: Bytes, start: Int): JsonScanMask
+
+internal expect inline fun jsonCopyPackedRun(
+    source: Bytes,
+    target: MutBytes,
+    blockStart: Int,
+    sourceOffset: Int,
+    targetOffset: Int,
+)
