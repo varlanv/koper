@@ -9,7 +9,6 @@ plugins {
 dependencies {
     add("kspJvm", projects.libs.serde.serdeKsp)
     add("kspJvm", projects.libs.json.jsonKsp)
-    add("kapt", libs.dslJson)
 }
 
 ksp {
@@ -50,9 +49,7 @@ benchmark {
         }
         register("jsonQuickComparison") {
             include(".*JsonStreamBenchmark.generatedReadString")
-            include(".*JsonStreamBenchmark.dslReadString")
             include(".*JsonStreamBenchmark.generatedWriteString")
-            include(".*JsonStreamBenchmark.dslWriteString")
             param("payload", "ASCII_SMALL")
             warmups = 5
             iterations = 5
