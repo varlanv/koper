@@ -23,15 +23,14 @@ internal object JsonDecimalDigits {
         number: Int,
         end: Int,
     ): Int {
-        var index = end
-        buffer[--index] = ones[number % 100]
-        if (number >= 10) {
-            buffer[--index] = tens[number % 100]
-        }
-        if (number >= 100) {
-            buffer[--index] = ('0'.code + number / 100).toByte()
-        }
-        return index
+        val a = (9 - number) ushr 31
+        val b = (99 - number) ushr 31
+        val index = end - 1
+        val digits = triplets[number]
+        buffer[index - a - b] = digits.toByte()
+        buffer[index - a] = (digits ushr 8).toByte()
+        buffer[index] = (digits ushr 16).toByte()
+        return index - a - b
     }
 
     /** Computes the decimal byte length using Int arithmetic, including Int.MIN_VALUE. */

@@ -65,6 +65,39 @@ class JsonValueCodecSpec : BaseSpec({
         )
     }
 
+    should("write signed integers at every decimal boundary") {
+        val values = mutableSetOf(0L, Long.MIN_VALUE, Long.MAX_VALUE, Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong())
+        for (number in -999..999) {
+            values.add(number.toLong())
+        }
+        var power = 1L
+        repeat(19) {
+            for (delta in -1L..1L) {
+                values.add(power + delta)
+                values.add(-(power + delta))
+            }
+            if (it < 18) {
+                power *= 10
+            }
+        }
+        for (value in values) {
+            roundTrip(
+                writerCodec = LongJsonCodec,
+                readerCodec = LongJsonCodec,
+                value = value,
+                expectedJson = value.toString(),
+            )
+            if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+                roundTrip(
+                    writerCodec = IntJsonCodec,
+                    readerCodec = IntJsonCodec,
+                    value = value.toInt(),
+                    expectedJson = value.toString(),
+                )
+            }
+        }
+    }
+
     should("read integer boundaries and reject malformed integers") {
         val validInts = mapOf("0" to 0, "-0" to 0, "2147483647" to Int.MAX_VALUE, "-2147483648" to Int.MIN_VALUE)
         val validLongs = mapOf(
