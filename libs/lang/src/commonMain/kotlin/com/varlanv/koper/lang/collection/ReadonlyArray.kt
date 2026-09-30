@@ -1,4 +1,5 @@
 @file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.lang.collection
 
 import kotlin.jvm.JvmInline
@@ -11,7 +12,7 @@ value class ReadonlyArray<T>(@PublishedApi internal val array: Array<out T>) {
         array.forEach(block)
     }
 
-    inline  fun asList(): List<T> = array.asList()
+    inline fun asList(): List<T> = array.asList()
 
     inline fun <R> associateBy(block: (T) -> R): Map<R, T> = array.associateBy(block)
 }

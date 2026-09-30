@@ -38,8 +38,8 @@ actual fun Bytes.mismatch(
     if (bytes.impl !== b.bytes.impl || aFromIndex != bFromIndex) {
         var i = 0
         while (i <= length - 4) {
-            if (bytes.impl.getUint32(byteOffset = aFromIndex + i) !=
-                b.bytes.impl.getUint32(byteOffset = bFromIndex + i)) {
+            if (bytes.impl.getUint32(byteOffset = aFromIndex + i) != b.bytes.impl.getUint32(byteOffset = bFromIndex + i)
+            ) {
                 break
             }
             i += 4

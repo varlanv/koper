@@ -38,7 +38,8 @@ class StringSource(private val string: String) : ByteSource {
             } else {
                 val codepoint = if (char.isHighSurrogate() &&
                     position < string.length &&
-                    string[position].isLowSurrogate()) {
+                    string[position].isLowSurrogate()
+                ) {
                     char.toCodePoint(string[position++])
                 } else {
                     char.code

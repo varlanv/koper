@@ -7,7 +7,7 @@ import com.dslplatform.json.JsonWriter
 import com.dslplatform.json.runtime.Settings
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.asReadonly
-import com.varlanv.koper.lang.bin.slice
+import com.varlanv.koper.lang.bin.toSlice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import java.io.InputStream
@@ -75,7 +75,7 @@ object Utf8StrConverter {
                     Utf8Str.empty
                 } else {
                     Utf8Str.unsafeWrap(
-                        bytes.copyOfRange(start, index).asReadonly().slice(offset = 0, len = index- start),
+                        bytes.copyOfRange(start, index).asReadonly().toSlice(offset = 0, len = index- start),
                     )
                 }
             }
@@ -100,7 +100,7 @@ object Utf8StrConverter {
                 return if (size == 0) {
                     Utf8Str.empty
                 } else {
-                    Utf8Str.unsafeWrap(buffer.copyOf(size).asReadonly().slice(offset = 0, len = size))
+                    Utf8Str.unsafeWrap(buffer.copyOf(size).asReadonly().toSlice(offset = 0, len = size))
                 }
             }
             if (b < 0x20) {

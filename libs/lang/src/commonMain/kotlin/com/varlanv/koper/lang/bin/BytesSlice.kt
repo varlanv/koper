@@ -12,18 +12,18 @@ class BytesSlice(
     }
 
     inline fun getPackedInt(idx: Int): Int {
-        require(idx >= offset && idx <= offset + len - Int.SIZE_BYTES)
-        return bytes.bytes.getPackedInt(idx)
+        require(idx >= 0 && idx <= len - Int.SIZE_BYTES)
+        return bytes.bytes.getPackedInt(offset + idx)
     }
 
-    inline    fun getPackedLong(idx: Int): Long {
-        require(idx >= offset && idx <= offset + len - Long.SIZE_BYTES)
-        return bytes.bytes.getPackedLong(idx)
+    inline fun getPackedLong(idx: Int): Long {
+        require(idx >= 0 && idx <= len - Long.SIZE_BYTES)
+        return bytes.bytes.getPackedLong(offset + idx)
     }
 
     inline fun getPackedShort(idx: Int): Short {
-        require(idx >= offset && idx <= offset + len - Short.SIZE_BYTES)
-        return bytes.bytes.getPackedShort(idx)
+        require(idx >= 0 && idx <= len - Short.SIZE_BYTES)
+        return bytes.bytes.getPackedShort(offset + idx)
     }
 
     inline fun forEach(block: (Byte) -> Unit) {
@@ -36,13 +36,13 @@ class BytesSlice(
     inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit) {
         val limit = offset + len
         for (idx in offset until limit) {
-            block(idx, bytes.bytes.impl[idx])
+            block(idx - offset, bytes.bytes.impl[idx])
         }
     }
 
     inline operator fun get(idx: Int): Byte {
-        require(idx >= offset && idx < offset + len)
-        return bytes.bytes.impl[idx]
+        require(idx >= 0 && idx < len)
+        return bytes.bytes.impl[offset + idx]
     }
 
     override fun equals(other: Any?): Boolean =

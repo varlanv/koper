@@ -264,6 +264,7 @@ private fun formatAdjustedDouble(
             array = array,
             offset = offset,
         )
+
         adjusted >= 4294967296.0 -> formatDoubleLimbs(
             high = high + 1,
             low = adjusted - 4294967296.0,
@@ -271,6 +272,7 @@ private fun formatAdjustedDouble(
             array = array,
             offset = offset,
         )
+
         else -> formatDoubleLimbs(high = high, low = adjusted, exponent = exponent, array = array, offset = offset)
     }
 }

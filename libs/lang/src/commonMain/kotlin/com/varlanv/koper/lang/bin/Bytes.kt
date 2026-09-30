@@ -34,7 +34,7 @@ inline fun Bytes.isEmpty(): Boolean = size == 0
 
 inline fun Bytes.copyOf(newCapacity: Int = size): Bytes = this.bytes.copyOf(newCapacity).asReadonly()
 
-inline fun Bytes.slice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
+inline fun Bytes.toSlice(offset: Int, len: Int): BytesSlice = BytesSlice(bytes = this, offset = offset, len = len)
 
 inline fun Bytes.getPackedLong(idx: Int): Long = bytes.getPackedLong(idx)
 

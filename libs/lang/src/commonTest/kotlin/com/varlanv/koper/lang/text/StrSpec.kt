@@ -1,9 +1,8 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.bin.asReadonly
-import com.varlanv.koper.lang.bin.slice
+import com.varlanv.koper.lang.bin.toSlice
 import com.varlanv.koper.lang.bin.validateUtf8
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
@@ -115,7 +114,7 @@ class StrSpec : BaseSpec({
         val str = Utf8Str.unsafeWrap(slice)
         (str.slice.bytes == slice.bytes) shouldBe true
         str.allocateString() shouldBe "é中🙂"
-        Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = bytes.size, len = 0)).allocateString() shouldBe ""
+        Utf8Str.unsafeWrap(bytes.asReadonly().toSlice(offset = bytes.size, len = 0)).allocateString() shouldBe ""
     }
 
     should("reject malformed UTF-8 and invalid slice bounds") {

@@ -5,32 +5,32 @@ import kotlin.jvm.JvmInline
 @Suppress("NOTHING_TO_INLINE")
 @JvmInline
 value class MutBytesSlice @PublishedApi internal constructor(@PublishedApi internal val delegate: BytesSlice) {
-    inline  fun setPackedLong(idx: Int, value: Long) {
-        require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Long.SIZE_BYTES)
-        delegate.bytes.bytes.setPackedLong(idx = idx, value = value)
+    inline fun setPackedLong(idx: Int, value: Long) {
+        require(idx >= 0 && idx <= delegate.len - Long.SIZE_BYTES)
+        delegate.bytes.bytes.setPackedLong(idx = delegate.offset + idx, value = value)
     }
 
     inline fun setPackedInt(idx: Int, value: Int) {
-        require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Int.SIZE_BYTES)
-        delegate.bytes.bytes.setPackedInt(idx = idx, value = value)
+        require(idx >= 0 && idx <= delegate.len - Int.SIZE_BYTES)
+        delegate.bytes.bytes.setPackedInt(idx = delegate.offset + idx, value = value)
     }
 
     inline fun setPackedShort(idx: Int, value: Short) {
-        require(idx >= delegate.offset && idx <= delegate.offset + delegate.len - Short.SIZE_BYTES)
-        delegate.bytes.bytes.setPackedShort(idx = idx, value = value)
+        require(idx >= 0 && idx <= delegate.len - Short.SIZE_BYTES)
+        delegate.bytes.bytes.setPackedShort(idx = delegate.offset + idx, value = value)
     }
 
-    inline  operator fun set(idx: Int, value: Byte) {
-        require(idx >= delegate.offset && idx < delegate.offset + delegate.len)
-        delegate.bytes.bytes.impl[idx] = value
+    inline operator fun set(idx: Int, value: Byte) {
+        require(idx >= 0 && idx < delegate.len)
+        delegate.bytes.bytes.impl[delegate.offset + idx] = value
     }
 
-    inline  operator fun get(idx: Int): Byte {
-        require(idx >= delegate.offset && idx < delegate.offset + delegate.len)
-        return delegate.bytes.bytes.impl[idx]
+    inline operator fun get(idx: Int): Byte {
+        require(idx >= 0 && idx < delegate.len)
+        return delegate.bytes.bytes.impl[delegate.offset + idx]
     }
 
-    inline   fun copyFrom(
+    inline fun copyFrom(
         source: Bytes,
         sourceOffset: Int = 0,
         sourceLength: Int = source.size - sourceOffset,

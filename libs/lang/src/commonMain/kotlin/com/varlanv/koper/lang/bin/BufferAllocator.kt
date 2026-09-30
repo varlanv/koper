@@ -1,7 +1,7 @@
 package com.varlanv.koper.lang.bin
 
 class BufferAllocator(dataSize: DataSize) {
-    inline fun<T> use(block: (buffer: MovingBytesSlice) -> T): T {
+    inline fun <T> use(block: (buffer: MovingBytesSlice) -> T): T {
         try {
             return block(MovingBytesSlice())
         } finally {

@@ -25,13 +25,13 @@ class BytesSliceSpec : BaseSpec({
 
     should("get only bytes inside the slice") {
         val slice = BytesSlice(bytes = MutBytes(byteArrayOf(9, 1, 2, 8)).asReadonly(), offset = 1, len = 2)
-        slice[1] shouldBe 1
-        slice[2] shouldBe 2
-        for (idx in listOf(-1, 0, 3, Int.MAX_VALUE)) {
+        slice[0] shouldBe 1
+        slice[1] shouldBe 2
+        for (idx in listOf(-1, 2, 3, Int.MAX_VALUE)) {
             shouldThrow<IllegalArgumentException> { slice[idx] }
         }
         shouldThrow<IllegalArgumentException> {
-            BytesSlice(bytes = slice.bytes, offset = 4, len = 0)[4]
+            BytesSlice(bytes = slice.bytes, offset = 4, len = 0)[0]
         }
     }
 
@@ -39,36 +39,38 @@ class BytesSliceSpec : BaseSpec({
         val backing = MutBytes(ByteArray(16) { it.toByte() })
         val slice = BytesSlice(bytes = backing.asReadonly(), offset = 2, len = 8)
 
-        slice.getPackedShort(2) shouldBe backing.getPackedShort(2)
-        slice.getPackedShort(8) shouldBe backing.getPackedShort(8)
-        slice.getPackedInt(2) shouldBe backing.getPackedInt(2)
-        slice.getPackedInt(6) shouldBe backing.getPackedInt(6)
-        slice.getPackedLong(2) shouldBe backing.getPackedLong(2)
+        slice.getPackedShort(0) shouldBe backing.getPackedShort(2)
+        slice.getPackedShort(6) shouldBe backing.getPackedShort(8)
+        slice.getPackedInt(0) shouldBe backing.getPackedInt(2)
+        slice.getPackedInt(4) shouldBe backing.getPackedInt(6)
+        slice.getPackedLong(0) shouldBe backing.getPackedLong(2)
 
-        for (idx in listOf(1, 9, Int.MAX_VALUE)) {
+        for (idx in listOf(-1, 7, 8, Int.MAX_VALUE)) {
             shouldThrow<IllegalArgumentException> { slice.getPackedShort(idx) }
         }
-        for (idx in listOf(1, 7, Int.MAX_VALUE)) {
+        for (idx in listOf(-1, 5, 8, Int.MAX_VALUE)) {
             shouldThrow<IllegalArgumentException> { slice.getPackedInt(idx) }
         }
-        for (idx in listOf(1, 3, Int.MAX_VALUE)) {
+        for (idx in listOf(-1, 1, 8, Int.MAX_VALUE)) {
             shouldThrow<IllegalArgumentException> { slice.getPackedLong(idx) }
         }
 
         val tooShort = BytesSlice(bytes = backing.asReadonly(), offset = 2, len = 1)
-        shouldThrow<IllegalArgumentException> { tooShort.getPackedShort(2) }
-        shouldThrow<IllegalArgumentException> { tooShort.getPackedInt(2) }
-        shouldThrow<IllegalArgumentException> { tooShort.getPackedLong(2) }
+        shouldThrow<IllegalArgumentException> { tooShort.getPackedShort(0) }
+        shouldThrow<IllegalArgumentException> { tooShort.getPackedInt(0) }
+        shouldThrow<IllegalArgumentException> { tooShort.getPackedLong(0) }
     }
 
     should("visit the entire slice when its offset exceeds its length") {
         val slice = BytesSlice(bytes = MutBytes(byteArrayOf(0, 0, 0, 1, 2, 0)).asReadonly(), offset = 3, len = 2)
+        slice[0] shouldBe 1
+        slice[1] shouldBe 2
         val values = mutableListOf<Byte>()
         slice.forEach { values.add(it) }
         values shouldBe listOf<Byte>(1, 2)
         val indexed = mutableListOf<Pair<Int, Byte>>()
         slice.forEachIndexed { index, value -> indexed.add(index to value) }
-        indexed shouldBe listOf(3 to 1.toByte(), 4 to 2.toByte())
+        indexed shouldBe listOf(0 to 1.toByte(), 1 to 2.toByte())
     }
 
     should("skip iteration for empty slices at either end of an array") {

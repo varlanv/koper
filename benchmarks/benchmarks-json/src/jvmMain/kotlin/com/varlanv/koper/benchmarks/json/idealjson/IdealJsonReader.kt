@@ -69,7 +69,7 @@ class IdealJsonReader(
                     return Utf8Str.empty
                 }
                 val bytes = buffer.copyOfRange(from = start, to = index)
-                return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
+                return Utf8Str.unsafeWrap(bytes.asReadonly().toSlice(offset = 0, len = bytes.size))
             }
             if (value == 92 || value < 32) {
                 break
@@ -84,7 +84,7 @@ class IdealJsonReader(
             readStringToScratch(false)
         }
         val bytes = scratch.copyOf(scratchSize)
-        return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
+        return Utf8Str.unsafeWrap(bytes.asReadonly().toSlice(offset = 0, len = bytes.size))
     }
 
     fun readString(): String {

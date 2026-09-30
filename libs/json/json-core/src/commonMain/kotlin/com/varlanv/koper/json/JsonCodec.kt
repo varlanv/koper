@@ -2,9 +2,8 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
-import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.asReadonly
-import com.varlanv.koper.lang.bin.slice
+import com.varlanv.koper.lang.bin.toSlice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.allocateString
@@ -494,6 +493,6 @@ object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
             from = parseScope.stringOffset,
             to = parseScope.stringOffset + parseScope.stringLength,
         )
-        return Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = bytes.size))
+        return Utf8Str.unsafeWrap(bytes.asReadonly().toSlice(offset = 0, len = bytes.size))
     }
 }

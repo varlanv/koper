@@ -1,11 +1,6 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.BytesSlice
-import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.bin.asMut
-import com.varlanv.koper.lang.bin.asReadonly
-import com.varlanv.koper.lang.bin.slice
+import com.varlanv.koper.lang.bin.*
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint16Array
 import org.khronos.webgl.Uint8Array
@@ -118,13 +113,13 @@ private fun encodeUtf8(
         size += width
     }
 
-    val result = ByteArray(size)
+    val result = size.bytes().allocate()
     var position = 0
     string.forEachCodePointInRange(start = start, end = end) { cp ->
         Charset.Utf8.encodeCodepointInline(cp) { result[position++] = it }
     }
 
-    return result.asMut().asReadonly().slice(offset = 0, len = result.size)
+    return result.asReadonly().toSlice(offset = 0, len = result.size)
 }
 
 actual fun Charset.allocateString(

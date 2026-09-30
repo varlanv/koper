@@ -2,7 +2,7 @@ package com.varlanv.koper.test
 
 import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.kilobytes
-import com.varlanv.koper.lang.bin.slice
+import com.varlanv.koper.lang.bin.toSlice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import kotlin.reflect.KClass
@@ -19,7 +19,7 @@ private object SampleBuffer {
         Charset.Utf8.encodeInline(value) { put(it.toInt()) }
     }
 
-    fun result(): Utf8Str = Utf8Str.unsafeWrap(bytes.asReadonly().slice(offset = 0, len = size))
+    fun result(): Utf8Str = Utf8Str.unsafeWrap(bytes.asReadonly().toSlice(offset = 0, len = size))
 
     private fun put(value: Int) {
         check(size < bytes.size) { "Fixture source exceeds the 10 KiB sample buffer" }
