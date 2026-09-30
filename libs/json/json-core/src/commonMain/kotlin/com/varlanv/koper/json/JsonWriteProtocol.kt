@@ -19,8 +19,9 @@ object JsonWriteProtocol {
      */
     context(sink: ByteSink, writeScope: JsonWriteScope)
     fun flush() {
-        if (writeScope.position != 0) {
-            sink.writeTo(source = writeScope.buffer, offset = 0, length = writeScope.position)
+        val pos = writeScope.position
+        if (pos != 0) {
+            sink.writeTo(source = writeScope.buffer, offset = 0, length = pos)
             writeScope.position = 0
         }
     }
@@ -74,13 +75,14 @@ object JsonWriteProtocol {
         offset: Int = 0,
         length: Int = bytes.size - offset,
     ) {
+        val pos = writeScope.position
         bytes.copyInto(
             destination = writeScope.buffer,
-            destinationOffset = writeScope.position,
+            destinationOffset = pos,
             startIndex = offset,
             endIndex = offset + length,
         )
-        writeScope.position += length
+        writeScope.position = pos + length
     }
 
     /**
@@ -91,30 +93,35 @@ object JsonWriteProtocol {
      */
     context(writeScope: JsonWriteScope)
     fun writeRaw(first: Int, second: Short) {
-        writeScope.buffer.setPackedInt(idx = writeScope.position, value = first)
-        writeScope.buffer.setPackedShort(idx = writeScope.position + 4, value = second)
-        writeScope.position += 6
+        val pos = writeScope.position
+        val output = writeScope.buffer
+        output.setPackedInt(idx = pos, value = first)
+        output.setPackedShort(idx = pos + 4, value = second)
+        writeScope.position = pos + 6
     }
 
     /** Appends four little-endian bytes without reserving or flushing output. */
     context(writeScope: JsonWriteScope)
     fun writeRaw(value: Int) {
-        writeScope.buffer.setPackedInt(idx = writeScope.position, value = value)
-        writeScope.position += 4
+        val pos = writeScope.position
+        writeScope.buffer.setPackedInt(idx = pos, value = value)
+        writeScope.position = pos + 4
     }
 
     /** Appends two little-endian bytes without reserving or flushing output. */
     context(writeScope: JsonWriteScope)
     fun writeRaw(value: Short) {
-        writeScope.buffer.setPackedShort(idx = writeScope.position, value = value)
-        writeScope.position += 2
+        val pos = writeScope.position
+        writeScope.buffer.setPackedShort(idx = pos, value = value)
+        writeScope.position = pos + 2
     }
 
     /** Appends eight little-endian bytes with the platform's packed stores. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
     fun writeRaw(first: Int, second: Int) {
-        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
-        writeScope.position += 8
+        val pos = writeScope.position
+        jsonWritePackedBytes(target = writeScope.buffer, offset = pos, low = first, high = second)
+        writeScope.position = pos + 8
     }
 
     /** Appends ten little-endian bytes. Requires reserved capacity. */
@@ -124,9 +131,11 @@ object JsonWriteProtocol {
         second: Int,
         third: Short,
     ) {
-        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
-        writeScope.buffer.setPackedShort(idx = writeScope.position + 8, value = third)
-        writeScope.position += 10
+        val output = writeScope.buffer
+        val pos = writeScope.position
+        jsonWritePackedBytes(target = output, offset = pos, low = first, high = second)
+        output.setPackedShort(idx = pos + 8, value = third)
+        writeScope.position = pos + 10
     }
 
     /** Appends twelve little-endian bytes. Requires reserved capacity. */
@@ -136,8 +145,10 @@ object JsonWriteProtocol {
         second: Int,
         third: Int,
     ) {
-        jsonWritePackedBytes(target = writeScope.buffer, offset = writeScope.position, low = first, high = second)
-        writeScope.buffer.setPackedInt(idx = writeScope.position + 8, value = third)
-        writeScope.position += 12
+        val output = writeScope.buffer
+        val pos = writeScope.position
+        jsonWritePackedBytes(target = output, offset = pos, low = first, high = second)
+        output.setPackedInt(idx = pos + 8, value = third)
+        writeScope.position = pos + 12
     }
 }

@@ -385,6 +385,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
 }
 
 object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
+    private const val zeroShort: Short = 0
+
     override val hints: JsonCodec.Hints<String> = JsonCodec.Hints(
         size = JsonValueSize.FromValue { value ->
             JsonWriteProtocol.addStringSize(maximumBytes = 2, length = value.length)
@@ -402,7 +404,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             val char = value[index].code
             if (char < 128) {
                 val pair = JsonStringEscapes.escapePairs[char]
-                if (pair.toInt() == 0) {
+                if (pair == zeroShort) {
                     output[position++] = char.toByte()
                 } else {
                     output.setPackedShort(idx = position, value = pair)
