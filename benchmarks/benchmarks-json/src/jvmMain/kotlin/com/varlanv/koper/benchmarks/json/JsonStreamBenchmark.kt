@@ -78,13 +78,10 @@ class JsonStreamBenchmark {
         parseScope = JsonReadScope(32.kilobytes())
 
         check(generatedReadUtf8() == strValue)
-        check(generatedReadMixed() == mixedValue)
         check(generatedReadString() == stringValue)
         generatedWriteUtf8()
         check(output.toByteArray().contentEquals(arr))
         generatedWriteString()
-        check(output.toByteArray().contentEquals(arr))
-        generatedWriteMixed()
         check(output.toByteArray().contentEquals(arr))
     }
 
@@ -130,28 +127,6 @@ class JsonStreamBenchmark {
             JsonWriteProtocol.flush()
         }
         return output
-    }
-
-    @Benchmark
-    fun generatedWriteMixed(): RecycledOutputStream {
-        output.reset()
-        writeScope.scoped(streamOutput) {
-            JsonMixedSampleJsonCodec.write(mixedValue)
-            JsonWriteProtocol.flush()
-        }
-        return output
-    }
-
-    @Benchmark
-    fun generatedReadMixed(): JsonMixedSample {
-        input.reset()
-        lateinit var value: JsonMixedSample
-        parseScope.scoped(streamInput) {
-            JsonReadProtocol.nextToken()
-            value = JsonMixedSampleJsonCodec.read()
-            check(JsonReadProtocol.nextToken() == -1)
-        }
-        return value
     }
 }
 
