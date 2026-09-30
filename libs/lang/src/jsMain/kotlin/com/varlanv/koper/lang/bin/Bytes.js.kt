@@ -1,4 +1,4 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "OVERRIDE_BY_INLINE")
 
 package com.varlanv.koper.lang.bin
 
@@ -60,11 +60,11 @@ actual fun Bytes.mismatch(
 }
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-actual value class Bytes actual constructor(@PublishedApi internal actual val bytes: MutBytes) {
+actual value class Bytes actual constructor(@PublishedApi internal actual val bytes: MutBytes) : BytesOperations {
     actual inline val size: Int
         get() = bytes.size
 
-    actual inline operator fun get(idx: Int): Byte = bytes[idx]
+    actual override inline operator fun get(idx: Int): Byte = bytes[idx]
 
     actual inline fun copyInto(
         destination: MutBytes,
@@ -78,8 +78,31 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         endIndex = endIndex,
     )
 
-    actual inline fun asList(): List<Byte> {
+    actual override inline fun asList(): List<Byte> {
         return Array(size) { idx -> bytes[idx] }.asList()
+    }
+
+    actual override fun forEachIndex(block: (idx: Int) -> Unit) {
+        val sz = bytes.impl.size()
+        for (idx in 0 until sz) {
+            block(idx)
+        }
+    }
+
+    actual override fun forEachIndexed(block: (Byte) -> Unit) {
+        val impl = bytes.impl
+        val sz = impl.size()
+        for (idx in 0 until sz) {
+            block(impl[idx])
+        }
+    }
+
+    actual override fun forEachIndexed(block: (index: Int, Byte) -> Unit) {
+        val impl = bytes.impl
+        val sz = impl.size()
+        for (idx in 0 until sz) {
+            block(idx, impl[idx])
+        }
     }
 
     actual companion object {

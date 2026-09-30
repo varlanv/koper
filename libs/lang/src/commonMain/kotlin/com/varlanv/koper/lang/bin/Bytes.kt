@@ -1,6 +1,18 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "OVERRIDE_BY_INLINE")
 
 package com.varlanv.koper.lang.bin
+
+internal interface BytesOperations {
+    operator fun get(idx: Int): Byte
+
+    fun asList(): List<Byte>
+
+    fun forEachIndex(block: (idx: Int) -> Unit)
+
+    fun forEachIndexed(block: (Byte) -> Unit)
+
+    fun forEachIndexed(block: (index: Int, Byte) -> Unit)
+}
 
 expect fun Bytes.mismatch(
     aFromIndex: Int,
@@ -11,10 +23,10 @@ expect fun Bytes.mismatch(
 ): Int
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
-expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
+expect value class Bytes(@PublishedApi internal val bytes: MutBytes) : BytesOperations {
     inline val size: Int
 
-    inline operator fun get(idx: Int): Byte
+    override inline operator fun get(idx: Int): Byte
 
     inline fun copyInto(
         destination: MutBytes,
@@ -23,7 +35,13 @@ expect value class Bytes(@PublishedApi internal val bytes: MutBytes) {
         endIndex: Int = size,
     )
 
-    inline fun asList(): List<Byte>
+    override inline fun asList(): List<Byte>
+
+    override fun forEachIndex(block: (idx: Int) -> Unit)
+
+    override fun forEachIndexed(block: (Byte) -> Unit)
+
+    override fun forEachIndexed(block: (index: Int, Byte) -> Unit)
 
     companion object {
         inline val empty: Bytes

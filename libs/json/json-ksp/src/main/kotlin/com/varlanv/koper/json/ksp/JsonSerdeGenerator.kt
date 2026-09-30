@@ -29,7 +29,7 @@ private val knownFieldTypes = mapOf(
     "com.varlanv.koper.lang.text.Utf8Str" to FieldType.UTF8STR,
 )
 
-private data class JsonField(
+private class JsonField(
     val name: String,
     val type: FieldType,
     val nameBytes: ByteArray,
@@ -189,11 +189,13 @@ private fun generateSource(
         appendLine()
     }
     appendLine(
-        "${if (visibility == Visibility.INTERNAL) {
+        "${
+        if (visibility == Visibility.INTERNAL) {
             "internal "
         } else {
             ""
-        }}object ${identifier(codecName)} : $interfaces {",
+        }
+        }object ${identifier(codecName)} : $interfaces {",
     )
     if (read) {
         fields.forEachIndexed { index, field ->
@@ -220,11 +222,13 @@ private fun generateSource(
         appendLine("    context(sink: $binType.ByteSink, writeScope: $jsonType.JsonWriteScope)")
         appendLine("    override fun write(value: $classType) {")
         appendLine(
-            "        $writeProtocol.reserve(${if (variableFields.isEmpty()) {
+            "        $writeProtocol.reserve(${
+            if (variableFields.isEmpty()) {
                 "$fixedMaximum"
             } else {
                 "maximumBytes(value)"
-            }})",
+            }
+            })",
         )
         if (fields.isEmpty()) {
             appendLine("        $writeProtocol.writeByte(123)")
@@ -361,11 +365,13 @@ private fun generateSource(
                     "_field$index"
                 }
                 appendLine(
-                    "            ${identifier(field.name)} = $value${if (index == fields.lastIndex) {
+                    "            ${identifier(field.name)} = $value${
+                    if (index == fields.lastIndex) {
                         ""
                     } else {
                         ","
-                    }}",
+                    }
+                    }",
                 )
             }
             appendLine("        )")
@@ -387,23 +393,23 @@ private fun StringBuilder.appendPackedWrites(
             remaining >= 12 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
-                        "second = ${packedInt(
-                            bytes = bytes,
-                            start = index + 4,
-                        )}, third = ${packedInt(bytes = bytes, start = index + 8)})",
+                        "second = ${
+                        packedInt(bytes = bytes, start = index + 4)
+                        }, third = ${packedInt(bytes = bytes, start = index + 8)})",
                 )
                 index += 12
             }
+
             remaining >= 10 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
-                        "second = ${packedInt(
-                            bytes = bytes,
-                            start = index + 4,
-                        )}, third = ${packedShort(bytes = bytes, start = index + 8)})",
+                        "second = ${
+                        packedInt(bytes = bytes, start = index + 4)
+                        }, third = ${packedShort(bytes = bytes, start = index + 8)})",
                 )
                 index += 10
             }
+
             remaining >= 8 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
@@ -411,6 +417,7 @@ private fun StringBuilder.appendPackedWrites(
                 )
                 index += 8
             }
+
             remaining >= 6 -> {
                 appendLine(
                     "${indent}$writeProtocol.writeRaw(first = ${packedInt(bytes = bytes, start = index)}, " +
@@ -418,14 +425,17 @@ private fun StringBuilder.appendPackedWrites(
                 )
                 index += 6
             }
+
             remaining >= 4 -> {
                 appendLine("${indent}$writeProtocol.writeRaw(value = ${packedInt(bytes = bytes, start = index)})")
                 index += 4
             }
+
             remaining >= 2 -> {
                 appendLine("${indent}$writeProtocol.writeRaw(value = ${packedShort(bytes = bytes, start = index)})")
                 index += 2
             }
+
             else -> {
                 appendLine("${indent}$writeProtocol.writeByte(${bytes[index].toInt() and 255})")
                 index++

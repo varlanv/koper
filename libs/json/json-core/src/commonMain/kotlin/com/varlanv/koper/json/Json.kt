@@ -17,7 +17,7 @@ val GlobalJson = Json()
  *
  * @param allocator Allocator leased by [readFrom] and released through its use callback.
  */
-class Json(private val allocator: BufferAllocator = BufferAllocator(128.kilobytes())) {
+class Json(private val allocator: BufferAllocator = BufferAllocator(16.kilobytes())) {
     /**
      * Invokes [writeCodec] for [value] with a newly allocated write scope and the supplied [sink].
      * The codec may flush output, but this entry point does not flush final pending bytes; scope exit discards them.

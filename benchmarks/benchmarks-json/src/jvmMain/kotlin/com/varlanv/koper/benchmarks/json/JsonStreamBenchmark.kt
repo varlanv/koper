@@ -20,6 +20,7 @@ class JsonStreamBenchmark {
 
     private lateinit var strValue: JsonStrSample
     private lateinit var mixedValue: JsonMixedSample
+    private lateinit var stringValue: JsonStringSample
     private lateinit var dslMixedValue: DslMixedSample
     private lateinit var dslStringValue: DslStringSample
     private lateinit var dslUtf8Value: DslUtf8Sample
@@ -92,6 +93,15 @@ class JsonStreamBenchmark {
                 sequence = strValue.sequence,
                 active = strValue.active,
             )
+        stringValue =
+            JsonStringSample(
+                id = strValue.id,
+                symbol = mixedValue.symbol,
+                text = text,
+                sequence = strValue.sequence,
+                active = strValue.active,
+            )
+
         dslStringParent = object : DslJsonParent<DslStringSample>(DslStringSample::class) {}
         dslMixedParent = object : DslJsonParent<DslMixedSample>(DslMixedSample::class) {}
         dslUtf8Parent = object : DslJsonParent<DslUtf8Sample>(DslUtf8Sample::class) {}
@@ -113,7 +123,10 @@ class JsonStreamBenchmark {
 
         check(generatedReadUtf8() == strValue)
         check(generatedReadMixed() == mixedValue)
+        check(generatedReadString() == stringValue)
         generatedWriteUtf8()
+        check(output.toByteArray().contentEquals(arr))
+        generatedWriteString()
         check(output.toByteArray().contentEquals(arr))
         generatedWriteMixed()
         check(output.toByteArray().contentEquals(arr))
@@ -157,6 +170,28 @@ class JsonStreamBenchmark {
             check(JsonReadProtocol.nextToken() == -1)
         }
         return value
+    }
+
+    @Benchmark
+    fun generatedReadString(): JsonStringSample {
+        input.reset()
+        lateinit var value: JsonStringSample
+        parseScope.scoped(streamInput) {
+            JsonReadProtocol.nextToken()
+            value = JsonStringSampleJsonCodec.read()
+            check(JsonReadProtocol.nextToken() == -1)
+        }
+        return value
+    }
+
+    @Benchmark
+    fun generatedWriteString(): RecycledOutputStream {
+        output.reset()
+        writeScope.scoped(streamOutput) {
+            JsonStringSampleJsonCodec.write(stringValue)
+            JsonWriteProtocol.flush()
+        }
+        return output
     }
 
     @Benchmark

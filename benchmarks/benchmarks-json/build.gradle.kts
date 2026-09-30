@@ -48,6 +48,18 @@ benchmark {
             iterationTimeUnit = "s"
             advanced("jvmForks", 1)
         }
+        register("jsonQuickComparison") {
+            include(".*JsonStreamBenchmark.generatedReadString")
+            include(".*JsonStreamBenchmark.dslReadString")
+            include(".*JsonStreamBenchmark.generatedWriteString")
+            include(".*JsonStreamBenchmark.dslWriteString")
+            param("payload", "ASCII_SMALL")
+            warmups = 5
+            iterations = 5
+            iterationTime = 1
+            iterationTimeUnit = "s"
+            advanced("jvmForks", 1)
+        }
         register("jsonGeneratedRw") {
             include(".*JsonStreamBenchmark\\.generated.*")
             warmups = 5

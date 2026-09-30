@@ -18,6 +18,16 @@ data class JsonStrSample(
 
 @Ser
 @De
+data class JsonStringSample(
+    val id: Long,
+    val symbol: String,
+    val text: String,
+    val sequence: Int,
+    val active: Boolean,
+)
+
+@Ser
+@De
 data class JsonMixedSample(
     val id: Long,
     val symbol: String,
