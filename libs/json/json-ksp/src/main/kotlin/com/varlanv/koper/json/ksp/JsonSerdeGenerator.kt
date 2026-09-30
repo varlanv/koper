@@ -206,7 +206,7 @@ private fun generateSource(
     }
     if (write) {
         val size = if (variableFields.isEmpty()) {
-            "$jsonType.JsonValueSize.Static(${fixedMaximum}L)"
+            "$jsonType.JsonValueSize.Static(${fixedMaximum})"
         } else {
             "$jsonType.JsonValueSize.FromValue<$classType> { value -> maximumBytes(value) }"
         }
@@ -247,9 +247,9 @@ private fun generateSource(
                 } else {
                     "value.${identifier(field.name)}.byteLen"
                 }
-                "$size.toLong() * 6L"
+                "$size * 6"
             }
-            appendLine("    private fun maximumBytes(value: $classType): Long = ${fixedMaximum}L + $extra")
+            appendLine("    private fun maximumBytes(value: $classType): Int = ${fixedMaximum} + $extra")
         }
     }
     if (read) {

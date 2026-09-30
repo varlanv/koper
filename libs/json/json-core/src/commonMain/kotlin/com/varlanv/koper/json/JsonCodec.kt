@@ -89,13 +89,13 @@ sealed interface JsonValueSize<in T> {
     /**
      * Fixed maximum encoded byte count; construction records the bound without performing output operations.
      */
-    data class Static(val maximumBytes: Long) : JsonValueSize<Any?>
+    data class Static(val maximumBytes: Int) : JsonValueSize<Any?>
 
     /**
      * Value-dependent maximum encoded byte count. The stored function returns a [Long] bound for its input;
      * construction stores the function without invoking it or writing bytes.
      */
-    class FromValue<T>(val maximumBytes: (T) -> Long) : JsonValueSize<T>
+    class FromValue<T>(val maximumBytes: (T) -> Int) : JsonValueSize<T>
 
     /**
      * No bounded size is supplied; callers cannot determine a complete reservation from this hint alone.
@@ -341,7 +341,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
 
 object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     override val hints: JsonCodec.Hints<String> = JsonCodec.Hints(
-        size = JsonValueSize.FromValue { value -> 2L + value.length.toLong() * 6L },
+        size = JsonValueSize.FromValue { value -> 2 + value.length * 6 },
         isJsonPrimitive = true,
     )
 
@@ -399,7 +399,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
 
 object Utf8StrJsonCodec : JsonCodec.Read<Utf8Str>, JsonCodec.Write<Utf8Str> {
     override val hints: JsonCodec.Hints<Utf8Str> = JsonCodec.Hints(
-        size = JsonValueSize.FromValue { value -> 2L + value.byteLen.toLong() * 6L },
+        size = JsonValueSize.FromValue { value -> 2 + value.byteLen * 6 },
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )

@@ -124,7 +124,7 @@ private fun encodeUtf8(
         Charset.Utf8.encodeCodepointInline(cp) { result[position++] = it }
     }
 
-    return result.asMut().asReadonly().slice( offset = 0, len = result.size)
+    return result.asMut().asReadonly().slice(offset = 0, len = result.size)
 }
 
 actual fun Charset.allocateString(

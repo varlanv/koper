@@ -68,5 +68,5 @@ internal object HandwrittenJsonSampleCodec : JsonCodec.Read<HandwrittenJsonSampl
         return HandwrittenJsonSample(id = id, text = text ?: error("Missing text"))
     }
 
-    private fun maximumBytes(value: HandwrittenJsonSample): Long = 28L + value.text.length.toLong() * 6L
+    private fun maximumBytes(value: HandwrittenJsonSample): Int = 28 + value.text.length * 6
 }
