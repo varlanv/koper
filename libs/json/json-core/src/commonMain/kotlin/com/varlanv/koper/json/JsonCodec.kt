@@ -316,8 +316,8 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
         isJsonPrimitive = true,
         isBoxedByGeneric = true,
     )
-    private val trueBytes = "true".encodeToByteArray().asReadonly()
-    private val falseBytes = "false".encodeToByteArray().asReadonly()
+    val trueBytes = "true".encodeToByteArray().asReadonly()
+    val falseBytes = "false".encodeToByteArray().asReadonly()
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
     override fun write(value: Boolean) = writePrimitive(value)
@@ -326,7 +326,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
     override fun read(): Boolean = readPrimitive()
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Boolean) {
+    inline fun writePrimitive(value: Boolean) {
         JsonWriteProtocol.writeRaw(
             bytes = if (value) {
                 trueBytes
@@ -407,9 +407,9 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             val fourth = value[index + 3].code
             if ((first or second or third or fourth) >= 128 ||
                 (JsonStringEscapes.escapePairs[first].toInt() or
-                    JsonStringEscapes.escapePairs[second].toInt() or
-                    JsonStringEscapes.escapePairs[third].toInt() or
-                    JsonStringEscapes.escapePairs[fourth].toInt()) != 0
+                        JsonStringEscapes.escapePairs[second].toInt() or
+                        JsonStringEscapes.escapePairs[third].toInt() or
+                        JsonStringEscapes.escapePairs[fourth].toInt()) != 0
             ) {
                 break
             }

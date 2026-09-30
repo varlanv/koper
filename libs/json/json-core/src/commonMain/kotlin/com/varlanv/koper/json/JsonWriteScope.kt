@@ -16,12 +16,12 @@ class JsonWriteScope(bufferSize: DataSize = 512.bytes()) {
     /**
      * Storage for pending output; reservations may replace it after flushing.
      */
-    internal var buffer = bufferSize.allocate()
+    var buffer = bufferSize.allocate()
 
     /**
      * Exclusive end of pending output bytes in [buffer].
      */
-    internal var position = 0
+    var position = 0
 
     /**
      * Discards pending output by setting position to zero. Retains the allocation and does not write to the sink.

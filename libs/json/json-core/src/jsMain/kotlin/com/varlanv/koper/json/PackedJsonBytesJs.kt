@@ -92,7 +92,7 @@ internal actual inline fun jsonCopyPackedBytes(
     target.setPackedInt(idx = targetOffset, value = word)
 }
 
-internal actual inline fun jsonWritePackedBytes(
+actual inline fun jsonWritePackedBytes(
     target: MutBytes,
     offset: Int,
     low: Int,

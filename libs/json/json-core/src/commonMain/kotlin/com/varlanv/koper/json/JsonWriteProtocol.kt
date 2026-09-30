@@ -18,7 +18,7 @@ object JsonWriteProtocol {
      * @return [Unit] after the pending bytes have been written.
      */
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    fun flush() {
+    inline fun flush() {
         val pos = writeScope.position
         if (pos != 0) {
             sink.writeTo(source = writeScope.buffer, offset = 0, length = pos)
@@ -35,7 +35,7 @@ object JsonWriteProtocol {
      * @throws IllegalArgumentException If [size] is negative.
      */
     context(sink: ByteSink, writeScope: JsonWriteScope)
-    fun reserve(size: Int) {
+    inline fun reserve(size: Int) {
         require(size >= 0) { "Negative JSON reservation" }
         if (writeScope.buffer.size - writeScope.position < size) {
             flush()
@@ -59,7 +59,7 @@ object JsonWriteProtocol {
      * @return [Unit] after appending the byte.
      */
     context(writeScope: JsonWriteScope)
-    fun writeByte(value: Int) {
+    inline fun writeByte(value: Int) {
         writeScope.buffer[writeScope.position++] = value.toByte()
     }
 
@@ -70,7 +70,7 @@ object JsonWriteProtocol {
      * @return [Unit] after appending the requested range.
      */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(
+    inline fun writeRaw(
         bytes: Bytes,
         offset: Int = 0,
         length: Int = bytes.size - offset,
@@ -92,7 +92,7 @@ object JsonWriteProtocol {
      * @return [Unit] after appending the packed bytes.
      */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Int, second: Short) {
+    inline fun writeRaw(first: Int, second: Short) {
         val pos = writeScope.position
         val output = writeScope.buffer
         output.setPackedInt(idx = pos, value = first)
@@ -118,7 +118,7 @@ object JsonWriteProtocol {
 
     /** Appends eight little-endian bytes with the platform's packed stores. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(first: Int, second: Int) {
+    inline fun writeRaw(first: Int, second: Int) {
         val pos = writeScope.position
         jsonWritePackedBytes(target = writeScope.buffer, offset = pos, low = first, high = second)
         writeScope.position = pos + 8
@@ -126,7 +126,7 @@ object JsonWriteProtocol {
 
     /** Appends ten little-endian bytes. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(
+    inline fun writeRaw(
         first: Int,
         second: Int,
         third: Short,
@@ -140,7 +140,7 @@ object JsonWriteProtocol {
 
     /** Appends twelve little-endian bytes. Requires reserved capacity. */
     context(writeScope: JsonWriteScope)
-    fun writeRaw(
+    inline fun writeRaw(
         first: Int,
         second: Int,
         third: Int,

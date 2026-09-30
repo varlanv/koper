@@ -66,7 +66,7 @@ internal expect inline fun jsonCopyPackedBytes(
 )
 
 /** Writes eight little-endian bytes, using one JVM Long store or two JS Int stores. */
-internal expect inline fun jsonWritePackedBytes(
+expect inline fun jsonWritePackedBytes(
     target: MutBytes,
     offset: Int,
     low: Int,
