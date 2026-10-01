@@ -39,6 +39,11 @@ benchmark {
             include(".*CharsetsJsBenchmark.encode.*")
             configureFast()
         }
+        register("charsetByteSliceJdkInternal") {
+            include(".*CharsetByteSliceBenchmark.*")
+            configureSlow()
+            advanced("jvmForks", 1)
+        }
         register("utf8Validation") {
             include(".*Utf8ValidationBenchmark.*")
             configureSlow()

@@ -397,6 +397,9 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
 
     context(sink: ByteSink, writeScope: JsonWriteScope)
     override fun write(value: String, position: Int): Int {
+        if (value.length >= 1024) {
+            return Utf8StrJsonCodec.writePrimitive(value = Utf8Str.allocateFromString(string = value), position = position)
+        }
         val output = writeScope.buffer
         var pos = position
         output[pos++] = '"'.code.toByte()

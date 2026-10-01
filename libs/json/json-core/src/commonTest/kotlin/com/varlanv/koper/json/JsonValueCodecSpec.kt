@@ -275,6 +275,27 @@ class JsonValueCodecSpec : BaseSpec({
         }
     }
 
+    should("write long strings around the bulk encoding boundary") {
+        val fragments = listOf(
+            "éBCDEFGHIJ",
+            "\nBCDEFGHIJ",
+            "\u0000BCDEFGHIJ",
+            "日ABC🙂DEFéGHI\"\\\n",
+            "é日🙂".repeat(128),
+        )
+        for (length in listOf(1023, 1024, 1025, 4096)) {
+            for (fragment in fragments) {
+                val text = "a".repeat(length - fragment.length) + fragment
+                roundTrip(
+                    writerCodec = StringJsonCodec,
+                    readerCodec = StringJsonCodec,
+                    value = text,
+                    expectedJson = kotlinx.serialization.json.JsonPrimitive(text).toString(),
+                )
+            }
+        }
+    }
+
     should("reject string-size overflow before multiplying or accumulating") {
         JsonWriteProtocol.addStringSize(maximumBytes = 2, length = 0) shouldBe 2
         val length = (Int.MAX_VALUE - 2) / 6
