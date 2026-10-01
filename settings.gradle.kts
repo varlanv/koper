@@ -19,7 +19,7 @@ plugins {
 
 rootProject.name = "koper"
 
-val isCi = providers.environmentVariable("CI").getOrNull() == null
+val isCi = providers.environmentVariable("CI").getOrNull() != null
 
 buildCache {
     local {
