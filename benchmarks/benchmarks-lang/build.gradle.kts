@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.nio.file.Paths
+
 plugins {
     alias(libs.plugins.internalBenchmark)
 }

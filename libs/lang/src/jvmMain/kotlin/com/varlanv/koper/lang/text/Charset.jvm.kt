@@ -47,7 +47,6 @@ private sealed interface SubstringFastPath {
         private val valueGetter: MethodHandle,
         private val isLatin1: MethodHandle,
     ) : SubstringFastPath {
-
         init {
             require(isJdkInternalLoaded)
         }
@@ -72,15 +71,15 @@ private sealed interface SubstringFastPath {
                     ((encoding == Charsets.UTF_8 || encoding == Charsets.US_ASCII) &&
                         bytes.skipAscii(start = start, end = end) == end)
                 ) {
-                    return BytesSlice(
-                        bytes = bytes,
-                        offset = start,
-                        len = end - start,
-                    )
+                    return BytesSlice(bytes = bytes, offset = start, len = end - start)
                 }
             }
             if (encoding == Charsets.UTF_8) {
-                val maxBytesPerChar = if (latin1) 2 else 3
+                val maxBytesPerChar = if (latin1) {
+                    2
+                } else {
+                    3
+                }
                 if (end - start <= Int.MAX_VALUE / maxBytesPerChar) {
                     return encodeUtf8(source = source, start = start, end = end, latin1 = latin1)
                 }
@@ -88,8 +87,19 @@ private sealed interface SubstringFastPath {
             return Default.slice(string = string, encoding = encoding, start = start, end = end)
         }
 
-        private fun encodeUtf8(source: ByteArray, start: Int, end: Int, latin1: Boolean): BytesSlice {
-            val output = ByteArray((end - start) * if (latin1) 2 else 3)
+        private fun encodeUtf8(
+            source: ByteArray,
+            start: Int,
+            end: Int,
+            latin1: Boolean,
+        ): BytesSlice {
+            val output = ByteArray(
+                (end - start) * if (latin1) {
+                    2
+                } else {
+                    3
+                },
+            )
             var index = start
             var written = 0
             if (latin1) {
@@ -149,7 +159,10 @@ private sealed interface SubstringFastPath {
             )
         }
 
-        private fun utf16Char(source: ByteArray, index: Int): Char = utf16CharGetter!!.invokeExact(source, index) as Char
+        private fun utf16Char(
+            source: ByteArray,
+            index: Int,
+        ): Char = utf16CharGetter!!.invokeExact(source, index) as Char
     }
 
     companion object {
@@ -196,10 +209,7 @@ private sealed interface SubstringFastPath {
                 instance = Default
             } else {
                 isJdkInternalLoaded = true
-                instance = JdkInternal(
-                    valueGetter = handles.first,
-                    isLatin1 = handles.second,
-                )
+                instance = JdkInternal(valueGetter = handles.first, isLatin1 = handles.second)
             }
         }
     }

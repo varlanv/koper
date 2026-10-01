@@ -10,6 +10,8 @@ class StringSource(private val string: String) : ByteSource {
     private var pending = 0
     private var pendingSize = 0
 
+    override val sizeHint: ArraySizeHint = ArraySizeHint(string.length)
+
     override fun readAtMostTo(
         sink: MutBytes,
         offset: Int,

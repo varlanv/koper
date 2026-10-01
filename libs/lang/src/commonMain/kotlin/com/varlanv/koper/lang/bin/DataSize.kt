@@ -9,6 +9,10 @@ import kotlin.math.abs
 
 @JvmInline
 value class DataSize @PublishedApi internal constructor(val bytes: Int) {
+    init {
+        require(bytes >= 0) { "DataSize should be positive or zero - [ $bytes ]" }
+    }
+
     inline operator fun plus(bytes: Int): DataSize = DataSize(this.bytes.addExact(bytes))
 
     inline operator fun plus(other: DataSize): DataSize = DataSize(this.bytes.addExact(other.bytes))

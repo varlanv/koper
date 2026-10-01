@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSink
@@ -386,8 +388,6 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
 }
 
 object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
-    private const val zeroShort: Short = 0
-
     override val hints: JsonCodec.Hints<String> = JsonCodec.Hints(
         size = JsonValueSize.FromValue { value ->
             JsonWriteProtocol.addStringSize(maximumBytes = 2, length = value.length)
@@ -398,7 +398,10 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     context(sink: ByteSink, writeScope: JsonWriteScope)
     override fun write(value: String, position: Int): Int {
         if (value.length >= 1024) {
-            return Utf8StrJsonCodec.writePrimitive(value = Utf8Str.allocateFromString(string = value), position = position)
+            return Utf8StrJsonCodec.writePrimitive(
+                value = Utf8Str.allocateFromString(string = value),
+                position = position,
+            )
         }
         val output = writeScope.buffer
         var pos = position
@@ -425,7 +428,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
             val char = value[index].code
             if (char < 128) {
                 val pair = JsonStringEscapes.escapePairs[char]
-                if (pair == zeroShort) {
+                if (pair == 0.toShort()) {
                     output[pos++] = char.toByte()
                 } else {
                     output.setPackedShort(idx = pos, value = pair)

@@ -1,5 +1,6 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.lang.bin.ArraySizeHint
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.bin.bytes
@@ -316,6 +317,7 @@ private class SplitJsonByteSource(
     private val maximumRead: Int,
 ) : ByteSource {
     private var position = 0
+    override val sizeHint: ArraySizeHint = ArraySizeHint(bytes.size)
 
     override fun readAtMostTo(
         sink: MutBytes,

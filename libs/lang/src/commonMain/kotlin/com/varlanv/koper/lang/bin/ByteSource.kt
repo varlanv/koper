@@ -2,6 +2,13 @@ package com.varlanv.koper.lang.bin
 
 /** Reads bytes into a caller-provided array. */
 interface ByteSource {
+    /**
+     * Hint as to how many bytes are available in this stream, if known.
+     * The returned value is not meant to represent concrete final number that will be read from source.
+     * The returned value may be less, but never more that final number that will be read from source.
+     */
+    val sizeHint: ArraySizeHint
+
     /** Reads up to [length] bytes into [sink] at [offset]; returns -1 at end, or 0 for zero length. */
     fun readAtMostTo(
         sink: MutBytes,
@@ -13,6 +20,7 @@ interface ByteSource {
 /** Reads the contents of [slice] in order. */
 class ByteArraySource(private val slice: BytesSlice) : ByteSource {
     private var position: Int = 0
+    override val sizeHint: ArraySizeHint = ArraySizeHint(slice.len.bytes())
 
     override fun readAtMostTo(
         sink: MutBytes,
