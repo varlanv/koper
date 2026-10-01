@@ -5,10 +5,10 @@ import java.io.OutputStream
 /** Adapts [outs] to a [ByteSink]. */
 class OutputStreamByteSink(val outs: OutputStream) : ByteSink {
     override fun writeTo(
-        source: MutBytes,
+        source: Bytes,
         offset: Int,
         length: Int,
     ) {
-        outs.write(source.impl, offset, length)
+        outs.write(source.bytes.impl, offset, length)
     }
 }

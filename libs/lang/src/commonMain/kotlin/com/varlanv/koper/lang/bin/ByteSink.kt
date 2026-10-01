@@ -4,7 +4,7 @@ package com.varlanv.koper.lang.bin
 interface ByteSink {
     /** Writes [length] bytes from [source] starting at [offset]. */
     fun writeTo(
-        source: MutBytes,
+        source: Bytes,
         offset: Int,
         length: Int,
     )
@@ -29,7 +29,7 @@ class ReusableByteArraySink(initialCapacity: DataSize) : ByteSink {
     }
 
     override fun writeTo(
-        source: MutBytes,
+        source: Bytes,
         offset: Int,
         length: Int,
     ) {

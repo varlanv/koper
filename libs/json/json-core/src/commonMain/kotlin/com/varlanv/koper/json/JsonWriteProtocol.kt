@@ -5,6 +5,7 @@ package com.varlanv.koper.json
 import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.bytes
 
 /**
@@ -22,7 +23,7 @@ object JsonWriteProtocol {
     context(sink: ByteSink, writeScope: JsonWriteScope)
     inline fun flush(position: Int): Int {
         if (position != 0) {
-            sink.writeTo(source = writeScope.buffer, offset = 0, length = position)
+            sink.writeTo(source = writeScope.buffer.asReadonly(), offset = 0, length = position)
             return 0
         }
         return position
