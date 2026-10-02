@@ -1,5 +1,6 @@
 package com.varlanv.koper.lang.text
 
+import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.bin.MutBytes
@@ -7,19 +8,37 @@ import com.varlanv.koper.lang.bin.skipAscii
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 
-actual fun Charset.allocateString(
+actual fun Charset.decodeFromBytes(
     bytes: Bytes,
     offset: Int,
     len: Int,
 ): String = String(bytes.bytes.impl, offset, len, jdkEncoding())
 
-actual fun Charset.allocateByteSlice(
+actual fun Charset.encodeIntoSlice(
     string: String,
     start: Int,
     end: Int,
-): BytesSlice = SubstringFastPath.instance.slice(string = string, encoding = jdkEncoding(), start = start, end = end)
+): BytesSlice = JdkStringEncode.instance.slice(string = string, encoding = jdkEncoding(), start = start, end = end)
 
-private sealed interface SubstringFastPath {
+actual fun Charset.encodeAtMostIntoArray(
+    source: String,
+    destination: MutBytes,
+    destinationOffset: Int,
+    start: Int,
+    end: Int,
+): Int {
+    TODO("Not yet implemented")
+}
+
+actual fun Charset.encodeIntoSink(
+    source: String,
+    sink: ByteSink,
+    start: Int,
+    end: Int,
+) {
+}
+
+sealed interface JdkStringEncode {
     fun slice(
         string: String,
         encoding: java.nio.charset.Charset,
@@ -27,7 +46,7 @@ private sealed interface SubstringFastPath {
         end: Int,
     ): BytesSlice
 
-    private object Default : SubstringFastPath {
+    private object Default : JdkStringEncode {
         override fun slice(
             string: String,
             encoding: java.nio.charset.Charset,
@@ -46,7 +65,7 @@ private sealed interface SubstringFastPath {
     private class JdkInternal(
         private val valueGetter: MethodHandle,
         private val isLatin1: MethodHandle,
-    ) : SubstringFastPath {
+    ) : JdkStringEncode {
         init {
             require(isJdkInternalLoaded)
         }
@@ -166,7 +185,7 @@ private sealed interface SubstringFastPath {
     }
 
     companion object {
-        internal val instance: SubstringFastPath
+        internal val instance: JdkStringEncode
         private val isJdkInternalLoaded: Boolean
         private val utf16CharGetter: MethodHandle?
 

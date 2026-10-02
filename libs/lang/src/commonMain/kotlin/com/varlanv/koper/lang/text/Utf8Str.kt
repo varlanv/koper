@@ -7,7 +7,7 @@ import kotlin.jvm.JvmInline
 value class Utf8Str private constructor(val slice: BytesSlice) {
     val byteLen: Int get() = slice.len
 
-    fun allocateString(): String = Charset.Utf8.allocateString(slice)
+    fun allocateString(): String = Charset.Utf8.decodeFromSlice(slice)
 
     companion object {
         val empty: Utf8Str = Utf8Str(BytesSlice.empty)
@@ -18,10 +18,10 @@ value class Utf8Str private constructor(val slice: BytesSlice) {
             TODO()
         }
 
-        fun allocateFromString(
+        fun decodeFromString(
             string: String,
             start: Int = 0,
             end: Int = string.length,
-        ): Utf8Str = Utf8Str(Charset.Utf8.allocateByteSlice(string = string, start = start, end = end))
+        ): Utf8Str = Utf8Str(Charset.Utf8.encodeIntoSlice(string = string, start = start, end = end))
     }
 }

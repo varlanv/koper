@@ -2,7 +2,7 @@ package com.varlanv.koper.lang.math
 
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.allocateString
+import com.varlanv.koper.lang.text.decodeFromBytes
 import kotlin.jvm.JvmInline
 import kotlin.math.roundToLong
 import kotlin.math.sign
@@ -488,7 +488,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
                     from = from,
                     to = to,
                     charAt = { bytes[it].toInt() },
-                    text = { Charset.Latin1.allocateString(bytes = bytes, offset = from, len = to - from) },
+                    text = { Charset.Latin1.decodeFromBytes(bytes = bytes, offset = from, len = to - from) },
                 ),
             )
         }

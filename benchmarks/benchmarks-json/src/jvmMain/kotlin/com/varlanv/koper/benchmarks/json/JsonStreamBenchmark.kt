@@ -40,8 +40,8 @@ class JsonStreamBenchmark {
         }
         strValue = JsonStrSample(
             id = 123456789L,
-            symbol = Utf8Str.allocateFromString(string = "BTCUSDT"),
-            text = Utf8Str.allocateFromString(string = text),
+            symbol = Utf8Str.decodeFromString(string = "BTCUSDT"),
+            text = Utf8Str.decodeFromString(string = text),
             sequence = 42,
             active = true,
         )

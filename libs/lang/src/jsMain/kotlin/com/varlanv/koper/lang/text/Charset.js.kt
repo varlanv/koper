@@ -16,7 +16,7 @@ private val nativeUtf16Decoder: dynamic = js(
     "new Uint8Array(new Uint16Array([0x0102]).buffer)[0] === 0x02 ? new TextDecoder('utf-16le') : new TextDecoder('utf-16be')",
 )
 
-actual fun Charset.allocateByteSlice(
+actual fun Charset.encodeIntoSlice(
     string: String,
     start: Int,
     end: Int,
@@ -53,6 +53,25 @@ actual fun Charset.allocateByteSlice(
             encodeSingleByte(string = string, start = start, end = end, maxCodePoint = 0xFF)
         }
     }
+}
+
+actual fun Charset.encodeAtMostIntoArray(
+    source: String,
+    destination: MutBytes,
+    destinationOffset: Int,
+    start: Int,
+    end: Int,
+): Int {
+    TODO()
+}
+
+actual fun Charset.encodeIntoSink(
+    source: String,
+    sink: ByteSink,
+    start: Int,
+    end: Int,
+) {
+    TODO()
 }
 
 private fun encodeUtf8Native(selected: String): BytesSlice {
@@ -122,7 +141,7 @@ private fun encodeUtf8(
     return result.asReadonly().toSlice(offset = 0, len = result.size)
 }
 
-actual fun Charset.allocateString(
+actual fun Charset.decodeFromBytes(
     bytes: Bytes,
     offset: Int,
     len: Int,

@@ -37,29 +37,27 @@ class ReusableByteArraySink(initialCapacity: DataSize) : ByteSink {
             throw IndexOutOfBoundsException()
         }
         ensureCapacity(length)
-        source.copyInto(
-            destination = bytes,
-            destinationOffset = position,
-            startIndex = offset,
-            endIndex = offset + length,
-        )
-        position += length
+        val pos = position
+        source.copyInto(destination = bytes, destinationOffset = pos, startIndex = offset, endIndex = offset + length)
+        position = pos + length
     }
 
-    private fun ensureCapacity(additionalBytes: Int) {
-        if (additionalBytes <= bytes.size - position) {
+    internal fun ensureCapacity(additionalBytes: Int) {
+        val pos = position
+        val bts = bytes
+        if (additionalBytes <= bts.size - pos) {
             return
         }
-        if (additionalBytes > Int.MAX_VALUE - position) {
+        if (additionalBytes > Int.MAX_VALUE - pos) {
             error("Required buffer capacity exceeds Int.MAX_VALUE")
         }
-        val requiredCapacity = position + additionalBytes
-        val doubledCapacity = if (bytes.size <= Int.MAX_VALUE / 2) {
-            bytes.size * 2
+        val requiredCapacity = pos + additionalBytes
+        val doubledCapacity = if (bts.size <= Int.MAX_VALUE / 2) {
+            bts.size * 2
         } else {
             Int.MAX_VALUE
         }
         val newCapacity = maxOf(requiredCapacity, doubledCapacity)
-        bytes = bytes.copyOf(newCapacity)
+        bytes = bts.copyOf(newCapacity)
     }
 }

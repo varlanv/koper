@@ -8,7 +8,7 @@ import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.toSlice
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
-import com.varlanv.koper.lang.text.allocateString
+import com.varlanv.koper.lang.text.decodeFromBytes
 import kotlin.Any
 import kotlin.Boolean
 import kotlin.IllegalArgumentException
@@ -399,7 +399,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     override fun write(value: String, position: Int): Int {
         if (value.length >= 1024) {
             return Utf8StrJsonCodec.writePrimitive(
-                value = Utf8Str.allocateFromString(string = value),
+                value = Utf8Str.decodeFromString(string = value),
                 position = position,
             )
         }
@@ -462,7 +462,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
     context(input: ByteSource, parseScope: JsonReadScope)
     override fun read(): String {
         JsonReadBuffer.readString()
-        return Charset.Utf8.allocateString(
+        return Charset.Utf8.decodeFromBytes(
             bytes = parseScope.buffer.asReadonly(),
             offset = parseScope.stringOffset,
             len = parseScope.stringLength,

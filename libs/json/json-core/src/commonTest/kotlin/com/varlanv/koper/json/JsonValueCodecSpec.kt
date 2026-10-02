@@ -62,7 +62,7 @@ class JsonValueCodecSpec : BaseSpec({
         roundTrip(
             writerCodec = Utf8StrJsonCodec,
             readerCodec = Utf8StrJsonCodec,
-            value = Utf8Str.allocateFromString(string = "é\n"),
+            value = Utf8Str.decodeFromString(string = "é\n"),
             expectedJson = "\"é\\n\"",
         )
     }
@@ -83,7 +83,7 @@ class JsonValueCodecSpec : BaseSpec({
             position = JsonWriteProtocol.reserve(size = 32, position = position)
             position shouldBe 0
             position = Utf8StrJsonCodec.writePrimitive(
-                value = Utf8Str.allocateFromString(string = "é\n"),
+                value = Utf8Str.decodeFromString(string = "é\n"),
                 position = position,
             )
             position shouldBe 6
@@ -246,7 +246,7 @@ class JsonValueCodecSpec : BaseSpec({
             roundTrip(
                 writerCodec = Utf8StrJsonCodec,
                 readerCodec = Utf8StrJsonCodec,
-                value = Utf8Str.allocateFromString(string = text),
+                value = Utf8Str.decodeFromString(string = text),
                 expectedJson = expected,
             )
         }

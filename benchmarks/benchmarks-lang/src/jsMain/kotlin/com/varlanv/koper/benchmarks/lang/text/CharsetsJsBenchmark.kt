@@ -2,8 +2,8 @@ package com.varlanv.koper.benchmarks.lang.text
 
 import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.allocateByteSlice
-import com.varlanv.koper.lang.text.allocateString
+import com.varlanv.koper.lang.text.decodeFromBytes
+import com.varlanv.koper.lang.text.encodeIntoSlice
 import kotlinx.benchmark.*
 
 @State(Scope.Benchmark)
@@ -51,19 +51,19 @@ class CharsetsJsBenchmark {
         }
         source = seed.repeat(length / seed.length)
         check(source.length == length)
-        encoded = charset.allocateByteSlice(string = source)
-        check(charset.allocateString(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len).isNotEmpty())
+        encoded = charset.encodeIntoSlice(string = source)
+        check(charset.decodeFromBytes(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len).isNotEmpty())
     }
 
     @Benchmark
     fun encode(blackhole: Blackhole) {
-        val result = charset.allocateByteSlice(string = source)
+        val result = charset.encodeIntoSlice(string = source)
         blackhole.consume(result.bytes)
         blackhole.consume(result.len)
     }
 
     @Benchmark
     fun decode(blackhole: Blackhole) {
-        blackhole.consume(charset.allocateString(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len))
+        blackhole.consume(charset.decodeFromBytes(bytes = encoded.bytes, offset = encoded.offset, len = encoded.len))
     }
 }

@@ -34,29 +34,29 @@ class StrSpec : BaseSpec({
                 ),
             ),
         )) {
-            val encoded = charset.allocateByteSlice(string = input)
+            val encoded = charset.encodeIntoSlice(string = input)
             encoded.len shouldBe bytes.size
             encoded.copyToArray().toList() shouldBe bytes.toList()
-            charset.allocateString(encoded) shouldBe input
+            charset.decodeFromSlice(encoded) shouldBe input
         }
     }
 
     should("decode exactly the selected slice with each charset") {
         for ((charset, input) in listOf(Charset.Utf8 to "é中🙂", Charset.Ascii to "hello", Charset.Latin1 to "éÿ")) {
-            val payload = charset.allocateByteSlice(string = input)
+            val payload = charset.encodeIntoSlice(string = input)
             val bytes = byteArrayOf(65, 66, 67) + payload.copyToArray() + byteArrayOf(68, 69, 70)
             val slice = BytesSlice(bytes = bytes.asReadonly(), offset = 3, len = payload.len)
-            charset.allocateString(bytes = slice.bytes, offset = slice.offset, len = slice.len) shouldBe input
-            charset.allocateString(slice) shouldBe input
-            charset.allocateString(bytes = bytes.asReadonly(), offset = bytes.size, len = 0) shouldBe ""
+            charset.decodeFromBytes(bytes = slice.bytes, offset = slice.offset, len = slice.len) shouldBe input
+            charset.decodeFromSlice(slice) shouldBe input
+            charset.decodeFromBytes(bytes = bytes.asReadonly(), offset = bytes.size, len = 0) shouldBe ""
         }
     }
 
     should("allocate empty strings in every charset") {
         for (charset in listOf(Charset.Ascii, Charset.Latin1, Charset.Utf8)) {
-            val encoded = charset.allocateByteSlice(string = "")
+            val encoded = charset.encodeIntoSlice(string = "")
             encoded.len shouldBe 0
-            charset.allocateString(encoded) shouldBe ""
+            charset.decodeFromSlice(encoded) shouldBe ""
         }
         Utf8Str.empty.byteLen shouldBe 0
         Utf8Str.empty.allocateString() shouldBe ""
@@ -66,7 +66,7 @@ class StrSpec : BaseSpec({
         val payload = ByteArray(8193) { it.toByte() }
         val bytes = byteArrayOf(1, 2) + payload + byteArrayOf(3, 4)
         val expected = CharArray(payload.size) { (payload[it].toInt() and 0xFF).toChar() }.concatToString()
-        Charset.Latin1.allocateString(bytes = bytes.asReadonly(), offset = 2, len = payload.size) shouldBe expected
+        Charset.Latin1.decodeFromBytes(bytes = bytes.asReadonly(), offset = 2, len = payload.size) shouldBe expected
     }
 
     should("encode character ranges before converting them to bytes") {
@@ -81,7 +81,7 @@ class StrSpec : BaseSpec({
                         Charset.Latin1 -> Charset.Latin1.encodeInline(selected) { expected.add(it) }
                         Charset.Utf8 -> Charset.Utf8.encodeInline(selected) { expected.add(it) }
                     }
-                    charset.allocateByteSlice(string = input, start = start, end = end).copyToArray().toList() shouldBe
+                    charset.encodeIntoSlice(string = input, start = start, end = end).copyToArray().toList() shouldBe
                         expected
                 }
             }
@@ -90,7 +90,7 @@ class StrSpec : BaseSpec({
 
     should("allocate UTF-8 strings from empty ASCII and multibyte input") {
         for (input in listOf("", "plain ASCII /", "é中🙂", "\u0000\u007F\u0080\u07FF\u0800\uFFFF")) {
-            val str = Utf8Str.allocateFromString(string = input)
+            val str = Utf8Str.decodeFromString(string = input)
             str.slice.copyToArray().toList() shouldBe input.encodeToByteArray().toList()
             str.allocateString() shouldBe input
         }

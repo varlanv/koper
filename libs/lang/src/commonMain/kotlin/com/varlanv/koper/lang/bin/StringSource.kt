@@ -5,7 +5,7 @@ import com.varlanv.koper.lang.text.isHighSurrogate
 import com.varlanv.koper.lang.text.isLowSurrogate
 import com.varlanv.koper.lang.text.toCodePoint
 
-class StringSource(private val string: String) : ByteSource {
+class StringSource(val string: String) : ByteSource {
     private var position = 0
     private var pending = 0
     private var pendingSize = 0

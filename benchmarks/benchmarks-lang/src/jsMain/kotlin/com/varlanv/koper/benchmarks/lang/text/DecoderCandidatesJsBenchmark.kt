@@ -3,7 +3,7 @@ package com.varlanv.koper.benchmarks.lang.text
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.allocateString
+import com.varlanv.koper.lang.text.decodeFromBytes
 import kotlinx.benchmark.*
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.Uint16Array
@@ -63,7 +63,7 @@ class Latin1DecoderCandidatesJsBenchmark {
             }
         }
         val expected = CharArray(length) { (bytes[it].toInt() and 0xFF).toChar() }.concatToString()
-        check(Charset.Latin1.allocateString(bytes = Bytes(MutBytes(bytes))) == expected)
+        check(Charset.Latin1.decodeFromBytes(bytes = Bytes(MutBytes(bytes))) == expected)
         check(latin1Utf16Array(bytes) == expected)
         check(latin1Portable(bytes) == expected)
         check(spreadChars(unsigned(bytes)).unsafeCast<String>() == expected)
@@ -72,7 +72,7 @@ class Latin1DecoderCandidatesJsBenchmark {
 
     @Benchmark
     fun current(blackhole: Blackhole) {
-        blackhole.consume(Charset.Latin1.allocateString(bytes = Bytes(MutBytes(bytes))))
+        blackhole.consume(Charset.Latin1.decodeFromBytes(bytes = Bytes(MutBytes(bytes))))
     }
 
     @Benchmark
@@ -107,13 +107,13 @@ class AsciiDecoderCandidatesJsBenchmark {
     fun setup() {
         bytes = ByteArray(length) { (it % 128).toByte() }
         val expected = CharArray(length) { bytes[it].toInt().toChar() }.concatToString()
-        check(Charset.Ascii.allocateString(bytes = Bytes(MutBytes((bytes)))) == expected)
+        check(Charset.Ascii.decodeFromBytes(bytes = Bytes(MutBytes((bytes)))) == expected)
         check(utf8Decoder.decode(bytes.unsafeCast<Int8Array>()).unsafeCast<String>() == expected)
     }
 
     @Benchmark
     fun current(blackhole: Blackhole) {
-        blackhole.consume(Charset.Ascii.allocateString(bytes = Bytes(MutBytes((bytes)))))
+        blackhole.consume(Charset.Ascii.decodeFromBytes(bytes = Bytes(MutBytes((bytes)))))
     }
 
     @Benchmark
@@ -147,12 +147,12 @@ class AsciiValidatedDecoderJsBenchmark {
                 else -> error("Unknown scenario: $scenario")
             }
         }
-        check(validatedAscii(bytes) == Charset.Ascii.allocateString(bytes = Bytes(MutBytes((bytes)))))
+        check(validatedAscii(bytes) == Charset.Ascii.decodeFromBytes(bytes = Bytes(MutBytes((bytes)))))
     }
 
     @Benchmark
     fun current(blackhole: Blackhole) {
-        blackhole.consume(Charset.Ascii.allocateString(bytes = Bytes(MutBytes((bytes)))))
+        blackhole.consume(Charset.Ascii.decodeFromBytes(bytes = Bytes(MutBytes((bytes)))))
     }
 
     @Benchmark
@@ -166,5 +166,5 @@ private fun validatedAscii(bytes: ByteArray): String {
     if (isAsciiString(decoded).unsafeCast<Boolean>()) {
         return decoded
     }
-    return Charset.Ascii.allocateString(bytes = Bytes(MutBytes((bytes))))
+    return Charset.Ascii.decodeFromBytes(bytes = Bytes(MutBytes((bytes))))
 }

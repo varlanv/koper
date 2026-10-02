@@ -64,7 +64,7 @@ benchmark {
             include(".*AsciiValidatedDecoderJsBenchmark.*")
             configureFast()
         }
-        register("charsets") {
+        register("charsetsJs") {
             include(".*CharsetsJsBenchmark.*")
             configureSlow()
         }

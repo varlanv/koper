@@ -45,7 +45,7 @@ class JsonStringScannerSpec : BaseSpec({
                         bytes = document,
                         bufferSize = bufferSize,
                         splitAt = splitAt,
-                    ) { Utf8StrJsonCodec.read() } shouldBe Utf8Str.allocateFromString(string = "before${decoded}after")
+                    ) { Utf8StrJsonCodec.read() } shouldBe Utf8Str.decodeFromString(string = "before${decoded}after")
                 }
             }
         }
@@ -174,7 +174,7 @@ class JsonStringScannerSpec : BaseSpec({
                 JsonReadProtocol.nextToken() shouldBe 45
                 IntJsonCodec.readPrimitive() shouldBe -42
                 JsonReadProtocol.nextToken() shouldBe 93
-                firstValue shouldBe Utf8Str.allocateFromString(string = first)
+                firstValue shouldBe Utf8Str.decodeFromString(string = first)
             }
         }
     }
@@ -281,7 +281,7 @@ class JsonStringScannerSpec : BaseSpec({
                 JsonReadProtocol.nextToken() shouldBe 34
                 StringJsonCodec.read() shouldBe ""
                 JsonReadProtocol.nextToken() shouldBe 93
-                first shouldBe Utf8Str.allocateFromString(string = "\n")
+                first shouldBe Utf8Str.decodeFromString(string = "\n")
             }
         }
     }

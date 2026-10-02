@@ -2,13 +2,9 @@ package com.varlanv.koper.benchmarks.lang.text
 
 import com.varlanv.koper.lang.bin.BytesSlice
 import com.varlanv.koper.lang.text.Charset
-import com.varlanv.koper.lang.text.allocateByteSlice
-import org.openjdk.jmh.annotations.Benchmark
-import org.openjdk.jmh.annotations.Fork
-import org.openjdk.jmh.annotations.Param
-import org.openjdk.jmh.annotations.Scope
-import org.openjdk.jmh.annotations.Setup
-import org.openjdk.jmh.annotations.State
+import com.varlanv.koper.lang.text.JdkStringEncode
+import com.varlanv.koper.lang.text.encodeIntoSlice
+import org.openjdk.jmh.annotations.*
 
 @State(Scope.Thread)
 class CharsetByteSliceBenchmark {
@@ -26,9 +22,7 @@ class CharsetByteSliceBenchmark {
 
     @Setup
     fun setup() {
-        val instanceField = Class
-            .forName("com.varlanv.koper.lang.text.SubstringFastPath\$Companion")
-            .getDeclaredField("instance")
+        val instanceField = JdkStringEncode.Companion::class.java.getDeclaredField("instance")
         instanceField.isAccessible = true
         val actualPath = instanceField.get(null).javaClass.simpleName
         val expectedPath = System.getProperty("koper.benchmark.substring.path")
@@ -45,14 +39,14 @@ class CharsetByteSliceBenchmark {
         start = prefix.length
         end = start + length
         val expected = string.substring(start, end).toByteArray(Charsets.UTF_8)
-        val actual = Charset.Utf8.allocateByteSlice(string = string, start = start, end = end)
+        val actual = Charset.Utf8.encodeIntoSlice(string = string, start = start, end = end)
         check(actual.len == expected.size)
         check(expected.indices.all { actual[it] == expected[it] })
     }
 
     @Benchmark
     @Fork(jvmArgsAppend = ["-Dkoper.benchmark.substring.path=Default"])
-    fun defaultPath(): BytesSlice = Charset.Utf8.allocateByteSlice(string = string, start = start, end = end)
+    fun defaultPath(): BytesSlice = Charset.Utf8.encodeIntoSlice(string = string, start = start, end = end)
 
     @Benchmark
     @Fork(
@@ -63,5 +57,5 @@ class CharsetByteSliceBenchmark {
         "-Dkoper.benchmark.substring.path=JdkInternal",
         ],
     )
-    fun jdkInternal(): BytesSlice = Charset.Utf8.allocateByteSlice(string = string, start = start, end = end)
+    fun jdkInternal(): BytesSlice = Charset.Utf8.encodeIntoSlice(string = string, start = start, end = end)
 }

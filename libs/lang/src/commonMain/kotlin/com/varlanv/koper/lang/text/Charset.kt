@@ -1,7 +1,9 @@
 package com.varlanv.koper.lang.text
 
+import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.BytesSlice
+import com.varlanv.koper.lang.bin.MutBytes
 
 sealed interface Charset {
     val ordinal: Int
@@ -95,21 +97,41 @@ sealed interface Charset {
 }
 
 /** The returned slice may use only part of its backing array. */
-expect fun Charset.allocateByteSlice(
+expect fun Charset.encodeIntoSlice(
     string: String,
     start: Int = 0,
     end: Int = string.length,
 ): BytesSlice
 
-expect fun Charset.allocateString(
+/**
+ * Writes as many complete encoded characters as fit after [destinationOffset] and returns the byte count.
+ * Stops before the first character that does not fit; never writes a partial multibyte sequence.
+ * Surrogate pairs produce one encoded character, and malformed surrogates are replaced with '?'.
+ */
+expect fun Charset.encodeAtMostIntoArray(
+    source: String,
+    destination: MutBytes,
+    destinationOffset: Int = 0,
+    start: Int = 0,
+    end: Int = source.length,
+): Int
+
+expect fun Charset.encodeIntoSink(
+    source: String,
+    sink: ByteSink,
+    start: Int = 0,
+    end: Int = source.length,
+)
+
+expect fun Charset.decodeFromBytes(
     bytes: Bytes,
     offset: Int = 0,
     len: Int = bytes.bytes.size,
 ): String
 
-fun Charset.allocateString(
+fun Charset.decodeFromSlice(
     slice: BytesSlice,
-): String = allocateString(bytes = slice.bytes, offset = slice.offset, len = slice.len)
+): String = decodeFromBytes(bytes = slice.bytes, offset = slice.offset, len = slice.len)
 
 @PublishedApi
 internal inline fun CharSequence.forEachCodePointInRange(
