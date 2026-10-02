@@ -35,7 +35,11 @@ dependencies {
     implementation(libs.kotlin.gradle.serialization)
     implementation(libs.kotlin.gradle.kover)
     implementation(libs.kotlin.gradle.main)
+    implementation(libs.kotlin.x.serialization.jsonJvm)
     implementation(libs.wrasse.gradle.plugin)
+    testImplementation(libs.kotlin.test.junit5)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 gradlePlugin {

@@ -8,6 +8,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.JavaExec
 import org.jetbrains.kotlin.allopen.gradle.AllOpenExtension
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsExec
 
 class InternalBenchmarkPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -18,12 +19,23 @@ class InternalBenchmarkPlugin : Plugin<Project> {
             project.pluginManager.apply("org.jetbrains.kotlinx.benchmark")
             applyCommonTargets()
 
-            // JMH uses sun.misc.Unsafe on JDK 24+, and kotlinx-benchmark 0.5.0 renders
-            // the fork's warning bytes as decimal integers in the console.
             if (javaVersion.toInt() >= 24) {
                 project.tasks.withType(JavaExec::class.java).configureEach { task ->
                     if (task.name.startsWith("jvm") && task.name.endsWith("Benchmark")) {
                         task.jvmArgs("--sun-misc-unsafe-memory-access=allow")
+                    }
+                }
+            }
+
+            project.afterEvaluate {
+                project.tasks.withType(JavaExec::class.java).configureEach { task ->
+                    if (task.name.endsWith("Benchmark") && task.mainClass.orNull == "kotlinx.benchmark.jvm.JvmBenchmarkRunnerKt") {
+                        configureBenchmarkReporting(task, project.layout.buildDirectory.get().asFile)
+                    }
+                }
+                project.tasks.withType(NodeJsExec::class.java).configureEach { task ->
+                    if (task.name.endsWith("Benchmark") && task.args.singleOrNull()?.let { java.io.File(it).name.startsWith("benchmarks") } == true) {
+                        configureBenchmarkReporting(task, project.layout.buildDirectory.get().asFile)
                     }
                 }
             }
