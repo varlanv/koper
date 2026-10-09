@@ -2,7 +2,7 @@ package com.varlanv.koper.benchmarks.lang.math
 
 import com.varlanv.koper.lang.bin.asMut
 import com.varlanv.koper.lang.bin.forEachIndex
-import com.varlanv.koper.lang.math.writeIntAscii
+import com.varlanv.koper.lang.math.Numbers
 import com.varlanv.koper.lang.math.writeLongAscii
 import kotlin.random.Random
 import org.openjdk.jmh.annotations.*
@@ -109,7 +109,7 @@ class NumbersBenchmark {
             output.fill(0x55)
             verify(
                 text = text,
-                end = writeIntAscii(
+                end = Numbers.writeIntAscii(
                     value = value,
                     array = output,
                     offset = 3,
@@ -127,7 +127,7 @@ class NumbersBenchmark {
             output.fill(0x55)
             verify(
                 text = text,
-                end = writeLongAscii(
+                end = Numbers.writeLongAscii(
                     value = value,
                     array = output,
                     offset = 3,
@@ -144,7 +144,7 @@ class NumbersBenchmark {
 
     @Benchmark
     fun intForward(blackhole: Blackhole) {
-        val end = writeIntAscii(value = nextInt(), array = output, offset = 3)
+        val end = Numbers.writeIntAscii(value = nextInt(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)
@@ -160,7 +160,7 @@ class NumbersBenchmark {
 
     @Benchmark
     fun longForward(blackhole: Blackhole) {
-        val end = writeLongAscii(value = nextLong(), array = output, offset = 3)
+        val end = Numbers.writeLongAscii(value = nextLong(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)

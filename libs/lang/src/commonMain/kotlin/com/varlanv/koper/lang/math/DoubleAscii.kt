@@ -178,7 +178,7 @@ private fun formatDoubleDecimal(
     val point = length + scale
     if (point in 1..7) {
         if (point >= length) {
-            var end = writeLongAscii(value = digits, array = array, offset = offset)
+            var end = Numbers.writeLongAscii(value = digits, array = array, offset = offset)
             repeat(point - length) { array[end++] = 48 }
             array[end] = 46
             array[end + 1] = 48
@@ -192,7 +192,7 @@ private fun formatDoubleDecimal(
         array[offset + 1] = 46
         var start = offset + 2
         repeat(-point) { array[start++] = 48 }
-        return writeLongAscii(value = digits, array = array, offset = start)
+        return Numbers.writeLongAscii(value = digits, array = array, offset = start)
     }
     val end: Int
     if (length == 1) {
@@ -205,7 +205,7 @@ private fun formatDoubleDecimal(
         writeDoubleDigitsWithPoint(value = digits, array = array, end = end, point = offset + 1)
     }
     array[end] = 69
-    return writeIntAscii(value = point - 1, array = array, offset = end + 1)
+    return Numbers.writeIntAscii(value = point - 1, array = array, offset = end + 1)
 }
 
 private val doubleLengthPowers = LongArray(32).also { values ->
@@ -259,7 +259,7 @@ private fun writeDoubleDigitsWithPoint(
     if (remaining >= 100) {
         writeDoubleTripletWithPoint(value = remaining, array = array, end = cursor, point = point)
     } else if (remaining >= 10) {
-        val packed = asciiTriplets[remaining and 1023]
+        val packed = Numbers.asciiTriplets[remaining and 1023]
         if (--cursor == point) {
             cursor--
         }
@@ -282,7 +282,7 @@ private fun writeDoubleTripletWithPoint(
     end: Int,
     point: Int,
 ): Int {
-    val packed = asciiTriplets[value and 1023]
+    val packed = Numbers.asciiTriplets[value and 1023]
     if (end - point > 3 || end <= point) {
         array[end - 3] = (packed ushr 16).toByte()
         array[end - 2] = (packed ushr 8).toByte()

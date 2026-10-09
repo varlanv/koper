@@ -2,7 +2,7 @@ package com.varlanv.koper.lang.math
 
 import com.varlanv.koper.lang.bin.MutBytes
 
-actual fun writeLongAscii(
+actual fun Numbers.writeLongAscii(
     value: Long,
     array: MutBytes,
     offset: Int,

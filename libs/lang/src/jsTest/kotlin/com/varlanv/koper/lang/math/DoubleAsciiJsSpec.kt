@@ -90,7 +90,7 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
         val value = Double.fromBits(bits)
         val offset = count++ and 7
         output.fill(85)
-        val end = writeDoubleAscii(value = value, array = output, offset = offset)
+        val end = Numbers.writeDoubleAscii(value = value, array = output, offset = offset)
         check(end in offset + 1..offset + 24) { "Invalid output length for bits=$bits" }
         for (index in 0 until offset) {
             check(output[index] == 85.toByte()) { "Modified prefix for bits=$bits" }
@@ -108,7 +108,7 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
         if (exactFit) {
             val exact = MutBytes(end.bytes()) { 85 }
             check(
-                writeDoubleAscii(value = value, array = exact, offset = offset) == end,
+                Numbers.writeDoubleAscii(value = value, array = exact, offset = offset) == end,
             ) { "Invalid exact fit length for bits=$bits" }
             exact.forEachIndex { index ->
                 check(exact[index] == output[index]) { "Different exact fit output for bits=$bits" }

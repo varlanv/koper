@@ -70,7 +70,7 @@ class DoubleAsciiJvmSpec : BaseSpec({
                         val offset = caseIndex++ and 7
                         val exact = MutBytes((offset + expected.length).bytes()) { 0x5a }
                         withClue("significand=$significand, point=$point, expected=$expected, offset=$offset") {
-                            val end = writeDoubleAscii(value = value, array = exact, offset = offset)
+                            val end = Numbers.writeDoubleAscii(value = value, array = exact, offset = offset)
                             end shouldBe exact.size
                             Charset.Utf8.decodeFromBytes(
                                 bytes = exact.asReadonly(),
@@ -92,7 +92,7 @@ private fun verifyDoubleAsciiAgainstJdk(bits: Long, output: MutBytes) {
     val offset = bits.toInt() and 7
     output.fill(0x5a)
     withClue("bits=$bits, expected=$expected, offset=$offset") {
-        val end = writeDoubleAscii(value = value, array = output, offset = offset)
+        val end = Numbers.writeDoubleAscii(value = value, array = output, offset = offset)
         end shouldBe offset + expected.length
         Charset.Utf8.decodeFromBytes(bytes = output.asReadonly(), offset = offset, len = end - offset) shouldBe expected
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()

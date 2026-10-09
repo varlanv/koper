@@ -41,6 +41,6 @@ private fun verifyLimbAscii(
     val expected = ByteArray(offset + text.length + suffix) { 85 }
     text.encodeToByteArray().copyInto(expected, offset)
     val output = MutBytes(expected.size.bytes()) { 85 }
-    writeLongAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
+    Numbers.writeLongAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
     output.byteArrayClone() shouldContainExactly expected
 }

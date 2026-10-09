@@ -4,7 +4,7 @@ import com.varlanv.koper.lang.bin.MutBytes
 import com.varlanv.koper.lang.collection.get
 import kotlin.math.floor
 
-actual fun writeLongAscii(
+actual fun Numbers.writeLongAscii(
     value: Long,
     array: MutBytes,
     offset: Int,
@@ -59,8 +59,8 @@ private fun writeLimbSix(
     offset: Int,
 ) {
     val upper = value / 1000
-    val leading = asciiTriplets[upper and 1023]
-    val trailing = asciiTriplets[(value - upper * 1000) and 1023]
+    val leading = Numbers.asciiTriplets[upper and 1023]
+    val trailing = Numbers.asciiTriplets[(value - upper * 1000) and 1023]
     array[offset] = (leading ushr 16).toByte()
     array[offset + 1] = (leading ushr 8).toByte()
     array[offset + 2] = leading.toByte()

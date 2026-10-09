@@ -6,7 +6,7 @@ import com.varlanv.koper.lang.bin.asMut
 import com.varlanv.koper.lang.bin.byteArrayClone
 import com.varlanv.koper.lang.bin.decodeToString
 import com.varlanv.koper.lang.bin.forEachIndex
-import com.varlanv.koper.lang.math.writeDoubleAscii
+import com.varlanv.koper.lang.math.Numbers
 import jdk.internal.math.DoubleToDecimal
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
@@ -29,7 +29,7 @@ class DoubleNumbersBenchmark {
         index = 0
         for (value in values) {
             output.fill(0x55)
-            val end = writeDoubleAscii(value = value, array = output, offset = 3)
+            val end = Numbers.writeDoubleAscii(value = value, array = output, offset = 3)
             val text = output.decodeToString(startIndex = 3, endIndex = end)
             check(text.toDouble().toRawBits() == value.toRawBits())
             check(text == value.toString())
@@ -62,7 +62,7 @@ class DoubleNumbersBenchmark {
 
     @Benchmark
     fun doubleForward(blackhole: Blackhole) {
-        val end = writeDoubleAscii(value = nextDouble(), array = output, offset = 3)
+        val end = Numbers.writeDoubleAscii(value = nextDouble(), array = output, offset = 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)

@@ -5,7 +5,7 @@ package com.varlanv.koper.benchmarks.lang.math
 import com.varlanv.koper.lang.bin.asMut
 import com.varlanv.koper.lang.bin.decodeToString
 import com.varlanv.koper.lang.bin.forEachIndex
-import com.varlanv.koper.lang.math.writeDoubleAscii
+import com.varlanv.koper.lang.math.Numbers
 import com.varlanv.koper.lang.math.writeDoubleAsciiPortable
 import kotlinx.benchmark.*
 
@@ -24,7 +24,7 @@ class DoubleNumbersJsBenchmark {
         index = 0
         for (value in values) {
             output.fill(0x55)
-            val end = writeDoubleAscii(value, output, 3)
+            val end = Numbers.writeDoubleAscii(value, output, 3)
             val text = output.decodeToString(3, end)
             check(text.toDouble().toRawBits() == value.toRawBits())
             output.forEachIndex { position ->
@@ -53,7 +53,7 @@ class DoubleNumbersJsBenchmark {
 
     @Benchmark
     fun doubleForward(blackhole: Blackhole) {
-        val end = writeDoubleAscii(nextDouble(), output, 3)
+        val end = Numbers.writeDoubleAscii(nextDouble(), output, 3)
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)

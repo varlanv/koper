@@ -95,15 +95,15 @@ class NumbersSpec : BaseSpec({
     should("chain mixed writes using returned offsets and reuse the destination") {
         val array = MutBytes(128.bytes()) { 0x5a }
         val offset = 5
-        var end = writeIntAscii(value = Int.MIN_VALUE, array = array, offset = offset)
+        var end = Numbers.writeIntAscii(value = Int.MIN_VALUE, array = array, offset = offset)
         array[end++] = ','.code.toByte()
-        end = writeLongAscii(value = Long.MAX_VALUE, array = array, offset = end)
+        end = Numbers.writeLongAscii(value = Long.MAX_VALUE, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeIntAscii(value = 0, array = array, offset = end)
+        end = Numbers.writeIntAscii(value = 0, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeLongAscii(value = Long.MIN_VALUE, array = array, offset = end)
+        end = Numbers.writeLongAscii(value = Long.MIN_VALUE, array = array, offset = end)
         array[end++] = ','.code.toByte()
-        end = writeIntAscii(value = Int.MAX_VALUE, array = array, offset = end)
+        end = Numbers.writeIntAscii(value = Int.MAX_VALUE, array = array, offset = end)
 
         val text = "${Int.MIN_VALUE},${Long.MAX_VALUE},0,${Long.MIN_VALUE},${Int.MAX_VALUE}"
         val expected = ByteArray(array.size) { 0x5a }
@@ -111,11 +111,11 @@ class NumbersSpec : BaseSpec({
         end shouldBe offset + text.length
         array.byteArrayClone() shouldContainExactly expected
 
-        writeIntAscii(value = 7, array = array, offset = offset) shouldBe offset + 1
+        Numbers.writeIntAscii(value = 7, array = array, offset = offset) shouldBe offset + 1
         expected[offset] = '7'.code.toByte()
         array.byteArrayClone() shouldContainExactly expected
 
-        writeLongAscii(value = -42, array = array, offset = offset) shouldBe offset + 3
+        Numbers.writeLongAscii(value = -42, array = array, offset = offset) shouldBe offset + 3
         "-42".encodeToByteArray().copyInto(expected, offset)
         array.byteArrayClone() shouldContainExactly expected
     }
@@ -137,11 +137,11 @@ private fun verifyAscii(
         }
         bytes.copyInto(destination = expected, destinationOffset = offset)
 
-        writeLongAscii(value = value, array = longArray, offset = offset) shouldBe offset + bytes.size
+        Numbers.writeLongAscii(value = value, array = longArray, offset = offset) shouldBe offset + bytes.size
         longArray.byteArrayClone() shouldContainExactly expected.byteArrayClone()
 
         if (intArray != null) {
-            writeIntAscii(value = value.toInt(), array = intArray, offset = offset) shouldBe offset + bytes.size
+            Numbers.writeIntAscii(value = value.toInt(), array = intArray, offset = offset) shouldBe offset + bytes.size
             intArray.byteArrayClone() shouldContainExactly expected.byteArrayClone()
         }
     }

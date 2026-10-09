@@ -104,13 +104,13 @@ class DoubleAsciiSpec : BaseSpec({
             if (index != 0) {
                 output[end++] = ','.code.toByte()
             }
-            end = writeDoubleAscii(value = values[index], array = output, offset = end)
+            end = Numbers.writeDoubleAscii(value = values[index], array = output, offset = end)
         }
         val expected = ByteArray(output.size) { 0x5a }
         text.encodeToByteArray().copyInto(expected, 5)
         end shouldBe 5 + text.length
         output.byteArrayClone() shouldContainExactly expected
-        writeDoubleAscii(value = 2.0, array = output, offset = 5) shouldBe 8
+        Numbers.writeDoubleAscii(value = 2.0, array = output, offset = 5) shouldBe 8
         "2.0".encodeToByteArray().copyInto(expected, 5)
         output.byteArrayClone() shouldContainExactly expected
     }
@@ -138,7 +138,7 @@ private fun verifyDoubleAsciiExpected(
         val expected = MutBytes((offset + text.length + suffix).bytes()) { (it * 37 + 128).toByte() }
         val output = expected.copyOf()
         text.encodeToByteArray().asMut().copyInto(destination = expected, destinationOffset = offset)
-        writeDoubleAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
+        Numbers.writeDoubleAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
         output.byteArrayClone() shouldContainExactly expected.byteArrayClone()
     }
 }
@@ -150,7 +150,7 @@ private fun verifyDoubleAsciiRoundTrip(
     val value = Double.fromBits(bits)
     withClue("bits=$bits, offset=$offset") {
         val output = MutBytes(40.bytes()) { 0x5a }
-        val end = writeDoubleAscii(value = value, array = output, offset = offset)
+        val end = Numbers.writeDoubleAscii(value = value, array = output, offset = offset)
         check(end in offset + 1..offset + 24) { "Invalid output length: ${end - offset}" }
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()
         for (index in end until output.size) output[index] shouldBe 0x5a.toByte()
@@ -169,7 +169,7 @@ private class DoubleAsciiFingerprint {
     private val output = MutBytes(24.bytes())
 
     fun consume(bits: Long) {
-        val end = writeDoubleAscii(
+        val end = Numbers.writeDoubleAscii(
             value = Double.fromBits(bits),
             array = output,
             offset = 0,

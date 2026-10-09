@@ -6,7 +6,8 @@ import com.varlanv.koper.lang.bin.ByteSink
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.asReadonly
 import com.varlanv.koper.lang.bin.toSlice
-import com.varlanv.koper.lang.serde.DecimalDigits
+import com.varlanv.koper.lang.math.Numbers
+import com.varlanv.koper.lang.math.writeLongAscii
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.decodeFromBytes
@@ -172,29 +173,10 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
     }
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Int, position: Int): Int {
-        val output = writeScope.buffer
-        val end = position + DecimalDigits.decimalSize(value)
-        var index = end
-        var number = if (value > 0) {
-            -value
-        } else {
-            value
-        }
-        while (number <= -1000) {
-            val quotient = number / 1000
-            val digits = DecimalDigits.triplets[quotient * 1000 - number]
-            index -= 3
-            output.setPackedShort(idx = index, value = digits.toShort())
-            output[index + 2] = (digits ushr 16).toByte()
-            number = quotient
-        }
-        index = DecimalDigits.writeLeading(buffer = output, number = -number, end = index)
-        if (value < 0) {
-            output[index - 1] = '-'.code.toByte()
-        }
-        return end
-    }
+    fun writePrimitive(
+        value: Int,
+        position: Int,
+    ): Int = Numbers.writeIntAscii(value = value, array = writeScope.buffer, offset = position)
 }
 
 object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
@@ -211,29 +193,10 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
     override fun read(): Long = readPrimitive()
 
     context(writeScope: JsonWriteScope)
-    fun writePrimitive(value: Long, position: Int): Int {
-        val output = writeScope.buffer
-        val end = position + DecimalDigits.decimalSize(value)
-        var index = end
-        var number = if (value > 0) {
-            -value
-        } else {
-            value
-        }
-        while (number <= -1000) {
-            val quotient = number / 1000
-            val digits = DecimalDigits.triplets[(quotient * 1000 - number).toInt()]
-            index -= 3
-            output.setPackedShort(idx = index, value = digits.toShort())
-            output[index + 2] = (digits ushr 16).toByte()
-            number = quotient
-        }
-        index = DecimalDigits.writeLeading(buffer = output, number = (-number).toInt(), end = index)
-        if (value < 0) {
-            output[index - 1] = '-'.code.toByte()
-        }
-        return end
-    }
+    fun writePrimitive(
+        value: Long,
+        position: Int,
+    ): Int = Numbers.writeLongAscii(value = value, array = writeScope.buffer, offset = position)
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Long {

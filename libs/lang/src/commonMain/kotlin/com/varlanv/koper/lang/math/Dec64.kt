@@ -1,6 +1,8 @@
 package com.varlanv.koper.lang.math
 
 import com.varlanv.koper.lang.bin.Bytes
+import com.varlanv.koper.lang.collection.get
+import com.varlanv.koper.lang.collection.size
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.decodeFromBytes
 import kotlin.jvm.JvmInline
@@ -208,7 +210,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         if (shift >= 0) {
             var r: Long
             var i: Int
-            if (shift < Numbers.LONG_POWERS_OF_10.size && ua <= Long.MAX_VALUE / Numbers.LONG_POWERS_OF_10[shift]) {
+            if (shift < Numbers.LONG_POWERS_OF_10.size() && ua <= Long.MAX_VALUE / Numbers.LONG_POWERS_OF_10[shift]) {
                 val numerator = ua * Numbers.LONG_POWERS_OF_10[shift]
                 ql = numerator / ub
                 r = numerator % ub
@@ -635,7 +637,7 @@ private fun mulPow10(value: Long, exponent: Int): Long {
     if (value == 0L) {
         return 0L
     }
-    if (exponent >= Numbers.LONG_POWERS_OF_10.size) {
+    if (exponent >= Numbers.LONG_POWERS_OF_10.size()) {
         return INVALID_BITS
     }
     val p = Numbers.LONG_POWERS_OF_10[exponent]

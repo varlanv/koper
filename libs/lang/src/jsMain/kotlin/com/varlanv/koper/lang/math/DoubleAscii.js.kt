@@ -375,7 +375,7 @@ private fun formatDoubleLimbs(
         )
     }
     array[end] = 69
-    return writeIntAscii(value = point - 1, array = array, offset = end + 1)
+    return Numbers.writeIntAscii(value = point - 1, array = array, offset = end + 1)
 }
 
 private fun doubleIntLength(value: Int): Int = when {
