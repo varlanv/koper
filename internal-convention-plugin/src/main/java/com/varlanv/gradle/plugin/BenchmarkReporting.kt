@@ -3,9 +3,12 @@ package com.varlanv.gradle.plugin
 import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Task
+import org.gradle.api.logging.Logger
+import org.gradle.process.CommandLineArgumentProvider
 import org.gradle.api.tasks.JavaExec
 import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsExec
 import java.io.File
+import java.io.OutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Base64
@@ -21,7 +24,7 @@ internal fun configureBenchmarkReporting(task: Task, buildDirectory: File) {
     val configurationFile = File(args.single())
     task.extensions.extraProperties.set("idea.internal.test", false)
     task.outputs.upToDateWhen { false }
-    task.actions.add(task.actions.lastIndex, PrepareBenchmarkReport(configurationFile, buildDirectory))
+    task.doFirst(PrepareBenchmarkReport(configurationFile, buildDirectory))
     task.doLast(FinishBenchmarkReport(configurationFile))
 }
 
@@ -30,14 +33,54 @@ private class PrepareBenchmarkReport(
     private val buildDirectory: File,
 ) : Action<Task> {
     override fun execute(task: Task) {
+        val runtimeMetadata = if (task is NodeJsExec) {
+            val process = ProcessBuilder(task.executable, "--version").redirectErrorStream(true).start()
+            if (!process.waitFor(5, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                throw GradleException("Cannot determine the Node.js version")
+            }
+            check(process.exitValue() == 0) { "Cannot determine the Node.js version" }
+            val version = process.inputStream.bufferedReader().use { it.readText().trim() }
+            "nodeExecutable:${task.executable}\nnodeVersion:$version\n"
+        } else {
+            null
+        }
+        val preparation = BenchmarkReportArguments(configurationFile, buildDirectory, runtimeMetadata, task.logger)
+        when (task) {
+            is JavaExec -> {
+                task.argumentProviders.add(preparation)
+                task.standardOutput = BenchmarkLogStream(preparation, "events.log")
+                task.errorOutput = BenchmarkLogStream(preparation, "stderr.log")
+            }
+
+            is NodeJsExec -> {
+                task.argumentProviders.add(preparation)
+                task.standardOutput = BenchmarkLogStream(preparation, "events.log")
+                task.errorOutput = BenchmarkLogStream(preparation, "stderr.log")
+            }
+        }
+    }
+}
+
+private class BenchmarkReportArguments(
+    private val configurationFile: File,
+    private val buildDirectory: File,
+    private val runtimeMetadata: String?,
+    private val logger: Logger,
+) : CommandLineArgumentProvider {
+    lateinit var directory: File
+        private set
+
+    override fun asArguments(): Iterable<String> {
+        if (::directory.isInitialized) return emptyList()
         val configuration = BenchmarkRunConfiguration.read(configurationFile)
         val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH.mm.ss.SSS"))
-        val directory = File(
+        val reportDirectory = File(
             buildDirectory,
             "reports/benchmarks/${configuration.profile}/$timestamp-${UUID.randomUUID().toString().take(8)}"
         )
-        check(directory.mkdirs()) { "Cannot create benchmark report directory: $directory" }
-        val report = File(directory, "${configuration.platform}.json")
+        check(reportDirectory.mkdirs()) { "Cannot create benchmark report directory: $reportDirectory" }
+        val report = File(reportDirectory, "${configuration.platform}.json")
         configurationFile.writeText(configurationFile.readLines().joinToString("\n", postfix = "\n") { line ->
             when (line.substringBefore(':')) {
                 "traceFormat" -> "traceFormat:xml"
@@ -46,30 +89,37 @@ private class PrepareBenchmarkReport(
                 else -> line
             }
         })
-        if (task is NodeJsExec) {
-            val process = ProcessBuilder(task.executable, "--version").redirectErrorStream(true).start()
-            if (!process.waitFor(5, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                throw GradleException("Cannot determine the Node.js version")
-            }
-            check(process.exitValue() == 0) { "Cannot determine the Node.js version" }
-            val version = process.inputStream.bufferedReader().use { it.readText().trim() }
-            File(directory, "runtime.txt").writeText("nodeExecutable:${task.executable}\nnodeVersion:$version\n")
-        }
-        val stdout = File(directory, "events.log").outputStream().buffered()
-        val stderr = File(directory, "stderr.log").outputStream().buffered()
-        when (task) {
-            is JavaExec -> {
-                task.standardOutput = stdout
-                task.errorOutput = stderr
-            }
+        runtimeMetadata?.let { File(reportDirectory, "runtime.txt").writeText(it) }
+        directory = reportDirectory
+        logger.lifecycle("Benchmark logs: ${directory.toPath().toUri()}")
+        return emptyList()
+    }
+}
 
-            is NodeJsExec -> {
-                task.standardOutput = stdout
-                task.errorOutput = stderr
-            }
-        }
-        task.logger.lifecycle("Benchmark logs: ${directory.toPath().toUri()}")
+private class BenchmarkLogStream(
+    private val preparation: BenchmarkReportArguments,
+    private val name: String,
+) : OutputStream() {
+    private var delegate: OutputStream? = null
+
+    private fun output(): OutputStream = delegate ?: File(preparation.directory, name).outputStream().also {
+        delegate = it
+    }
+
+    override fun write(value: Int) {
+        output().write(value)
+    }
+
+    override fun write(bytes: ByteArray, offset: Int, length: Int) {
+        output().write(bytes, offset, length)
+    }
+
+    override fun flush() {
+        delegate?.flush()
+    }
+
+    override fun close() {
+        delegate?.close()
     }
 }
 
