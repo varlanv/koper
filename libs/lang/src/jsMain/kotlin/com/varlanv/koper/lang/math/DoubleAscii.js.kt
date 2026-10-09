@@ -1,11 +1,14 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.collection.Ints
+import com.varlanv.koper.lang.collection.get
 import kotlin.math.abs
 import kotlin.math.floor
 
 private val doubleBitView: dynamic = js("new DataView(new ArrayBuffer(8))")
 
-private val doublePowerLimbs = IntArray(617 * 6) { index ->
+private val doublePowerLimbs = Ints(617 * 6) { index ->
     val power = index / 6 * 2
     val high = doubleDecimalPowers[power]
     val low = doubleDecimalPowers[power + 1]
@@ -21,7 +24,7 @@ private val doublePowerLimbs = IntArray(617 * 6) { index ->
 
 internal actual fun writeDoubleAsciiImpl(
     value: Double,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     doubleBitView.setFloat64(0, value, true)
@@ -252,7 +255,7 @@ private fun formatAdjustedDouble(
     low: Double,
     delta: Int,
     exponent: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     val adjusted = low + delta
@@ -281,7 +284,7 @@ private fun formatDoubleLimbs(
     high: Int,
     low: Double,
     exponent: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     val highQuotient = high / 1_000_000
@@ -391,7 +394,7 @@ private fun writeDoubleChunks(
     leading: Int,
     trailing: Int,
     count: Int,
-    array: ByteArray,
+    array: MutBytes,
     end: Int,
     point: Int,
 ) {

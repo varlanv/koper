@@ -45,6 +45,12 @@ class BytesSlice(
         return bytes.bytes.impl[offset + idx]
     }
 
+    inline fun byteArrayClone(): ByteArray {
+        val res = ByteArray(len)
+        bytes.copyInto(destination = res.asMut(), destinationOffset = 0, startIndex = offset, endIndex = len)
+        return res
+    }
+
     override fun equals(other: Any?): Boolean =
         other is BytesSlice &&
             bytes.mismatch(

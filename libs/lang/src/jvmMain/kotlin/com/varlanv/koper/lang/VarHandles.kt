@@ -1,4 +1,3 @@
-
 package com.varlanv.koper.lang
 
 import java.lang.invoke.MethodHandles

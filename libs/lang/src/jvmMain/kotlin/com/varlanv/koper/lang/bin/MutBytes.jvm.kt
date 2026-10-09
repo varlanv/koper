@@ -79,6 +79,10 @@ actual value class MutBytes @PublishedApi internal actual constructor(
 
     actual inline fun copyOfRange(from: Int, to: Int): MutBytes = MutBytes(impl.copyOfRange(from, to))
 
+    actual inline fun fill(value: Byte) {
+        impl.fill(value)
+    }
+
     actual companion object {
         actual val empty: MutBytes = MutBytes(ByteArray(0))
 

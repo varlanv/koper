@@ -2,6 +2,9 @@
 
 package com.varlanv.koper.lang.bin
 
+import com.varlanv.koper.lang.text.Charset
+import com.varlanv.koper.lang.text.decodeFromBytes
+
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
 expect class BytesImpl
 
@@ -37,6 +40,8 @@ expect value class MutBytes @PublishedApi internal constructor(@PublishedApi int
 
     inline fun forEachIndexed(block: (idx: Int, Byte) -> Unit)
 
+    inline fun fill(value: Byte)
+
     fun hash(offset: Int, length: Int): Int
 
     inline fun copyInto(
@@ -62,3 +67,21 @@ expect value class MutBytes @PublishedApi internal constructor(@PublishedApi int
 inline fun MutBytes.asReadonly(): Bytes = Bytes(this)
 
 inline fun MutBytes.asList(): List<Byte> = this.asReadonly().asList()
+
+inline fun MutBytes.byteArrayClone(): ByteArray {
+    val res = ByteArray(impl.size())
+    copyInto(destination = res.asMut())
+    return res
+}
+
+inline fun MutBytes.forEachIndex(block: (idx: Int) -> Unit) {
+    val sz = size
+    for (idx in 0 until sz) {
+        block(idx)
+    }
+}
+
+inline fun MutBytes.decodeToString(
+    startIndex: Int = 0,
+    endIndex: Int = this.size,
+): String = Charset.Utf8.decodeFromBytes(bytes = this.asReadonly(), offset = startIndex, len = endIndex - startIndex)

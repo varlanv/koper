@@ -37,11 +37,11 @@ expect value class Bytes(@PublishedApi internal val bytes: MutBytes) : BytesOper
 
     override inline fun asList(): List<Byte>
 
-    override fun forEachIndex(block: (idx: Int) -> Unit)
+    override inline fun forEachIndex(block: (idx: Int) -> Unit)
 
-    override fun forEachIndexed(block: (Byte) -> Unit)
+    override inline fun forEachIndexed(block: (Byte) -> Unit)
 
-    override fun forEachIndexed(block: (index: Int, Byte) -> Unit)
+    override inline fun forEachIndexed(block: (index: Int, Byte) -> Unit)
 
     companion object {
         inline val empty: Bytes

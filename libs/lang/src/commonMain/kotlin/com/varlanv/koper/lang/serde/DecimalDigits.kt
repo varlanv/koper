@@ -9,8 +9,10 @@ object DecimalDigits {
     val triplets = IntArray(1000) {
         ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
     }
+
     // todo remove ?
     private val tens = ByteArray(100) { ('0'.code + it / 10).toByte() }
+
     // todo remove ?
     private val ones = ByteArray(100) { ('0'.code + it % 10).toByte() }
 
@@ -76,37 +78,11 @@ object DecimalDigits {
             0
         }
     }
-
-    /**
-     * Counts digits of a nonnegative decimal group below 1,000,000,000 without changing state.
-     *
-     * @return The decimal digit count as an [Int], with zero requiring one digit.
-     */
-    private fun intDigits(value: Int): Int {
-        return if (value < 100000) {
-            if (value < 100) {
-                if (value < 10) {
-                    1
-                } else {
-                    2
-                }
-            } else if (value < 1000) {
-                3
-            } else if (value < 10000) {
-                4
-            } else {
-                5
-            }
-        } else if (value < 10000000) {
-            if (value < 1000000) {
-                6
-            } else {
-                7
-            }
-        } else if (value < 100000000) {
-            8
-        } else {
-            9
-        }
-    }
 }
+
+/**
+ * Counts digits of a nonnegative decimal group below 1,000,000,000 without changing state.
+ *
+ * @return The decimal digit count as an [Int], with zero requiring one digit.
+ */
+expect fun DecimalDigits.intDigits(value: Int): Int

@@ -1,8 +1,10 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+
 actual fun writeLongAscii(
     value: Long,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     if (value >= Int.MIN_VALUE && value <= Int.MAX_VALUE) {

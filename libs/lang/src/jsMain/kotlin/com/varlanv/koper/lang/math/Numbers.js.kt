@@ -1,10 +1,12 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.collection.get
 import kotlin.math.floor
 
 actual fun writeLongAscii(
     value: Long,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     var low = value.toInt()
@@ -53,7 +55,7 @@ actual fun writeLongAscii(
 
 private fun writeLimbSix(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ) {
     val upper = value / 1000

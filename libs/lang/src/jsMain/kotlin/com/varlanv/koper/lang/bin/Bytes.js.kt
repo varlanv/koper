@@ -2,12 +2,6 @@
 
 package com.varlanv.koper.lang.bin
 
-actual inline operator fun BytesImpl.get(idx: Int): Byte = getInt8(idx)
-
-actual inline operator fun BytesImpl.set(idx: Int, value: Byte) {
-    setInt8(byteOffset = idx, value = value)
-}
-
 private fun checkMismatchRange(
     from: Int,
     to: Int,
@@ -82,14 +76,14 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         return Array(size) { idx -> bytes[idx] }.asList()
     }
 
-    actual override fun forEachIndex(block: (idx: Int) -> Unit) {
+    actual override inline fun forEachIndex(block: (idx: Int) -> Unit) {
         val sz = bytes.impl.size()
         for (idx in 0 until sz) {
             block(idx)
         }
     }
 
-    actual override fun forEachIndexed(block: (Byte) -> Unit) {
+    actual override inline fun forEachIndexed(block: (Byte) -> Unit) {
         val impl = bytes.impl
         val sz = impl.size()
         for (idx in 0 until sz) {
@@ -97,7 +91,7 @@ actual value class Bytes actual constructor(@PublishedApi internal actual val by
         }
     }
 
-    actual override fun forEachIndexed(block: (index: Int, Byte) -> Unit) {
+    actual override inline fun forEachIndexed(block: (index: Int, Byte) -> Unit) {
         val impl = bytes.impl
         val sz = impl.size()
         for (idx in 0 until sz) {

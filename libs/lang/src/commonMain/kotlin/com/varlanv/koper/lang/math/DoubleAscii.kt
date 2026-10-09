@@ -1,14 +1,17 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.collection.get
+
 internal expect fun writeDoubleAsciiImpl(
     value: Double,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int
 
 internal fun writeDoubleAsciiPortable(
     value: Double,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     val bits = value.toRawBits()
@@ -144,7 +147,7 @@ private fun doubleScaledOdd(
 private fun formatDoubleDecimal(
     value: Long,
     exponent: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     var digits = value
@@ -227,7 +230,7 @@ private fun doubleDecimalLength(value: Long): Int {
 
 private fun writeDoubleDigitsWithPoint(
     value: Long,
-    array: ByteArray,
+    array: MutBytes,
     end: Int,
     point: Int,
 ) {
@@ -275,7 +278,7 @@ private fun writeDoubleDigitsWithPoint(
 
 private fun writeDoubleTripletWithPoint(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     end: Int,
     point: Int,
 ): Int {

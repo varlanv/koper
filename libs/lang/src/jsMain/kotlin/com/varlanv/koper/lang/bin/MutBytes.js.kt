@@ -10,6 +10,12 @@ import org.khronos.webgl.Uint8Array
 
 actual inline fun BytesImpl.size(): Int = byteLength
 
+actual inline operator fun BytesImpl.get(idx: Int): Byte = getInt8(idx)
+
+actual inline operator fun BytesImpl.set(idx: Int, value: Byte) {
+    setInt8(byteOffset = idx, value = value)
+}
+
 @Suppress(names = ["EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING"])
 actual value class MutBytes @PublishedApi internal actual constructor(
     @PublishedApi internal actual val impl: BytesImpl,
@@ -124,6 +130,13 @@ actual value class MutBytes @PublishedApi internal actual constructor(
         return MutBytes(
             DataView(buffer = impl.buffer.slice(begin = impl.byteOffset + from, end = impl.byteOffset + to)),
         )
+    }
+
+    actual inline fun fill(value: Byte) {
+        val sz = size
+        for (idx in 0 until sz) {
+            impl[idx] = value
+        }
     }
 
     actual companion object {

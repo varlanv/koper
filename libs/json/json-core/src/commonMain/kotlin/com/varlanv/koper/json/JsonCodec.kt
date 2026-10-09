@@ -10,16 +10,6 @@ import com.varlanv.koper.lang.serde.DecimalDigits
 import com.varlanv.koper.lang.text.Charset
 import com.varlanv.koper.lang.text.Utf8Str
 import com.varlanv.koper.lang.text.decodeFromBytes
-import kotlin.Any
-import kotlin.Boolean
-import kotlin.IllegalArgumentException
-import kotlin.Int
-import kotlin.Long
-import kotlin.String
-import kotlin.code
-import kotlin.require
-import kotlin.text.encodeToByteArray
-import kotlin.text.iterator
 
 /**
  * Contracts and sizing hints for codecs operating in read or write scope contexts.

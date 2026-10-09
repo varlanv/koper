@@ -1,5 +1,11 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
+import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.bin.forEachIndex
+import com.varlanv.koper.lang.text.Charset
+import com.varlanv.koper.lang.text.decodeFromBytes
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.matchers.shouldBe
 
@@ -78,7 +84,7 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
     var first = 0
     var second = -2_128_831_035
     private var count = 0
-    private val output = ByteArray(40)
+    private val output = MutBytes(40.bytes())
 
     fun consume(bits: Long) {
         val value = Double.fromBits(bits)
@@ -100,14 +106,19 @@ private class JsDoubleFingerprint(private val exactFit: Boolean = false) {
         first *= 31
         second *= 16_777_619
         if (exactFit) {
-            val exact = ByteArray(end) { 85 }
+            val exact = MutBytes(end.bytes()) { 85 }
             check(
                 writeDoubleAscii(value = value, array = exact, offset = offset) == end,
             ) { "Invalid exact fit length for bits=$bits" }
-            for (index in exact.indices) {
+            exact.forEachIndex { index ->
                 check(exact[index] == output[index]) { "Different exact fit output for bits=$bits" }
             }
-            check(output.decodeToString(offset, end).toDouble().toRawBits() == bits) {
+            check(
+                Charset.Utf8
+                    .decodeFromBytes(bytes = output.asReadonly(), offset = offset, len = end - offset)
+                    .toDouble()
+                    .toRawBits() == bits,
+            ) {
                 "Failed round trip for bits=$bits"
             }
         }

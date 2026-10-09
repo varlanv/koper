@@ -103,6 +103,16 @@ expect fun Charset.encodeIntoSlice(
     end: Int = string.length,
 ): BytesSlice
 
+/** The returned slice may use only part of its backing array. */
+fun Charset.encodeToByteArray(
+    string: String,
+    start: Int = 0,
+    end: Int = string.length,
+): ByteArray {
+    val slice = encodeIntoSlice(string = string, start = start, end = end)
+    return slice.byteArrayClone()
+}
+
 /**
  * Writes as many complete encoded characters as fit after [destinationOffset] and returns the byte count.
  * Stops before the first character that does not fit; never writes a partial multibyte sequence.

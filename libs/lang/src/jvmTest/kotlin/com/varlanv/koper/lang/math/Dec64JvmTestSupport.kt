@@ -41,6 +41,7 @@ internal object Dec64Gen {
                         4,
                     ),
                 )
+
                 1 -> BigDecimal(
                     digits(
                         r = r,
@@ -54,6 +55,7 @@ internal object Dec64Gen {
                         9,
                     ),
                 )
+
                 2 -> BigDecimal(
                     digits(
                         r = r,
@@ -67,6 +69,7 @@ internal object Dec64Gen {
                         16,
                     ),
                 )
+
                 3 -> BigDecimal(
                     maxCoefficient - BigInteger.valueOf(r.nextLong(0, 1000)),
                     r.nextInt(
@@ -74,6 +77,7 @@ internal object Dec64Gen {
                         16,
                     ),
                 )
+
                 else -> BigDecimal(
                     digits(
                         r = r,

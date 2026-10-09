@@ -35,29 +35,7 @@ private const val SCALE_MASK = 0x1FL
 private const val INVALID_BITS = Long.MIN_VALUE
 private const val DOUBLE_EXACT_LIMIT = 1L shl 53
 
-private val POW10 = longArrayOf(
-    1L,
-    10L,
-    100L,
-    1_000L,
-    10_000L,
-    100_000L,
-    1_000_000L,
-    10_000_000L,
-    100_000_000L,
-    1_000_000_000L,
-    10_000_000_000L,
-    100_000_000_000L,
-    1_000_000_000_000L,
-    10_000_000_000_000L,
-    100_000_000_000_000L,
-    1_000_000_000_000_000L,
-    10_000_000_000_000_000L,
-    100_000_000_000_000_000L,
-    1_000_000_000_000_000_000L,
-)
-
-private val POW10_DOUBLE = DoubleArray(Dec64.MAX_SCALE + 1) { POW10[it].toDouble() }
+private val POW10_DOUBLE = DoubleArray(Dec64.MAX_SCALE + 1) { Numbers.LONG_POWERS_OF_10[it].toDouble() }
 private const val INSERTION_SORT_THRESHOLD = 16
 
 @JvmInline
@@ -104,8 +82,8 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         val cb = b shr SCALE_BITS
         return when {
             sa == sb -> ca.compareTo(cb)
-            sa < sb -> compareScaled(c = ca, p = POW10[sb - sa], other = cb)
-            else -> -compareScaled(c = cb, p = POW10[sa - sb], other = ca)
+            sa < sb -> compareScaled(c = ca, p = Numbers.LONG_POWERS_OF_10[sb - sa], other = cb)
+            else -> -compareScaled(c = cb, p = Numbers.LONG_POWERS_OF_10[sa - sb], other = ca)
         }
     }
 
@@ -124,9 +102,9 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
             return Dec64(r)
         }
         val r = if (sa < sb) {
-            addScaled(c = ca, p = POW10[sb - sa], other = cb, scale = sb)
+            addScaled(c = ca, p = Numbers.LONG_POWERS_OF_10[sb - sa], other = cb, scale = sb)
         } else {
-            addScaled(c = cb, p = POW10[sa - sb], other = ca, scale = sa)
+            addScaled(c = cb, p = Numbers.LONG_POWERS_OF_10[sa - sb], other = ca, scale = sa)
         }
         if (r == INVALID_BITS) {
             throw overflow(op = "+", other = other)
@@ -149,9 +127,9 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
             return Dec64(r)
         }
         val r = if (sa < sb) {
-            addScaled(c = ca, p = POW10[sb - sa], other = cb, scale = sb)
+            addScaled(c = ca, p = Numbers.LONG_POWERS_OF_10[sb - sa], other = cb, scale = sb)
         } else {
-            addScaled(c = cb, p = POW10[sa - sb], other = ca, scale = sa)
+            addScaled(c = cb, p = Numbers.LONG_POWERS_OF_10[sa - sb], other = ca, scale = sa)
         }
         if (r == INVALID_BITS) {
             throw overflow(op = "-", other = other)
@@ -230,8 +208,8 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
         if (shift >= 0) {
             var r: Long
             var i: Int
-            if (shift < POW10.size && ua <= Long.MAX_VALUE / POW10[shift]) {
-                val numerator = ua * POW10[shift]
+            if (shift < Numbers.LONG_POWERS_OF_10.size && ua <= Long.MAX_VALUE / Numbers.LONG_POWERS_OF_10[shift]) {
+                val numerator = ua * Numbers.LONG_POWERS_OF_10[shift]
                 ql = numerator / ub
                 r = numerator % ub
                 i = shift
@@ -272,7 +250,7 @@ value class Dec64 private constructor(val bits: Long) : Comparable<Dec64> {
             remainderNonZero = r != 0L
             halfComparison = r.compareTo(ub - r)
         } else {
-            val p = POW10[-shift]
+            val p = Numbers.LONG_POWERS_OF_10[-shift]
             val dlo = ub * p
             val dhi = ub.multiplyHigh(p)
             if (dhi == 0L && dlo >= 0L) {
@@ -657,10 +635,10 @@ private fun mulPow10(value: Long, exponent: Int): Long {
     if (value == 0L) {
         return 0L
     }
-    if (exponent >= POW10.size) {
+    if (exponent >= Numbers.LONG_POWERS_OF_10.size) {
         return INVALID_BITS
     }
-    val p = POW10[exponent]
+    val p = Numbers.LONG_POWERS_OF_10[exponent]
     if (value > Dec64.MAX_COEFFICIENT / p || value < Dec64.MIN_COEFFICIENT / p) {
         return INVALID_BITS
     }

@@ -1,6 +1,10 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.byteArrayClone
+import com.varlanv.koper.lang.bin.bytes
 import com.varlanv.koper.testing.BaseSpec
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import kotlin.random.Random
 
@@ -36,7 +40,7 @@ private fun verifyLimbAscii(
     val text = value.toString()
     val expected = ByteArray(offset + text.length + suffix) { 85 }
     text.encodeToByteArray().copyInto(expected, offset)
-    val output = ByteArray(expected.size) { 85 }
+    val output = MutBytes(expected.size.bytes()) { 85 }
     writeLongAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
-    output shouldBe expected
+    output.byteArrayClone() shouldContainExactly expected
 }

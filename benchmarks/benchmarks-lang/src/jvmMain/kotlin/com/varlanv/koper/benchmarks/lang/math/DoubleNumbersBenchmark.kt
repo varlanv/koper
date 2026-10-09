@@ -2,6 +2,10 @@
 
 package com.varlanv.koper.benchmarks.lang.math
 
+import com.varlanv.koper.lang.bin.asMut
+import com.varlanv.koper.lang.bin.byteArrayClone
+import com.varlanv.koper.lang.bin.decodeToString
+import com.varlanv.koper.lang.bin.forEachIndex
 import com.varlanv.koper.lang.math.writeDoubleAscii
 import jdk.internal.math.DoubleToDecimal
 import org.openjdk.jmh.annotations.*
@@ -15,7 +19,8 @@ class DoubleNumbersBenchmark {
     final var distribution = "small"
 
     private lateinit var values: DoubleArray
-    private val output = ByteArray(32)
+    private val output = ByteArray(32).asMut()
+    private lateinit var outputJdk: ByteArray
     private var index = 0
 
     @Setup
@@ -25,10 +30,10 @@ class DoubleNumbersBenchmark {
         for (value in values) {
             output.fill(0x55)
             val end = writeDoubleAscii(value = value, array = output, offset = 3)
-            val text = output.decodeToString(3, end)
+            val text = output.decodeToString(startIndex = 3, endIndex = end)
             check(text.toDouble().toRawBits() == value.toRawBits())
             check(text == value.toString())
-            for (position in output.indices) {
+            output.forEachIndex { position ->
                 if (position !in 3 until end) {
                     check(output[position] == 0x55.toByte())
                 }
@@ -36,17 +41,18 @@ class DoubleNumbersBenchmark {
             output.fill(0x55)
             val expected = value.toString()
             val stringEnd = writeString(expected)
-            check(output.decodeToString(3, stringEnd) == expected)
-            for (position in output.indices) {
+            check(output.decodeToString(startIndex = 3, endIndex = stringEnd) == expected)
+            output.forEachIndex { position ->
                 if (position !in 3 until stringEnd) {
                     check(output[position] == 0x55.toByte())
                 }
             }
             output.fill(0x55)
-            val jdkEnd = DoubleToDecimal.LATIN1.putDecimal(output, 3, value)
+            outputJdk = output.byteArrayClone()
+            val jdkEnd = DoubleToDecimal.LATIN1.putDecimal(outputJdk, 3, value)
             check(jdkEnd == end)
-            check(output.decodeToString(3, jdkEnd) == expected)
-            for (position in output.indices) {
+            check(output.decodeToString(startIndex = 3, endIndex = jdkEnd) == expected)
+            output.forEachIndex { position ->
                 if (position !in 3 until 3 + DoubleToDecimal.MAX_CHARS) {
                     check(output[position] == 0x55.toByte())
                 }
@@ -72,7 +78,7 @@ class DoubleNumbersBenchmark {
 
     @Benchmark
     fun doubleJdk(blackhole: Blackhole) {
-        val end = DoubleToDecimal.LATIN1.putDecimal(output, 3, nextDouble())
+        val end = DoubleToDecimal.LATIN1.putDecimal(outputJdk, 3, nextDouble())
         blackhole.consume(end)
         blackhole.consume(output[3].toInt() + output[end - 1])
         blackhole.consume(output)

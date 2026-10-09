@@ -1,5 +1,7 @@
 package com.varlanv.koper.benchmarks.lang.math
 
+import com.varlanv.koper.lang.bin.asMut
+import com.varlanv.koper.lang.bin.forEachIndex
 import com.varlanv.koper.lang.math.writeIntAscii
 import com.varlanv.koper.lang.math.writeLongAscii
 import kotlin.random.Random
@@ -12,7 +14,7 @@ class NumbersJsBenchmark {
 
     private lateinit var ints: IntArray
     private lateinit var longs: LongArray
-    private val output = ByteArray(32)
+    private val output = ByteArray(32).asMut()
     private var intIndex = 0
     private var longIndex = 0
 
@@ -183,7 +185,7 @@ class NumbersJsBenchmark {
 
     private fun verify(text: String, end: Int) {
         check(end == 3 + text.length)
-        for (index in output.indices) {
+        output.forEachIndex { index ->
             val expected = if (index in 3 until end) {
                 text[index - 3].code.toByte()
             } else {

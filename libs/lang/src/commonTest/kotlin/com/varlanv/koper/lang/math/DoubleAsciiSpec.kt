@@ -1,7 +1,9 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.*
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.withClue
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import kotlin.random.Random
 
@@ -96,7 +98,7 @@ class DoubleAsciiSpec : BaseSpec({
     should("chain writes and preserve following bytes when reusing the destination") {
         val values = doubleArrayOf(-0.0, Double.MIN_VALUE, 0.001, 1e7, Double.MAX_VALUE, Double.NaN)
         val text = "-0.0,4.9E-324,0.001,1.0E7,1.7976931348623157E308,NaN"
-        val output = ByteArray(128) { 0x5a }
+        val output = MutBytes(128.bytes()) { 0x5a }
         var end = 5
         for (index in values.indices) {
             if (index != 0) {
@@ -107,10 +109,10 @@ class DoubleAsciiSpec : BaseSpec({
         val expected = ByteArray(output.size) { 0x5a }
         text.encodeToByteArray().copyInto(expected, 5)
         end shouldBe 5 + text.length
-        output shouldBe expected
+        output.byteArrayClone() shouldContainExactly expected
         writeDoubleAscii(value = 2.0, array = output, offset = 5) shouldBe 8
         "2.0".encodeToByteArray().copyInto(expected, 5)
-        output shouldBe expected
+        output.byteArrayClone() shouldContainExactly expected
     }
 })
 
@@ -133,11 +135,11 @@ private fun verifyDoubleAsciiExpected(
     suffix: Int,
 ) {
     withClue("bits=${value.toRawBits()}, expected=$text, offset=$offset, suffix=$suffix") {
-        val expected = ByteArray(offset + text.length + suffix) { (it * 37 + 128).toByte() }
+        val expected = MutBytes((offset + text.length + suffix).bytes()) { (it * 37 + 128).toByte() }
         val output = expected.copyOf()
-        text.encodeToByteArray().copyInto(expected, offset)
+        text.encodeToByteArray().asMut().copyInto(destination = expected, destinationOffset = offset)
         writeDoubleAscii(value = value, array = output, offset = offset) shouldBe offset + text.length
-        output shouldBe expected
+        output.byteArrayClone() shouldContainExactly expected.byteArrayClone()
     }
 }
 
@@ -147,12 +149,12 @@ private fun verifyDoubleAsciiRoundTrip(
 ) {
     val value = Double.fromBits(bits)
     withClue("bits=$bits, offset=$offset") {
-        val output = ByteArray(40) { 0x5a }
+        val output = MutBytes(40.bytes()) { 0x5a }
         val end = writeDoubleAscii(value = value, array = output, offset = offset)
         check(end in offset + 1..offset + 24) { "Invalid output length: ${end - offset}" }
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()
         for (index in end until output.size) output[index] shouldBe 0x5a.toByte()
-        val parsed = output.decodeToString(offset, end).toDouble()
+        val parsed = output.decodeToString(startIndex = offset, endIndex = end).toDouble()
         if (value.isNaN()) {
             parsed.isNaN() shouldBe true
         } else {
@@ -164,7 +166,7 @@ private fun verifyDoubleAsciiRoundTrip(
 private class DoubleAsciiFingerprint {
     var first = 0
     var second = -2_128_831_035
-    private val output = ByteArray(24)
+    private val output = MutBytes(24.bytes())
 
     fun consume(bits: Long) {
         val end = writeDoubleAscii(

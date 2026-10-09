@@ -2,6 +2,9 @@
 
 package com.varlanv.koper.benchmarks.lang.math
 
+import com.varlanv.koper.lang.bin.asMut
+import com.varlanv.koper.lang.bin.decodeToString
+import com.varlanv.koper.lang.bin.forEachIndex
 import com.varlanv.koper.lang.math.writeDoubleAscii
 import com.varlanv.koper.lang.math.writeDoubleAsciiPortable
 import kotlinx.benchmark.*
@@ -12,7 +15,7 @@ class DoubleNumbersJsBenchmark {
     var distribution = "small"
 
     private lateinit var values: DoubleArray
-    private val output = ByteArray(32)
+    private val output = ByteArray(32).asMut()
     private var index = 0
 
     @Setup
@@ -24,7 +27,7 @@ class DoubleNumbersJsBenchmark {
             val end = writeDoubleAscii(value, output, 3)
             val text = output.decodeToString(3, end)
             check(text.toDouble().toRawBits() == value.toRawBits())
-            for (position in output.indices) {
+            output.forEachIndex { position ->
                 if (position !in 3 until end) {
                     check(output[position] == 0x55.toByte())
                 }
@@ -32,7 +35,7 @@ class DoubleNumbersJsBenchmark {
             output.fill(0x55)
             check(writeDoubleAsciiPortable(value, output, 3) == end)
             check(output.decodeToString(3, end) == text)
-            for (position in output.indices) {
+            output.forEachIndex { position ->
                 if (position !in 3 until end) {
                     check(output[position] == 0x55.toByte())
                 }

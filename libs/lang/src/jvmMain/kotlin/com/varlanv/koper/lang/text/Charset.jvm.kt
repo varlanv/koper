@@ -1,10 +1,6 @@
 package com.varlanv.koper.lang.text
 
-import com.varlanv.koper.lang.bin.ByteSink
-import com.varlanv.koper.lang.bin.Bytes
-import com.varlanv.koper.lang.bin.BytesSlice
-import com.varlanv.koper.lang.bin.MutBytes
-import com.varlanv.koper.lang.bin.skipAscii
+import com.varlanv.koper.lang.bin.*
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 

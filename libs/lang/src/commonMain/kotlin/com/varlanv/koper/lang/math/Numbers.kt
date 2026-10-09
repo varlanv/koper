@@ -1,18 +1,49 @@
 package com.varlanv.koper.lang.math
 
-internal val asciiTriplets = IntArray(1024) { value ->
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.collection.Ints
+import com.varlanv.koper.lang.collection.get
+import com.varlanv.koper.lang.collection.intsOf
+
+object Numbers {
+    val INT_POWERS_OF_10 = intsOf(1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000)
+
+    val LONG_POWERS_OF_10 = longArrayOf(
+        1L,
+        10L,
+        100L,
+        1_000L,
+        10_000L,
+        100_000L,
+        1_000_000L,
+        10_000_000L,
+        100_000_000L,
+        1_000_000_000L,
+        10_000_000_000L,
+        100_000_000_000L,
+        1_000_000_000_000L,
+        10_000_000_000_000L,
+        100_000_000_000_000L,
+        1_000_000_000_000_000L,
+        10_000_000_000_000_000L,
+        100_000_000_000_000_000L,
+        1_000_000_000_000_000_000L,
+    )
+}
+
+internal val asciiTriplets = Ints(1024) { value ->
     ((value / 100 + 48) shl 16) or ((value / 10 % 10 + 48) shl 8) or (value % 10 + 48)
 }
 
 expect fun writeLongAscii(
     value: Long,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int
 
 fun writeIntAscii(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     if (value >= 0) {
@@ -29,7 +60,7 @@ fun writeIntAscii(
 
 internal fun writePositiveIntAscii(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     if (value < 1000) {
@@ -59,7 +90,7 @@ internal fun writePositiveIntAscii(
 
 private fun writeLeadingTripletAscii(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int {
     if (value < 10) {
@@ -80,7 +111,7 @@ private fun writeLeadingTripletAscii(
 
 private fun writeTripletAscii(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ) {
     val digits = asciiTriplets[value and 1023]
@@ -91,7 +122,7 @@ private fun writeTripletAscii(
 
 internal fun writeNineAscii(
     value: Int,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ) {
     val upper = value / 1000
@@ -103,6 +134,6 @@ internal fun writeNineAscii(
 
 fun writeDoubleAscii(
     value: Double,
-    array: ByteArray,
+    array: MutBytes,
     offset: Int,
 ): Int = writeDoubleAsciiImpl(value = value, array = array, offset = offset)

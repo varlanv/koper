@@ -1,5 +1,7 @@
 package com.varlanv.koper.benchmarks.lang.math
 
+import com.varlanv.koper.lang.bin.asMut
+import com.varlanv.koper.lang.bin.forEachIndex
 import com.varlanv.koper.lang.math.writeIntAscii
 import com.varlanv.koper.lang.math.writeLongAscii
 import kotlin.random.Random
@@ -14,7 +16,7 @@ class NumbersBenchmark {
 
     private lateinit var ints: IntArray
     private lateinit var longs: LongArray
-    private val output = ByteArray(32)
+    private val output = ByteArray(32).asMut()
     private var intIndex = 0
     private var longIndex = 0
 
@@ -26,6 +28,7 @@ class NumbersBenchmark {
                 "small" -> {
                     index and 255
                 }
+
                 "mixed" -> {
                     val digits = index % 10 + 1
                     var lower = 1L
@@ -45,9 +48,11 @@ class NumbersBenchmark {
                         -magnitude
                     }
                 }
+
                 "random" -> {
                     random.nextInt()
                 }
+
                 else -> {
                     error("Unknown distribution: $distribution")
                 }
@@ -58,6 +63,7 @@ class NumbersBenchmark {
                 "small" -> {
                     (index and 255).toLong()
                 }
+
                 "mixed" -> {
                     val digits = index % 19 + 1
                     var lower = 1L
@@ -76,9 +82,11 @@ class NumbersBenchmark {
                         -magnitude
                     }
                 }
+
                 "random" -> {
                     random.nextLong()
                 }
+
                 else -> {
                     error("Unknown distribution: $distribution")
                 }
@@ -187,7 +195,7 @@ class NumbersBenchmark {
 
     private fun verify(text: String, end: Int) {
         check(end == 3 + text.length)
-        for (index in output.indices) {
+        output.forEachIndex { index ->
             val expected = if (index in 3 until end) {
                 text[index - 3].code.toByte()
             } else {

@@ -1,5 +1,10 @@
 package com.varlanv.koper.lang.math
 
+import com.varlanv.koper.lang.bin.MutBytes
+import com.varlanv.koper.lang.bin.asReadonly
+import com.varlanv.koper.lang.bin.bytes
+import com.varlanv.koper.lang.text.Charset
+import com.varlanv.koper.lang.text.decodeFromBytes
 import com.varlanv.koper.testing.BaseSpec
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
@@ -28,21 +33,21 @@ class DoubleAsciiJvmSpec : BaseSpec({
 
     should("match JDK canonical strings for 250000 random raw bit patterns") {
         val random = Random(718_903_521)
-        val output = ByteArray(40)
+        val output = MutBytes(40.bytes())
         repeat(250_000) {
             verifyDoubleAsciiAgainstJdk(bits = random.nextLong(), output = output)
         }
     }
 
     should("match JDK canonical strings at both sides of every exponent boundary") {
-        val output = ByteArray(40)
+        val output = MutBytes(40.bytes())
         forEachAsciiDoubleBoundary { bits ->
             verifyDoubleAsciiAgainstJdk(bits = bits, output = output)
         }
     }
 
     should("match JDK formatting across digit chunks decimal positions and zero tails") {
-        val output = ByteArray(40)
+        val output = MutBytes(40.bytes())
         var caseIndex = 0
         for (length in 1..17) {
             val significands = linkedSetOf(
@@ -63,11 +68,15 @@ class DoubleAsciiJvmSpec : BaseSpec({
                         verifyDoubleAsciiAgainstJdk(bits = value.toRawBits(), output = output)
                         val expected = value.toString()
                         val offset = caseIndex++ and 7
-                        val exact = ByteArray(offset + expected.length) { 0x5a }
+                        val exact = MutBytes((offset + expected.length).bytes()) { 0x5a }
                         withClue("significand=$significand, point=$point, expected=$expected, offset=$offset") {
                             val end = writeDoubleAscii(value = value, array = exact, offset = offset)
                             end shouldBe exact.size
-                            exact.decodeToString(offset, end) shouldBe expected
+                            Charset.Utf8.decodeFromBytes(
+                                bytes = exact.asReadonly(),
+                                offset = offset,
+                                len = end - offset,
+                            ) shouldBe expected
                             for (index in 0 until offset) exact[index] shouldBe 0x5a.toByte()
                         }
                     }
@@ -77,7 +86,7 @@ class DoubleAsciiJvmSpec : BaseSpec({
     }
 })
 
-private fun verifyDoubleAsciiAgainstJdk(bits: Long, output: ByteArray) {
+private fun verifyDoubleAsciiAgainstJdk(bits: Long, output: MutBytes) {
     val value = Double.fromBits(bits)
     val expected = value.toString()
     val offset = bits.toInt() and 7
@@ -85,7 +94,7 @@ private fun verifyDoubleAsciiAgainstJdk(bits: Long, output: ByteArray) {
     withClue("bits=$bits, expected=$expected, offset=$offset") {
         val end = writeDoubleAscii(value = value, array = output, offset = offset)
         end shouldBe offset + expected.length
-        output.decodeToString(offset, end) shouldBe expected
+        Charset.Utf8.decodeFromBytes(bytes = output.asReadonly(), offset = offset, len = end - offset) shouldBe expected
         for (index in 0 until offset) output[index] shouldBe 0x5a.toByte()
         for (index in end until output.size) output[index] shouldBe 0x5a.toByte()
     }
