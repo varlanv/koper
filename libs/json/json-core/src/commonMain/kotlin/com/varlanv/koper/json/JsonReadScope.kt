@@ -2,6 +2,7 @@ package com.varlanv.koper.json
 
 import com.varlanv.koper.lang.bin.ByteSource
 import com.varlanv.koper.lang.bin.DataSize
+import com.varlanv.koper.lang.bin.MutBytes
 
 /**
  * Mutable state for a read operation's context. Construction allocates one buffer with [bufferSize] capacity.
@@ -18,47 +19,47 @@ class JsonReadScope(bufferSize: DataSize) {
     /**
      * Shared storage for buffered input and decoded string bytes. Growth replaces this storage.
      */
-    internal var buffer = bufferSize.allocate()
+    internal var buffer: MutBytes = bufferSize.allocate()
 
     /**
      * Last token byte consumed by the protocol, or -1 before initialization and at end of input.
      */
-    var last = -1
+    var last: Int = -1
 
     /**
      * Start of the most recently read field name in [buffer].
      */
-    var fieldOffset = 0
+    var fieldOffset: Int = 0
 
     /**
      * Length in bytes of the most recently read, unescaped field name.
      */
-    var fieldSize = 0
+    var fieldSize: Int = 0
 
     /**
      * Next unread input offset; string scans leave incomplete escapes at this position.
      */
-    var position = 0
+    var position: Int = 0
 
     /**
      * Exclusive end of populated buffer bytes, including any retained decoded prefix.
      */
-    var limit = 0
+    var limit: Int = 0
 
     /**
      * Start of the current decoded string in [buffer]; compaction may move it to zero.
      */
-    var stringOffset = 0
+    var stringOffset: Int = 0
 
     /**
      * Decoded byte count after a successful string read; reset to zero when reading or skipping starts.
      */
-    var stringLength = 0
+    var stringLength: Int = 0
 
     /**
      * Next output offset during string decoding; always at or before the next unread input offset.
      */
-    internal var stringOutputPosition = 0
+    internal var stringOutputPosition: Int = 0
 
     /**
      * Runs [block] with [input] and this scope as context values.

@@ -110,7 +110,7 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Int {
-        val negative = parseScope.last == 45
+        val negative = parseScope.last == '-'.code
         val digit = if (negative) {
             JsonReadBuffer.take()
         } else {
