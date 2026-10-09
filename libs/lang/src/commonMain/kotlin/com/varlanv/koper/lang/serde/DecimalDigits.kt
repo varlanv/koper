@@ -1,15 +1,17 @@
-package com.varlanv.koper.json
+package com.varlanv.koper.lang.serde
 
 import com.varlanv.koper.lang.bin.MutBytes
 
 /**
  * Decimal digit tables and sizing helpers used by integer writers; helpers do not reserve or flush output.
  */
-internal object JsonDecimalDigits {
+object DecimalDigits {
     val triplets = IntArray(1000) {
         ('0'.code + it / 100) or (('0'.code + it / 10 % 10) shl 8) or (('0'.code + it % 10) shl 16)
     }
+    // todo remove ?
     private val tens = ByteArray(100) { ('0'.code + it / 10).toByte() }
+    // todo remove ?
     private val ones = ByteArray(100) { ('0'.code + it % 10).toByte() }
 
     /**
