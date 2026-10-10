@@ -103,7 +103,7 @@ class JsonSerdeGeneratorSpec : BaseSpec({
             writeOnly.contains("return pos + 1") shouldBe true
             val empty = output.resolve("kotlin/EmptyJsonCodec.kt").readText()
             empty.contains("reserve(size = 2, position = position)") shouldBe true
-            empty.contains("writeByte(123, position = pos)") shouldBe true
+            empty.contains("writeByte('{'.code, position = pos)") shouldBe true
             empty.contains("pos++") shouldBe true
             empty.contains("writeByte(125, position = pos)") shouldBe true
             val longPrefix = output.resolve("kotlin/LongPrefixJsonCodec.kt").readText()

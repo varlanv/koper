@@ -335,7 +335,7 @@ private fun <T> readJson(
     read: context(ByteSource, JsonReadScope) () -> T,
 ): T {
     val input = bytes.asByteSource()
-    val parseScope = JsonReadScope(bufferSize.bytes())
+    val parseScope = JsonReadScope(bufferSize = bufferSize.bytes(), input = input)
     return context(input) {
         context(parseScope) {
             JsonReadProtocol.nextToken()

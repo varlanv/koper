@@ -17,8 +17,8 @@ object JsonReadProtocol {
     context(input: ByteSource, parseScope: JsonReadScope)
     fun nextToken(): Int {
         var value = JsonReadBuffer.take()
-        while (value == 32 || value == 9 || value == 10 || value == 13) value = JsonReadBuffer.take()
-        parseScope.last = value
+        while (isJsonWhitespace(value.toByte())) value = JsonReadBuffer.take()
+        parseScope.lastTokenByte = value
         return value
     }
 
@@ -32,15 +32,15 @@ object JsonReadProtocol {
     context(input: ByteSource, parseScope: JsonReadScope)
     fun nextFieldValue() {
         val index = parseScope.position
-        if (parseScope.limit - index >= 2 && parseScope.buffer[index].toInt() == 58) {
+        if (parseScope.limit - index >= 2 && parseScope.buffer[index].toInt() == ':'.code) {
             val value = parseScope.buffer[index + 1].toInt() and 255
-            if (value > 32) {
+            if (value > ' '.code) {
                 parseScope.position = index + 2
-                parseScope.last = value
+                parseScope.lastTokenByte = value
                 return
             }
         }
-        require(nextToken() == 58) { "Expected colon" }
+        require(nextToken() == ':'.code) { "Expected colon" }
         require(nextToken() != -1) { "Expected JSON value" }
     }
 
@@ -69,7 +69,7 @@ object JsonReadProtocol {
     context(parseScope: JsonReadScope)
     fun consumeField(length: Int): Boolean {
         val position = parseScope.position
-        if (parseScope.limit - position <= length || parseScope.buffer[position + length].toInt() != 34) {
+        if (parseScope.limit - position <= length || parseScope.buffer[position + length].toInt() != '"'.code) {
             return false
         }
         parseScope.position = position + length + 1
@@ -93,7 +93,7 @@ object JsonReadProtocol {
                 return false
             }
         }
-        return parseScope.buffer[start + expected.size].toInt() == 34
+        return parseScope.buffer[start + expected.size].toInt() == '"'.code
     }
 
     /**
@@ -118,8 +118,8 @@ object JsonReadProtocol {
         val limit = parseScope.limit
         val position = parseScope.position
         if (limit - position <= length + 1 ||
-            parseScope.buffer[position + length].toInt() != 34 ||
-            parseScope.buffer[position + length + 1].toInt() != 58
+            parseScope.buffer[position + length].toInt() != '"'.code ||
+            parseScope.buffer[position + length + 1].toInt() != ':'.code
         ) {
             return false
         }
@@ -138,24 +138,26 @@ object JsonReadProtocol {
     fun nextFieldOrEnd(): Int {
         val index = parseScope.position
         val limit = parseScope.limit
-        if (limit - index >= 2 && parseScope.buffer[index].toInt() == 44 && parseScope.buffer[index + 1].toInt() == 34
+        if (limit - index >= 2 &&
+            parseScope.buffer[index].toInt() == ','.code &&
+            parseScope.buffer[index + 1].toInt() == '"'.code
         ) {
             parseScope.position = index + 2
-            parseScope.last = 34
-            return 34
+            parseScope.lastTokenByte = '"'.code
+            return '"'.code
         }
-        if (index < limit && parseScope.buffer[index].toInt() == 125) {
+        if (index < limit && parseScope.buffer[index].toInt() == '}'.code) {
             parseScope.position = index + 1
-            parseScope.last = 125
-            return 125
+            parseScope.lastTokenByte = '}'.code
+            return '}'.code
         }
         val token = nextToken()
-        if (token == 125) {
+        if (token == '}'.code) {
             return token
         }
-        require(token == 44) { "Expected comma or closing brace" }
+        require(token == ','.code) { "Expected comma or closing brace" }
         val field = nextToken()
-        require(field == 34) { "Expected JSON field name" }
+        require(field == '"'.code) { "Expected JSON field name" }
         return field
     }
 
@@ -169,19 +171,19 @@ object JsonReadProtocol {
      */
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readField(): Int {
-        require(parseScope.last == 34) { "Expected JSON field name" }
+        require(parseScope.lastTokenByte == '"'.code) { "Expected JSON field name" }
         val start = parseScope.position
         var index = start
         var hash = 0
         while (index < parseScope.limit) {
             val value = parseScope.buffer[index].toInt() and 255
-            if (value == 34) {
+            if (value == '"'.code) {
                 parseScope.fieldSize = index - start
                 parseScope.fieldOffset = start
                 parseScope.position = index + 1
                 return hash
             }
-            if (value == 92 || value < 32) {
+            if (value == '\\'.code || value < ' '.code) {
                 break
             }
             hash = 31 * hash + value
@@ -235,56 +237,56 @@ object JsonReadProtocol {
     context(input: ByteSource, parseScope: JsonReadScope)
     private fun skipValue(depth: Int) {
         require(depth <= 128) { "JSON nesting limit exceeded" }
-        when (parseScope.last) {
-            34 -> {
+        when (parseScope.lastTokenByte) {
+            '"'.code -> {
                 JsonReadBuffer.skipString()
             }
 
-            116 -> {
+            't'.code -> {
                 readLiteral("rue")
             }
 
-            102 -> {
+            'f'.code -> {
                 readLiteral("alse")
             }
 
-            110 -> {
+            'n'.code -> {
                 readLiteral("ull")
             }
 
-            123 -> {
-                if (nextToken() == 125) {
+            '{'.code -> {
+                if (nextToken() == '}'.code) {
                     return
                 }
                 while (true) {
-                    require(parseScope.last == 34) { "Expected JSON field name" }
+                    require(parseScope.lastTokenByte == '"'.code) { "Expected JSON field name" }
                     JsonReadBuffer.skipString()
-                    require(nextToken() == 58) { "Expected colon" }
+                    require(nextToken() == ':'.code) { "Expected colon" }
                     nextToken()
                     skipValue(depth + 1)
                     when (nextToken()) {
-                        125 -> return
-                        44 -> nextToken()
+                        '}'.code -> return
+                        ','.code -> nextToken()
                         else -> throw IllegalArgumentException("Expected comma or closing brace")
                     }
                 }
             }
 
-            91 -> {
-                if (nextToken() == 93) {
+            '['.code -> {
+                if (nextToken() == ']'.code) {
                     return
                 }
                 while (true) {
                     skipValue(depth + 1)
                     when (nextToken()) {
-                        93 -> return
-                        44 -> nextToken()
+                        ']'.code -> return
+                        ','.code -> nextToken()
                         else -> throw IllegalArgumentException("Expected comma or closing bracket")
                     }
                 }
             }
 
-            45, in 48..57 -> {
+            '-'.code, in '0'.code..'9'.code -> {
                 skipNumber()
             }
 
@@ -302,42 +304,42 @@ object JsonReadProtocol {
      */
     context(input: ByteSource, parseScope: JsonReadScope)
     private fun skipNumber() {
-        var digit = if (parseScope.last == 45) {
+        var digit = if (parseScope.lastTokenByte == '-'.code) {
             JsonReadBuffer.take()
         } else {
-            parseScope.last
+            parseScope.lastTokenByte
         }
-        require(digit in 48..57) { "Expected JSON number" }
+        require(digit in '0'.code..'9'.code) { "Expected JSON number" }
 
-        if (digit == 48) {
+        if (digit == '0'.code) {
             digit = JsonReadBuffer.peek()
-            require(digit !in 48..57) { "Leading zero in JSON number" }
+            require(digit !in '0'.code..'9'.code) { "Leading zero in JSON number" }
         } else {
             digit = JsonReadBuffer.peek()
-            while (digit in 48..57) {
+            while (digit in '0'.code..'9'.code) {
                 parseScope.position++
                 digit = JsonReadBuffer.peek()
             }
         }
-        if (digit == 46) {
+        if (digit == '.'.code) {
             parseScope.position++
-            require(JsonReadBuffer.peek() in 48..57) { "Expected fraction digits" }
+            require(JsonReadBuffer.peek() in '0'.code..'9'.code) { "Expected fraction digits" }
             do {
                 parseScope.position++
                 digit = JsonReadBuffer.peek()
-            } while (digit in 48..57)
+            } while (digit in '0'.code..'9'.code)
         }
-        if (digit == 101 || digit == 69) {
+        if (digit == 'e'.code || digit == 'E'.code) {
             parseScope.position++
             digit = JsonReadBuffer.peek()
-            if (digit == 43 || digit == 45) {
+            if (digit == '+'.code || digit == '-'.code) {
                 parseScope.position++
             }
-            require(JsonReadBuffer.peek() in 48..57) { "Expected exponent digits" }
+            require(JsonReadBuffer.peek() in '0'.code..'9'.code) { "Expected exponent digits" }
             do {
                 parseScope.position++
                 digit = JsonReadBuffer.peek()
-            } while (digit in 48..57)
+            } while (digit in '0'.code..'9'.code)
         }
         requireDelimiter(digit)
     }
@@ -364,13 +366,13 @@ object JsonReadProtocol {
     internal fun requireDelimiter(value: Int) {
         require(
             value == -1 ||
-                value == 32 ||
-                value == 9 ||
-                value == 10 ||
-                value == 13 ||
-                value == 44 ||
-                value == 93 ||
-                value == 125,
+                value == ' '.code ||
+                value == '\t'.code ||
+                value == '\n'.code ||
+                value == '\r'.code ||
+                value == ','.code ||
+                value == ']'.code ||
+                value == '}'.code,
         ) { "Invalid JSON value suffix" }
     }
 
@@ -386,9 +388,9 @@ object JsonReadProtocol {
         parseScope.position = index
         if (index < parseScope.limit) {
             val value = parseScope.buffer[index].toInt() and 255
-            if (value > 32) {
+            if (value > ' '.code) {
                 parseScope.position = index + 1
-                parseScope.last = value
+                parseScope.lastTokenByte = value
                 return
             }
         }

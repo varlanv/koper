@@ -6,3 +6,13 @@ expect class ThreadScope<T>(initial: () -> T) {
 
     fun set(value: T)
 }
+
+class SameThreadScope<T>(initial: () -> T) {
+    private var backing = initial()
+
+    fun get(): T = backing
+
+    fun set(value: T) {
+        backing = value
+    }
+}

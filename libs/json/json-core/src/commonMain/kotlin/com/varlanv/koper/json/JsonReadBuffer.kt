@@ -85,7 +85,7 @@ internal object JsonReadBuffer {
      */
     context(input: ByteSource, parseScope: JsonReadScope)
     private fun scanString(decode: Boolean) {
-        require(parseScope.last == 34) { "Expected JSON string" }
+        require(parseScope.lastTokenByte == '"'.code) { "Expected JSON string" }
         parseScope.stringOutputPosition = parseScope.position
         parseScope.stringOffset = parseScope.position
         parseScope.stringLength = 0

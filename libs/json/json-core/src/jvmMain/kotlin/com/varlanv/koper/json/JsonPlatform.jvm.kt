@@ -24,9 +24,9 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
     override val isVector: Boolean = true
 
     override fun smokeTest(): Boolean {
-        val bytes = MutBytes((laneCount + 1).bytes()) { 65 }
+        val bytes = MutBytes((laneCount + 1).bytes()) { 'A'.code.toByte() }
         val special = laneCount / 2
-        bytes[special + 1] = 34
+        bytes[special + 1] = '"'.code.toByte()
         return specialMask(
             bytes = Bytes(bytes),
             start = 1,
@@ -36,9 +36,13 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
     override fun specialMask(bytes: Bytes, start: Int): JsonScanMask {
         val vector = Bytes.unsafe { useInternal(bytes) { ByteVector.fromArray(species, it, start) } }
         return vector
-            .compare(VectorOperators.EQ, 34.toByte())
-            .or(vector.compare(VectorOperators.EQ, 92.toByte()))
-            .or(vector.compare(VectorOperators.GE, 0.toByte()).and(vector.compare(VectorOperators.LT, 32.toByte())))
+            .compare(VectorOperators.EQ, '"'.code.toByte())
+            .or(vector.compare(VectorOperators.EQ, '\\'.code.toByte()))
+            .or(
+                vector
+                    .compare(VectorOperators.GE, 0.toByte())
+                    .and(vector.compare(VectorOperators.LT, ' '.code.toByte())),
+            )
             .toLong()
     }
 
@@ -62,13 +66,6 @@ private object VectorJsonSpecialScan : JsonSpecialScan, VectorApi {
             }
             index += 8
         }
-        while (index < end) {
-            val value = bytes[index].toInt() and 255
-            if (value == 34 || value == 92 || value < 32) {
-                return index
-            }
-            index++
-        }
-        return end
+        return firstSpecialSequential(bytes = bytes, start = index, end = end)
     }
 }

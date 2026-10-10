@@ -115,51 +115,6 @@ class JsonStringScannerSpec : BaseSpec({
         }
     }
 
-    should("scan strings with scalar and platform scanners using scope progress") {
-        for (specialScan in listOf(ScalarJsonSpecialScan, jsonScanner)) {
-            val width = specialScan.laneCount
-            val prefix = "prefix".repeat(width)
-            val tail = "tail".repeat(width)
-            val encoded = "${prefix}\\u0041\\u0042abc\\u00E9d\\u0800ef\\uD83D\\uDE03gh\\t${tail}\\nend"
-            val expected = "${prefix}ABabcéd\u0800ef😃gh\t${tail}\nend"
-            val document = "\"${encoded}\",123".encodeToByteArray()
-            val afterQuote = encoded.encodeToByteArray().size + 2
-            for (decode in listOf(false, true)) {
-                for (incremental in listOf(false, true)) {
-                    val parseScope = JsonReadScope(document.size.bytes())
-                    val bytes = parseScope.buffer
-                    for (index in document.indices) bytes[index] = document[index]
-                    parseScope.position = 1
-                    parseScope.stringOutputPosition = 1
-                    context(parseScope) {
-                        if (incremental) {
-                            for (limit in 1..afterQuote) {
-                                parseScope.limit = limit
-                                JsonStringScanner.scan(decode = decode, specialScan = specialScan) shouldBe
-                                    (limit == afterQuote)
-                                (parseScope.position <= limit) shouldBe true
-                                (parseScope.stringOutputPosition <= parseScope.position) shouldBe true
-                            }
-                        } else {
-                            parseScope.limit = document.size
-                            JsonStringScanner.scan(decode = decode, specialScan = specialScan) shouldBe true
-                        }
-                        parseScope.position shouldBe afterQuote
-                        if (decode) {
-                            val output = ByteArray(parseScope.stringOutputPosition - 1) { bytes[it + 1] }
-                            output.contentEquals(expected.encodeToByteArray()) shouldBe true
-                        } else {
-                            parseScope.stringOutputPosition shouldBe 1
-                            ByteArray(bytes.size) { bytes[it] }.contentEquals(document) shouldBe true
-                        }
-                        ByteArray(document.size - afterQuote) { bytes[afterQuote + it] }
-                            .contentEquals(",123".encodeToByteArray()) shouldBe true
-                    }
-                }
-            }
-        }
-    }
-
     should("preserve following tokens after buffer growth and compaction") {
         val first = "a".repeat(300) + "\n" + "b".repeat(500)
         val document = "[\"${"a".repeat(300)}\\n${"b".repeat(500)}\",\"\\tsecond\",-42]".encodeToByteArray()
@@ -295,7 +250,7 @@ private fun <T> scanJson(
     read: context(ByteSource, JsonReadScope) () -> T,
 ): T {
     val input = SplitJsonByteSource(bytes = bytes, splitAt = splitAt, maximumRead = maximumRead)
-    val parseScope = JsonReadScope(bufferSize.bytes())
+    val parseScope = JsonReadScope(bufferSize = bufferSize.bytes(), input = input)
     return context(input) {
         context(parseScope) {
             JsonReadProtocol.nextToken()

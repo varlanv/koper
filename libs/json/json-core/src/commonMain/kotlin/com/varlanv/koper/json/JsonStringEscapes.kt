@@ -1,5 +1,8 @@
 package com.varlanv.koper.json
 
+import com.varlanv.koper.json.JsonStringEscapes.UNICODE_PAIR
+import com.varlanv.koper.json.JsonStringEscapes.escapePairs
+import com.varlanv.koper.json.JsonStringEscapes.unicodeTails
 import com.varlanv.koper.lang.bin.Bytes
 import com.varlanv.koper.lang.bin.MutBytes
 
@@ -7,23 +10,23 @@ import com.varlanv.koper.lang.bin.MutBytes
  * Escape tables and buffered UTF-8 string output. Helpers write string contents without surrounding quotes.
  */
 internal object JsonStringEscapes {
-    const val unicodePair: Short = 0x755c
-    private const val hex = "0123456789abcdef"
+    const val UNICODE_PAIR: Short = (('u'.code shl 8) or '\\'.code).toShort()
+    private const val HEX = "0123456789abcdef"
 
     val unicodeTails = IntArray(32) { value ->
-        0x3030 or (hex[value ushr 4].code shl 16) or (hex[value and 15].code shl 24)
+        0x3030 or (HEX[value ushr 4].code shl 16) or (HEX[value and 15].code shl 24)
     }
 
     val escapePairs = ByteArray(256)
         .also { codes ->
             for (value in 0..31) codes[value] = 'u'.code.toByte()
-            codes[8] = 'b'.code.toByte()
-            codes[9] = 't'.code.toByte()
-            codes[10] = 'n'.code.toByte()
+            codes['\b'.code] = 'b'.code.toByte()
+            codes['\t'.code] = 't'.code.toByte()
+            codes['\n'.code] = 'n'.code.toByte()
             codes[12] = 'f'.code.toByte()
-            codes[13] = 'r'.code.toByte()
-            codes[34] = 34
-            codes[92] = 92
+            codes['\r'.code] = 'r'.code.toByte()
+            codes['"'.code] = '"'.code.toByte()
+            codes['\\'.code] = '\\'.code.toByte()
         }
         .let { codes ->
             ShortArray(256) { index ->
@@ -91,7 +94,7 @@ internal object JsonStringEscapes {
                 val escaped = escapePairs[value]
                 target.setPackedShort(idx = offset, value = escaped)
                 offset += 2
-                if (escaped == unicodePair) {
+                if (escaped == UNICODE_PAIR) {
                     target.setPackedInt(idx = offset, value = unicodeTails[value])
                     offset += 4
                 }
@@ -110,18 +113,7 @@ internal object JsonStringEscapes {
             index = blockEnd
         }
         while (index < end) {
-            val value = bytes[index++].toInt() and 255
-            val escaped = escapePairs[value]
-            if (escaped.toInt() != 0) {
-                target.setPackedShort(idx = offset, value = escaped)
-                offset += 2
-                if (escaped == unicodePair) {
-                    target.setPackedInt(idx = offset, value = unicodeTails[value])
-                    offset += 4
-                }
-            } else {
-                target[offset++] = value.toByte()
-            }
+            offset = writeUtf8EscapedTail(bytes = bytes, index = index++, offset = offset, target = target)
         }
         return offset
     }
@@ -156,7 +148,7 @@ internal object JsonStringEscapes {
                 val escaped = escapePairs[value]
                 target.setPackedShort(idx = offset, value = escaped)
                 offset += 2
-                if (escaped == unicodePair) {
+                if (escaped == UNICODE_PAIR) {
                     target.setPackedInt(idx = offset, value = unicodeTails[value])
                     offset += 4
                 }
@@ -175,19 +167,30 @@ internal object JsonStringEscapes {
             index = blockEnd
         }
         while (index < end) {
-            val value = bytes[index++].toInt() and 255
-            val escaped = escapePairs[value]
-            if (escaped.toInt() != 0) {
-                target.setPackedShort(idx = offset, value = escaped)
-                offset += 2
-                if (escaped == unicodePair) {
-                    target.setPackedInt(idx = offset, value = unicodeTails[value])
-                    offset += 4
-                }
-            } else {
-                target[offset++] = value.toByte()
-            }
+            offset = writeUtf8EscapedTail(bytes = bytes, index = index++, offset = offset, target = target)
         }
         return offset
+    }
+}
+
+private fun writeUtf8EscapedTail(
+    bytes: Bytes,
+    index: Int,
+    offset: Int,
+    target: MutBytes,
+): Int {
+    val value = bytes[index].toInt() and 255
+    val escaped = escapePairs[value]
+    if (escaped.toInt() == 0) {
+        target[offset] = value.toByte()
+        return offset + 1
+    } else {
+        target.setPackedShort(idx = offset, value = escaped)
+        if (escaped != UNICODE_PAIR) {
+            return offset + 2
+        } else {
+            target.setPackedInt(idx = offset + 2, value = unicodeTails[value])
+            return offset + 6
+        }
     }
 }

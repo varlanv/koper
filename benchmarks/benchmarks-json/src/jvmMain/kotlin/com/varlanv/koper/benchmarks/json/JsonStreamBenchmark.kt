@@ -75,7 +75,7 @@ class JsonStreamBenchmark {
         streamInput = InputStreamByteSource(input)
         output = RecycledOutputStream(bytes.size + 64)
         streamOutput = OutputStreamByteSink(output)
-        parseScope = JsonReadScope(32.kilobytes())
+        parseScope = JsonReadScope(bufferSize = 32.kilobytes(), input = streamInput)
 
         check(generatedReadUtf8() == strValue)
         check(generatedReadString() == stringValue)

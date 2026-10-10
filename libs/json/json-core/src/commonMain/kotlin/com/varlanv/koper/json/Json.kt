@@ -11,9 +11,9 @@ val GlobalJson = Json()
  * Codec-based read and write entry points. Currently creates fresh operation scopes directly;
  * the allocator is leased during reading but its storage is not yet connected to the read scope.
  *
- * @param allocator Allocator leased by [readFrom] and released through its use callback.
+ * @param bufferPool Allocator leased by [readFrom] and released through its use callback.
  */
-class Json(private val allocator: BufferAllocator = BufferAllocator(16.kilobytes())) {
+class Json(private val bufferPool: BufferPool = BufferPool(16.kilobytes())) {
     /**
      * Invokes [writeCodec] for [value] with a newly allocated write scope and the supplied [sink].
      * The codec may flush output, but this entry point does not flush final pending bytes; scope exit discards them.
@@ -40,10 +40,9 @@ class Json(private val allocator: BufferAllocator = BufferAllocator(16.kilobytes
      * @return The codec's decoded result of type [T].
      */
     fun <T> readFrom(source: ByteSource, readCodec: JsonCodec.Read<T>): T {
-        return allocator.use { buffer ->
-            JsonReadScope(128.bytes()).scoped(source) {
-                readCodec.read()
-            }
+        //        val buff = bufferPool.get()
+        return JsonReadScope(bufferSize = 128.bytes(), input = source).scoped(source) {
+            readCodec.read()
         }
     }
 }

@@ -110,11 +110,11 @@ object IntJsonCodec : JsonCodec.Read<Int>, JsonCodec.Write<Int> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Int {
-        val negative = parseScope.last == '-'.code
+        val negative = parseScope.lastTokenByte == '-'.code
         val digit = if (negative) {
             JsonReadBuffer.take()
         } else {
-            parseScope.last
+            parseScope.lastTokenByte
         }
         require(digit in 48..57) { "Expected JSON integer" }
         val minimum = if (negative) {
@@ -200,11 +200,11 @@ object LongJsonCodec : JsonCodec.Read<Long>, JsonCodec.Write<Long> {
 
     context(input: ByteSource, parseScope: JsonReadScope)
     fun readPrimitive(): Long {
-        val negative = parseScope.last == 45
+        val negative = parseScope.lastTokenByte == 45
         val digit = if (negative) {
             JsonReadBuffer.take()
         } else {
-            parseScope.last
+            parseScope.lastTokenByte
         }
         require(digit in 48..57) { "Expected JSON integer" }
         val minimum = if (negative) {
@@ -297,7 +297,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
     fun readPrimitive(): Boolean {
         val index = parseScope.position
         val available = parseScope.limit - index
-        if (parseScope.last == 116 && available >= 4) {
+        if (parseScope.lastTokenByte == 116 && available >= 4) {
             val word = parseScope.buffer.getPackedInt(index)
             if (word and 0x00ffffff == 0x00657572) {
                 JsonReadProtocol.requireDelimiter(word ushr 24)
@@ -306,7 +306,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
             }
             throw IllegalArgumentException("Invalid JSON literal")
         }
-        if (parseScope.last == 102 && available >= 5) {
+        if (parseScope.lastTokenByte == 102 && available >= 5) {
             if (parseScope.buffer.getPackedInt(index) == 0x65736c61) {
                 JsonReadProtocol.requireDelimiter(parseScope.buffer[index + 4].toInt() and 255)
                 parseScope.position = index + 4
@@ -314,7 +314,7 @@ object BooleanJsonCodec : JsonCodec.Read<Boolean>, JsonCodec.Write<Boolean> {
             }
             throw IllegalArgumentException("Invalid JSON literal")
         }
-        val value = when (parseScope.last) {
+        val value = when (parseScope.lastTokenByte) {
             116 -> {
                 readTail("rue")
                 true
@@ -387,7 +387,7 @@ object StringJsonCodec : JsonCodec.Read<String>, JsonCodec.Write<String> {
                 } else {
                     output.setPackedShort(idx = pos, value = pair)
                     pos += 2
-                    if (pair == JsonStringEscapes.unicodePair) {
+                    if (pair == JsonStringEscapes.UNICODE_PAIR) {
                         output.setPackedInt(idx = pos, value = JsonStringEscapes.unicodeTails[char])
                         pos += 4
                     }

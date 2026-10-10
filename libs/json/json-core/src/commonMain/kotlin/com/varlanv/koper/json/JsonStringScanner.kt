@@ -41,7 +41,7 @@ internal object JsonStringScanner {
         if (special == limit) {
             return false
         }
-        if (bytes[special].toInt() == 34) {
+        if (bytes[special].toInt() == '"'.code) {
             parseScope.position = special + 1
             return true
         }
@@ -79,7 +79,7 @@ internal object JsonStringScanner {
                 }
                 index = special
                 val value = bytes[index].toInt() and 255
-                if (value == 34) {
+                if (value == '"'.code) {
                     parseScope.position = index + 1
                     parseScope.stringOutputPosition = output
                     return true
@@ -125,7 +125,7 @@ internal object JsonStringScanner {
         var output = parseScope.stringOutputPosition
         while (index < limit) {
             val value = bytes[index].toInt() and 255
-            if (value == 34) {
+            if (value == '"'.code) {
                 parseScope.position = index + 1
                 parseScope.stringOutputPosition = output
                 return true

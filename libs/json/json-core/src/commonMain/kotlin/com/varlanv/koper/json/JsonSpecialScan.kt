@@ -70,13 +70,22 @@ internal object ScalarJsonSpecialScan : JsonSpecialScan {
             }
             index += laneCount
         }
-        while (index < end) {
-            val value = bytes[index].toInt() and 255
-            if (value == 34 || value == 92 || value < 32) {
-                return index
-            }
-            index++
-        }
-        return end
+        return firstSpecialSequential(bytes = bytes, start = start, end = end)
     }
+}
+
+internal fun firstSpecialSequential(
+    bytes: Bytes,
+    start: Int,
+    end: Int,
+): Int {
+    var index = start
+    while (index < end) {
+        val value = bytes[index].toInt() and 255
+        if (value == '"'.code || value == '\\'.code || value < ' '.code) {
+            return index
+        }
+        index++
+    }
+    return end
 }

@@ -231,7 +231,7 @@ private fun generateSource(
             }, position = position)",
         )
         if (fields.isEmpty()) {
-            appendLine("        $writeProtocol.writeByte(123, position = pos)")
+            appendLine("        $writeProtocol.writeByte('{'.code, position = pos)")
             appendLine("        pos++")
         }
         for (field in fields) {
@@ -273,7 +273,7 @@ private fun generateSource(
         appendLine()
         appendLine("    context(input: $binType.ByteSource, parseScope: $jsonType.JsonReadScope)")
         appendLine("    override fun read(): $classType {")
-        appendLine("        require(parseScope.last == 123) { \"Expected JSON object\" }")
+        appendLine("        require(parseScope.lastTokenByte == 123) { \"Expected JSON object\" }")
         fields.forEachIndexed { index, field ->
             val initial = when (field.type) {
                 FieldType.INT -> "Int = 0"
@@ -287,9 +287,9 @@ private fun generateSource(
         val groupCount = (fields.size + 31) / 32
         repeat(groupCount) { appendLine("        var _seen$it = 0") }
         appendLine("        var _token = $readProtocol.nextToken()")
-        appendLine("        if (_token != 125) {")
+        appendLine("        if (_token != '}'.code) {")
         appendLine("            while (true) {")
-        appendLine("                require(_token == 34) { \"Expected JSON field name\" }")
+        appendLine("                require(_token == '\"'.code) { \"Expected JSON field name\" }")
         if (fastFields.isNotEmpty()) {
             appendLine("                val _word = $readProtocol.peekFieldWord()")
             appendLine("                val _wordTail = $readProtocol.peekFieldWordTail()")
@@ -298,9 +298,11 @@ private fun generateSource(
         fastFields.forEach { (index, field) ->
             val nameLength = field.nameBytes.size
             val compactMatch = if (nameLength <= 6) {
-                packedWordMatch(field.nameBytes + byteArrayOf(34, 58))
+                packedWordMatch(field.nameBytes + byteArrayOf('"'.code.toByte(), ':'.code.toByte()))
             } else if (nameLength == 7) {
-                "${packedWordMatch(field.nameBytes + byteArrayOf(34))} && $readProtocol.consumeFieldColon($nameLength)"
+                "${packedWordMatch(
+                    field.nameBytes + byteArrayOf('"'.code.toByte()),
+                )} && $readProtocol.consumeFieldColon($nameLength)"
             } else if (nameLength == 8) {
                 "${packedWordMatch(field.nameBytes)} && $readProtocol.consumeFieldColon($nameLength)"
             } else {
@@ -317,7 +319,7 @@ private fun generateSource(
         fastFields.forEach { (index, field) ->
             val nameLength = field.nameBytes.size
             val nameMatch = if (nameLength <= 7) {
-                packedWordMatch(field.nameBytes + byteArrayOf(34))
+                packedWordMatch(field.nameBytes + byteArrayOf('"'.code.toByte()))
             } else if (nameLength == 8) {
                 packedWordMatch(field.nameBytes)
             } else {
@@ -345,7 +347,7 @@ private fun generateSource(
         appendLine("                    }")
         appendLine("                }")
         appendLine("                _token = $readProtocol.nextFieldOrEnd()")
-        appendLine("                if (_token == 125) break")
+        appendLine("                if (_token == '}'.code) break")
         appendLine("            }")
         appendLine("        }")
         repeat(groupCount) { group ->
@@ -524,7 +526,7 @@ private fun jsonFieldPrefix(name: String, first: Boolean): ByteArray = buildStri
             '\n' -> append("\\n")
             '\r' -> append("\\r")
             '\t' -> append("\\t")
-            else -> if (char.code < 32) {
+            else -> if (char.code < ' '.code) {
                 append("\\u")
                 append(char.code.toString(16).padStart(4, '0'))
             } else {
