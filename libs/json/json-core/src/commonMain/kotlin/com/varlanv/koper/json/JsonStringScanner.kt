@@ -130,8 +130,8 @@ internal object JsonStringScanner {
                 parseScope.stringOutputPosition = output
                 return true
             }
-            require(value >= 32) { "Unescaped control character" }
-            if (value == 92) {
+            require(value >= ' '.code) { "Unescaped control character" }
+            if (value == '\\'.code) {
                 parseScope.stringOutputPosition = output
                 val next = readEscape(bytes = bytes, index = index, limit = limit, decode = decode)
                 if (next == index) {
@@ -208,14 +208,14 @@ internal object JsonStringScanner {
             return index
         }
         val escaped = bytes[index + 1].toInt() and 255
-        if (escaped != 117) {
+        if (escaped != 'u'.code) {
             val value: Byte = when (escaped) {
-                34, 92, 47 -> escaped.toByte()
-                98 -> 8
-                102 -> 12
-                110 -> 10
-                114 -> 13
-                116 -> 9
+                '"'.code, '\\'.code, '/'.code -> escaped.toByte()
+                'b'.code -> '\b'.code.toByte()
+                'f'.code -> 12
+                'n'.code -> '\n'.code.toByte()
+                'r'.code -> '\r'.code.toByte()
+                't'.code -> '\t'.code.toByte()
                 else -> throw IllegalArgumentException("Invalid JSON escape")
             }
             var output = parseScope.stringOutputPosition
@@ -234,7 +234,7 @@ internal object JsonStringScanner {
             if (limit - index < 12) {
                 return index
             }
-            require(bytes[index + 6].toInt() == 92 && bytes[index + 7].toInt() == 117) {
+            require(bytes[index + 6].toInt() == '\\'.code && bytes[index + 7].toInt() == 'u'.code) {
                 "Expected low surrogate escape"
             }
             val low = readHex(bytes = bytes, index = index + 8)
@@ -274,9 +274,9 @@ internal object JsonStringScanner {
      */
     private fun hexDigit(value: Int): Int {
         return when (value) {
-            in 48..57 -> value - 48
-            in 65..70 -> value - 55
-            in 97..102 -> value - 87
+            in '0'.code..'9'.code -> value - '0'.code
+            in 'A'.code..'F'.code -> value - ('A'.code - 10)
+            in 'a'.code..'f'.code -> value - ('a'.code - 10)
             else -> throw IllegalArgumentException("Invalid Unicode escape")
         }
     }
