@@ -90,14 +90,7 @@ internal object JsonStringEscapes {
                     }
                     offset += length
                 }
-                val value = bytes[special].toInt() and 255
-                val escaped = escapePairs[value]
-                target.setPackedShort(idx = offset, value = escaped)
-                offset += 2
-                if (escaped == UNICODE_PAIR) {
-                    target.setPackedInt(idx = offset, value = unicodeTails[value])
-                    offset += 4
-                }
+                offset = writeUtf8EscapedChunk(bytes = bytes, index = special, offset = offset, target = target)
                 index = special + 1
                 events = events.dropFirstEvent()
             }
@@ -144,14 +137,7 @@ internal object JsonStringEscapes {
                     )
                     offset += special - index
                 }
-                val value = bytes[special].toInt() and 255
-                val escaped = escapePairs[value]
-                target.setPackedShort(idx = offset, value = escaped)
-                offset += 2
-                if (escaped == UNICODE_PAIR) {
-                    target.setPackedInt(idx = offset, value = unicodeTails[value])
-                    offset += 4
-                }
+                offset = writeUtf8EscapedChunk(bytes = bytes, index = special, offset = offset, target = target)
                 index = special + 1
                 events = events.dropFirstEvent()
             }
@@ -192,5 +178,22 @@ private fun writeUtf8EscapedTail(
             target.setPackedInt(idx = offset + 2, value = unicodeTails[value])
             return offset + 6
         }
+    }
+}
+
+private fun writeUtf8EscapedChunk(
+    bytes: Bytes,
+    index: Int,
+    offset: Int,
+    target: MutBytes,
+): Int {
+    val value = bytes[index].toInt() and 255
+    val escaped = escapePairs[value]
+    target.setPackedShort(idx = offset, value = escaped)
+    if (escaped != UNICODE_PAIR) {
+        return offset + 2
+    } else {
+        target.setPackedInt(idx = offset + 2, value = unicodeTails[value])
+        return offset + 6
     }
 }
